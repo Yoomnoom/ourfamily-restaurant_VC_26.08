@@ -564,3 +564,10 @@
 - **3단계 진행**: `3-2. 식사 만들기` 전체를 실제 DB 연동으로 재작성 완료(식사 생성/수정, 참여자 목록을 가구 구성원+즉석손님으로 구성, 반복일정·메뉴투표·자주가는곳·저장된손님 전부 실 테이블 연동, 요일별기본값·미리답변 캐시로 자동 체크).
 - 전 파일(35개) JS 문법·링크 재검증 통과.
 - **다음**: 3-1, 3-3(1인1링크 응답 화면 — 신규 토큰 스킴 적용), 3-0, 3-4, 3-5, 3-7, 3-8(공유 화면도 새 토큰 스킴으로), 3-9 순서로 계속.
+
+## Vercel 배포 + 실사용 테스트 중 발견한 버그 2건 수정 (2026-08-17)
+
+- **배경**: `ourfamily-restaurant_VC_26.08` 저장소를 Vercel에 배포하고 실제로 로그인·온보딩을 테스트하다가 "로그인 실패", "가구 생성 실패" 두 가지를 겪음. 둘 다 슈퍼베이스 로그(`query_logs`)와 직접 REST 호출 재현으로 근본 원인을 찾음.
+- **버그 1 — 로그인은 성공하는데 "로그인 실패"로 뜸**: `getMyMember()`의 `household_members_vc2608 → households_vc2608` embed 쿼리가 PostgREST 에러(PGRST201, "관계가 모호함")를 던졌음. 원인: `last_seen_vc2608`이 `household_members_vc2608`과 `households_vc2608` 둘 다를 참조해서, PostgREST가 두 테이블을 연결할 FK 후보가 2개(직접 FK vs `last_seen_vc2608` 경유)라고 판단. 로그인 자체(Supabase Auth `/token`)는 실제로 200으로 성공했는데, 그 직후 이 쿼리가 에러를 던지고 `.catch()`가 이를 "이메일/비밀번호 확인" 메시지로 잘못 표시한 것. **조치**: `shared/supabase-client.js`의 select문에 FK 이름을 명시(`households_vc2608!household_members_vc2608_household_id_fkey`)해서 해결.
+- **버그 2 — 가구 생성 실패(`households_vc2608_owner_id_fkey` 위반)**: `admin@admin.com` 계정이 `handle_new_user_vc2608` 트리거가 생기기 전(또는 다른 경로로) 만들어진 계정이라 `profiles_vc2608` 행이 없었음. `households_vc2608.owner_id`가 `profiles_vc2608(id)`를 참조하는데 그 행이 없어서 FK 위반. 조사 중 이런 "고아 계정"이 이 슈퍼베이스 프로젝트에 여러 개 있는 걸 발견(대부분 다른 수업 프로젝트의 테스트 계정). **조치**: `API.households.create()`가 가구 생성 RPC 호출 전에 `profiles_vc2608`을 self-heal upsert하도록 수정(있으면 무시, 없으면 생성) — 특정 계정 하나만 땜질하지 않고 앞으로 비슷한 계정이 또 나와도 자동 복구되게 함. DB에는 `profiles_vc2608`에 대한 `INSERT` 권한(GRANT)과 본인 행 삽입 RLS 정책을 추가로 부여.
+- 두 수정 모두 커밋·푸시 완료, Vercel 자동 재배포됨.
