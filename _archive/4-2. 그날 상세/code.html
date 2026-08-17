@@ -1,0 +1,74 @@
+<!DOCTYPE html><html lang="ko"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>우리집식당 - 8월 16일</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = { darkMode: "class", theme: { extend: {
+              "colors": {
+                      "surface": "#fbf9f8", "surface-container-lowest": "#ffffff", "surface-container": "#f0eded",
+                      "on-surface": "#1b1c1c", "on-surface-variant": "#45474a", "outline-variant": "#c6c6ca",
+                      "primary": "#5d5e62", "on-primary": "#ffffff", "secondary-container": "#e3e2e3", "on-secondary-container": "#646465"
+              },
+              "spacing": { "section-margin": "2rem", "card-padding": "1.25rem", "safe-area-inset": "1rem", "stack-gap": "1rem" },
+              "fontFamily": { "headline-lg": ["Plus Jakarta Sans"], "body-md": ["Plus Jakarta Sans"], "label-sm": ["Plus Jakarta Sans"] },
+              "fontSize": {
+                      "headline-lg": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                      "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                      "label-sm": ["13px", { "lineHeight": "18px", "letterSpacing": "0.02em", "fontWeight": "500" }]
+              }
+      } } }
+      </script>
+<style>body { min-height: max(884px, 100dvh); -webkit-tap-highlight-color: transparent; }</style>
+  </head>
+<body class="bg-surface text-on-surface font-body-md antialiased min-h-screen flex flex-col items-center">
+<main class="w-full max-w-[600px] flex flex-col px-safe-area-inset py-section-margin pb-28">
+
+<header class="flex items-center gap-3 mb-6">
+<button class="w-11 h-11 flex items-center justify-center rounded-full bg-surface-container-lowest text-on-surface shadow-[0px_4px_12px_rgba(120,119,119,0.08)] active:scale-95 transition-transform" onclick="window.location.href='../../4-1. 홈 달력뷰/code.html'" aria-label="달력으로">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+<h1 id="dateTitle" class="font-headline-lg text-headline-lg text-on-surface">8월 16일</h1>
+</header>
+
+<div class="flex flex-col gap-3 mb-6">
+
+<!-- 식사1 -->
+<article class="rounded-xl bg-surface-container-lowest shadow-[0px_4px_12px_rgba(120,119,119,0.08)] p-card-padding" style="border-left:4px solid #8a9a7b;">
+<div class="flex items-center gap-2 mb-2">
+<span class="font-label-sm text-label-sm text-on-surface-variant">저녁 · 19:00</span>
+<span class="font-label-sm text-label-sm bg-secondary-container text-on-secondary-container px-2 py-0.5 rounded-full">집밥</span>
+</div>
+<h2 class="font-headline-lg text-headline-lg text-on-surface mb-1">김치찌개 · 계란말이 · 나물무침</h2>
+<p class="font-label-sm text-label-sm text-on-surface-variant">함께 2명 · 확인 안 됨 1명</p>
+</article>
+
+<!-- 식사2 -->
+<article class="rounded-xl bg-surface-container-lowest shadow-[0px_4px_12px_rgba(120,119,119,0.08)] p-card-padding" style="border-left:4px solid #9b8ab5;">
+<div class="flex items-center gap-2 mb-2">
+<span class="font-label-sm text-label-sm text-on-surface-variant">야식 · 22:00</span>
+<span class="font-label-sm text-label-sm bg-secondary-container text-on-secondary-container px-2 py-0.5 rounded-full">배달</span>
+</div>
+<h2 class="font-headline-lg text-headline-lg text-on-surface mb-1">치킨</h2>
+<p class="font-label-sm text-label-sm text-on-surface-variant">함께 2명 · 박철수가 만듦</p>
+</article>
+
+</div>
+
+<button class="w-full py-3 rounded-xl border border-dashed border-outline-variant text-on-surface-variant font-label-sm text-label-sm flex items-center justify-center gap-2" onclick="window.location.href='../../3-2. 식사 만들기/code.html'">
+<span class="material-symbols-outlined text-[18px]">add</span>
+이 날 식사 추가
+</button>
+
+</main>
+
+<script>
+    var params = new URLSearchParams(window.location.search);
+    var date = params.get('date');
+    if (date) { document.getElementById('dateTitle').textContent = '8월 ' + date + '일'; }
+</script>
+</body></html>
