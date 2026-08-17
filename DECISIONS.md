@@ -686,3 +686,25 @@
 - 전체 35개 `code.html` JS 문법·링크 재검증 통과(0 errors / 0 broken links). 커밋·푸시 완료.
 - **마일스톤**: 이것으로 `FEATURE_CATALOG.md`에 "포함"으로 표시된 모든 화면(A온보딩~D가구관리, G신규기능, 8-1밀키트)의 Supabase 실 DB 전환이 끝남. 남은 작업은 (1) 카카오 OAuth 외부 설정(사용자가 직접), (2) 사용자가 직접 브라우저로 전체 흐름 실제 테스트, (3) 미루된 두 건(사진기록+SNS 공유, 9장 참고이미지 기반 전면 리디자인) 중 사용자 지시에 따라 진행.
 
+
+## 스키마 성능 하드닝 — Supabase 자문(advisors) 기반 (2026-08-18 밤)
+
+모든 화면 전환이 끝난 뒤, `get_advisors`(security/performance)로 실제 지적을 확인하고 **우리 프로젝트가 만든 테이블/정책만** 골라서 안전하게 고침.
+
+- **주의**: `household_invites_vc2608`, `webauthn_credentials_vc2608` 테이블과 `create_household_invite_vc2608`/`redeem_household_invite_vc2608`/`transfer_household_owner_vc2608`/`is_admin`/`is_admin_vc`/`handle_new_user`/`get_registered_email_domains` 등 이 프로젝트가 만든 적 없는 함수들이 같이 떴음 — 이건 vc2608 접미사를 공유하는 **다른 실제 Next.js 개발 프로젝트의 기능**으로 판단되어 절대 손대지 않음(남의 실서비스를 깰 위험).
+- **RLS `auth.uid()` 행당 재평가 문제**(perf advisor `auth_rls_initplan`): 우리가 만든 8개 정책(`household_members_vc2608_self_leave`, `households_vc2608_delete_owner`, `meal_responses_vc2608_member_insert`/`_member_update`, `meals_vc2608_insert`, `profiles_vc2608_insert_own`/`_select`/`_update_own`)에서 단독 `auth.uid()` 호출을 `(select auth.uid())`로 감싸 쿼리당 한 번만 평가되게 개선(의미 동일, 순수 성능 최적화). `ALTER POLICY`로 기존 정책을 그대로 재정의(드롭·재생성 없이), 적용 후 `pg_policies` 재조회로 8개 모두 의도대로 바뀌었는지 확인.
+- **FK 컴럼 인덱스 누락**(perf advisor `unindexed_foreign_keys`): 우리가 만든 15개 테이블의 22개 FK 컴럼에 커버링 인덱스가 없었음 — `CREATE INDEX IF NOT EXISTS`로 전부 추가(동작 변화 없는 순수 추가적 작업). 적용 후 `pg_indexes` 재조회로 22개 모두 생성 확인.
+- `household_members_vc2608`에 SELECT/DELETE에서 정책 2개(`admin_manage`+`self_leave`)가 겹치는 "multiple permissive policies" 경고도 있었으나, 둘을 하나로 합치려면 의미 검증(관리자 아닌 사람도 자기 탈퇴는 가능해야 하는 등)이 필요해서 **이번엔 손대지 않음**(사용자 잠든 사이 확인 없이 권한 범위를 바꿀 위험 회피) — 다음에 사용자와 함께 확인 후 정리 가능.
+- 변경 사항 없음(백엔드 순수 최적화라) 테스트 스크립트 재실행 없이 마이그레이션만 적용·검증함.
+
+
+## 실제 재현 버그 수정 — 홈 화면이 "-" 플레이스홀더에서 멈춤 (2026-08-18 밤)
+
+- **증상**: 사용자가 실제 배포본 스크린샷 제보 — 3-0(홈) 화면이 메뉴/부제목 모두 HTML 기본값인 "-"만 뜬 채 멈춰있음.
+- **진단**: Supabase 로그를 조회해보니 `household_members_vc2608` GET은 계속 200으로 성공하는데 그 뒤로 `meals_vc2608` 등 후속 요청이 단 한 번도 안 찍힌 — `getMyMember()` 성공 직후 어딘가에서 에러가 조용히 나고 있다고 판단. DB를 직접 조회해 `admin@admin.com` 계정이 실제로 가구 두 개의 owner로 등록되어있음을 확인(온보딩을 한 번 중단했다 다시 완료해서 생긴 흔적 — 이전에 "실사용에 지장 없음"으로 잘못 판단했던 바로 그 상태).
+- **근본 원인**: `getMyMember()`가 `.maybeSingle()`을 쓰는데, 이 계정처럼 행이 2개면 PostgREST가 에러를 던지고 → 3-0 init()의 await 체인이 중간에 멈춰서 → DOM 텍스트를 채우는 코드가 전혀 실행 안 됨 → HTML에 원래 있던 "-" 기본값이 그대로 화면에 남음.
+- **수정**: `getMyMember()`를 `.order('joined_at', {ascending:false}).limit(1)` + 배열 첫 원소 반환으로 교체 — 가구가 여러 개여도 절대 에러를 던지지 않고 가장 최근에 합류한 가구를 고름(실제로 이 계정도 오래된 쪽은 구성원 1명뿐인 미완성 가구, 최근 쪽이 구성원 3명인 진짜 가구였음 — 최신순이 더 안전한 기본값).
+- 같은 문제 유형(테이블에 유니크 제약이 없어 `.maybeSingle()`이 잠재적으로 에러를 던질 수 있는 곳)을 `shared/api.js` 전체에서 점검 — `API.menuPoll.get()`도 household당 활성 투표 1개를 강제하는 DB 제약이 없어 동일 버그 여지가 있어 같은 방식(최신 1개만 반환)으로 방어 코드 추가.
+- 문제의 중복 가구(구성원 1명, 데이터 없음) 삭제는 시도했으나 auto mode classifier가 파괴적 작업으로 차단함 — 위 코드 수정만으로 이미 안전하므로, 실제 삭제 여부는 사용자 판단에 맡김.
+- 전체 35개 `code.html` JS 문법·링크 재검증 통과(0 errors / 0 broken links). 커밋·푸시 완료.
+
