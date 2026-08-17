@@ -3,6 +3,9 @@
 <meta content="width=device-width, initial-scale=1.0" name="viewport">
 <title>우리집식당 - 확정 전 요약</title>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../shared/supabase-client.js"></script>
+<script src="../shared/api.js"></script>
 <link href="https://fonts.googleapis.com" rel="preconnect">
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif:wght@400;700&amp;family=Plus+Jakarta+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
@@ -96,19 +99,23 @@
         toastTimer = setTimeout(function () { toast.classList.remove('opacity-100'); toast.classList.add('opacity-0'); }, 2600);
     }
 
-    var IDENTITY_COLOR = { '김영희': '#8a9a7b', '박철수': '#9b8ab5', '이지은': '#c98a5a', '김하준': '#5f8fa3' };
-    var DEFAULT_MEAL = {
-        title: '오늘의 식탁, 확정할까요?', menu: '김치찌개 외 1개',
-        attending: [{ name: '김영희 (나)', note: '제시간' }],
-        late: [{ name: '박철수', note: '8시쯤 도착해요' }],
-        pending: [{ name: '이지은', reason: '평소 안 먹음 · 예상에서 제외' }]
-    };
+    var mealId = null;
+    var meal = { title: '오늘의 식탁, 확정할까요?', menu: '', attending: [], late: [], pending: [] };
+    var count = 0;
 
-    var meal = null;
-    try { meal = JSON.parse(localStorage.getItem('meal_summary') || 'null'); } catch (err) {}
-    if (!meal) meal = DEFAULT_MEAL;
-
-    var count = meal.attending.length + meal.late.length;
+    function buildGroupsFromRoster(rosterRows) {
+        var attending = [], late = [], pending = [];
+        rosterRows.forEach(function (r) {
+            if (r.status === 'attending') {
+                if (r.note && r.note.indexOf('좀 늦어요') !== -1) late.push({ memberId: r.memberId, name: r.name, color: r.color, note: r.note });
+                else attending.push({ memberId: r.memberId, name: r.name, color: r.color, note: r.note });
+            } else if (r.status === 'pending') {
+                pending.push({ memberId: r.memberId, name: r.name, color: r.color, reason: '아직 확인 전' });
+            }
+            // absent(안 먹어요)는 준비 인원에서 이미 빠진 사람이라 이 화면엔 표시 안 함.
+        });
+        return { attending: attending, late: late, pending: pending };
+    }
 
     function renderGroups() {
         var container = document.getElementById('groupsContainer');
@@ -116,7 +123,7 @@
 
         function personRow(p, extra) {
             var initial = (p.name || '?').trim().charAt(0);
-            var color = IDENTITY_COLOR[p.name] || '#8a9a7b';
+            var color = p.color || '#8a9a7b';
             return '<span class="w-7 h-7 rounded-full flex items-center justify-center text-on-primary font-label-sm text-label-sm shrink-0" style="background-color:' + color + ';">' + initial + '</span>' +
                 '<span class="font-body-md text-body-md text-on-surface flex-1">' + p.name + '</span>' +
                 (extra || '');
@@ -166,23 +173,25 @@
                     '</div></div>' +
                     '<p class="proxy-result hidden font-label-sm text-label-sm text-on-surface-variant mt-2 pt-2 border-t border-outline-variant"></p>';
 
-                card.querySelector('.resend-btn').onclick = function () { showToast(p.name + ' 님에게 개인 응답 링크를 다시 보냈어요.'); };
+                // 실제 링크 재발급은 3-8(참여자 링크 공유)에서 처리 — 거기서 "새 링크 만들기"로 이어짐.
+                card.querySelector('.resend-btn').onclick = function () { window.location.href = '../3-8. 참여자 링크 공유/code.html?meal=' + mealId; };
                 card.querySelector('.proxy-toggle-btn').onclick = function () { card.querySelector('.proxy-form').classList.toggle('hidden'); };
-                card.querySelector('.proxy-yes-btn').onclick = function () { submitProxy(card, p, '먹어요'); };
-                card.querySelector('.proxy-no-btn').onclick = function () { submitProxy(card, p, '안 먹어요'); };
+                card.querySelector('.proxy-yes-btn').onclick = function () { submitProxy(card, p, 'attending'); };
+                card.querySelector('.proxy-no-btn').onclick = function () { submitProxy(card, p, 'absent'); };
                 g3.appendChild(card);
             });
             container.appendChild(g3);
         }
     }
 
-    function submitProxy(card, person, choice) {
+    async function submitProxy(card, person, status) {
+        await API.mealResponses.respondSelf(mealId, person.memberId, status);
         card.querySelector('.proxy-form').classList.add('hidden');
         card.querySelector('.pending-actions').classList.add('hidden');
         var result = card.querySelector('.proxy-result');
-        result.textContent = '대리 응답 완료 · ' + choice + ' (호스트가 대신 입력함)';
+        result.textContent = '대리 응답 완료 · ' + (status === 'attending' ? '먹어요' : '안 먹어요') + ' (호스트가 대신 입력함)';
         result.classList.remove('hidden');
-        if (choice === '먹어요') { stepCount(1); }
+        if (status === 'attending') { stepCount(1); }
     }
 
     function stepCount(delta) {
@@ -190,7 +199,7 @@
         document.getElementById('finalCount').textContent = count;
     }
 
-    function confirmMeal() {
+    async function confirmMeal() {
         var confirmed = {
             menu: meal.menu, date: '오늘', time: '19:00',
             finalCount: count,
@@ -199,16 +208,35 @@
             unconfirmed: meal.pending.map(function (p) { return p.name; })
         };
         try { localStorage.setItem('confirmed_meal', JSON.stringify(confirmed)); localStorage.removeItem('meal_summary'); } catch (err) {}
-        window.location.href = '../3-5. 오늘의 식탁 완성/code.html';
+        await API.meals.update(mealId, { status: 'confirmed' });
+        window.location.href = '../3-5. 오늘의 식탁 완성/code.html?meal=' + mealId;
     }
 
-    document.getElementById('pageTitle').textContent = meal.title || '오늘의 식탁, 확정할까요?';
-    document.getElementById('expectedCount').textContent = count + '명';
-    document.getElementById('unconfirmedCount').textContent = meal.pending.length + '명';
-    document.getElementById('finalCount').textContent = count;
-    document.getElementById('confirmCaption').textContent = meal.pending.length
-        ? ('확인 안 된 ' + meal.pending.length + '명 있어요 · 그래도 확정할 수 있어요')
-        : '모두 응답을 완료했어요';
-    renderGroups();
+    (async function init() {
+        await requireSession();
+        var params = new URLSearchParams(window.location.search);
+        mealId = params.get('meal');
+        if (!mealId) { window.location.href = '../3-1. 내 식탁/code.html'; return; }
+
+        var mealRow = await API.meals.get(mealId);
+        var roster = await API.mealParticipants.getRoster(mealId);
+        var groups = buildGroupsFromRoster(roster);
+
+        meal.title = (mealRow.date === new Date().toISOString().slice(0, 10) ? '오늘' : '이') + '의 식탁, 확정할까요?';
+        meal.menu = (mealRow.menu && mealRow.menu.length) ? mealRow.menu.join(' · ') : '메뉴 미정';
+        meal.attending = groups.attending;
+        meal.late = groups.late;
+        meal.pending = groups.pending;
+        count = meal.attending.length + meal.late.length;
+
+        document.getElementById('pageTitle').textContent = meal.title;
+        document.getElementById('expectedCount').textContent = count + '명';
+        document.getElementById('unconfirmedCount').textContent = meal.pending.length + '명';
+        document.getElementById('finalCount').textContent = count;
+        document.getElementById('confirmCaption').textContent = meal.pending.length
+            ? ('확인 안 된 ' + meal.pending.length + '명 있어요 · 그래도 확정할 수 있어요')
+            : '모두 응답을 완료했어요';
+        renderGroups();
+    })();
 </script>
 </body></html>
