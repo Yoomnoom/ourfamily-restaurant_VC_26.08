@@ -442,7 +442,7 @@
         if (emptyName) { alert('모든 구성원의 이름을 입력해주세요.'); return; }
 
         var householdId = localStorage.getItem('onboarding_household_id');
-        if (!householdId) { alert('가구 정보를 찾을 수 없어요. 이전 단계부터 다시 진행해주세요.'); return; }
+        if (!householdId) { alert('가구 정보를 찾을 수 없어요.\n이전 단계부터 다시 진행해주세요.'); return; }
 
         completeBtn.disabled = true;
         try {

@@ -42,7 +42,7 @@
 <h1 class="font-headline-lg text-headline-lg text-on-surface">가구</h1>
 </header>
 
-<p class="font-label-sm text-label-sm text-on-surface-variant mb-5 px-1">우리 집 식사와 가구를 관리해요. 아래 4가지로 나뉘어 있어요.</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant mb-5 px-1">우리 집 식사와 가구를 관리해요.<br>아래 4가지로 나뉘어 있어요.</p>
 
 <!-- ① 가구 정보 -->
 <section class="mb-6">
@@ -142,7 +142,7 @@
     }
 
     async function deleteHousehold() {
-        if (!confirm('가구를 삭제하면 되돌릴 수 없어요. 정말 삭제할까요?')) return;
+        if (!confirm('가구를 삭제하면 되돌릴 수 없어요.\n정말 삭제할까요?')) return;
         try {
             await API.households.remove(myMember.household_id);
             await API.auth.signOut();

@@ -431,7 +431,7 @@
             } else {
                 var desc = document.createElement('p');
                 desc.className = 'font-body-md text-body-md text-on-surface-variant mb-4';
-                desc.textContent = roleLabel + '예요. 아직 응답하지 않았어요.';
+                desc.innerHTML = roleLabel + '예요.<br>아직 응답하지 않았어요.';
                 card.appendChild(desc);
 
                 var btnRow = document.createElement('div');

@@ -375,7 +375,7 @@
 
     async function removeGuestbookNote(id) {
         // 잘못 눌렀을 수도, 수정하려던 걸 수도 있으니 지우기 전에 한 번 확인.
-        if (!confirm('이 한마디를 지울까요? 되돌릴 수 없어요.')) return;
+        if (!confirm('이 한마디를 지울까요?\n되돌릴 수 없어요.')) return;
         await API.guestbook.remove(id);
         await loadGuestbook();
         await renderTableHero();
@@ -514,7 +514,7 @@
     // 헤더 바로 아래 부제 = 이 앱을 왜 쓰는지 한 줄 요약(오늘 몇 명 먹는지 · 몇 명 아직 확인 안 됐는지).
     // 밀키트 광고판이 아니라 "매번 안 물어봐도 되는" 실제 가치를 첫 줄에서 보여주기 위함.
     function computeSubtitle(rows) {
-        if (!rows.length) { return '아직 오늘 식사가 없어요 · 매번 묻지 않아도, 여기서 한눈에 확인해요'; }
+        if (!rows.length) { return '아직 오늘 식사가 없어요<br>매번 묻지 않아도, 여기서 한눈에 확인해요'; }
         var attending = 0, pending = 0;
         rows.forEach(function (r) {
             if (r.status === 'attending') attending++;
@@ -609,7 +609,7 @@
 
     async function refreshAll() {
         var rows = await renderTableHero();
-        document.getElementById('householdSubtitle').textContent = computeSubtitle(rows);
+        document.getElementById('householdSubtitle').innerHTML = computeSubtitle(rows);
         renderMyNoteRow();
         await loadNotis();
         updateNotiDot();

@@ -441,9 +441,11 @@
 
         signUpAndProceed().catch(function (err) {
             setLoading(false);
-            formMessage.textContent = err.message === 'User already registered'
-                ? '이미 가입된 이메일이에요. 로그인해주세요.'
-                : ('회원가입에 실패했어요: ' + err.message);
+            if (err.message === 'User already registered') {
+                formMessage.innerHTML = '이미 가입된 이메일이에요.<br>로그인해주세요.';
+            } else {
+                formMessage.textContent = '회원가입에 실패했어요: ' + err.message;
+            }
             formMessage.className = 'text-center font-label-sm text-label-sm min-h-[18px] text-error';
         });
     });
@@ -474,7 +476,7 @@
         }
 
         setLoading(false);
-        formMessage.textContent = '회원가입이 완료되었어요! 다음 단계로 이동합니다.';
+        formMessage.innerHTML = '회원가입이 완료되었어요!<br>다음 단계로 이동합니다.';
         formMessage.className = 'text-center font-label-sm text-label-sm min-h-[18px] text-primary';
 
         // 3-9(무가입 응답 연결)에서 넘어온 가입이면, 새 가구를 만드는 온보딩(1-2)이 아니라
