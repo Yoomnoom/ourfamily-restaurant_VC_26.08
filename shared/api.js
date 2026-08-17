@@ -375,6 +375,11 @@ API.weekdayDefaults = {
       .upsert({ household_id: householdId, member_id: memberId, day_index: dayIndex, status: status },
               { onConflict: 'member_id,day_index' });
     if (res.error) throw res.error;
+  },
+  // '미정'으로 되돌리기 — 행 자체가 없으면 미정이므로 삭제로 표현.
+  async remove(memberId, dayIndex) {
+    var res = await sb.from('weekday_defaults_vc2608').delete().eq('member_id', memberId).eq('day_index', dayIndex);
+    if (res.error) throw res.error;
   }
 };
 
