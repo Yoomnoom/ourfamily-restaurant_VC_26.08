@@ -698,7 +698,14 @@
             }
 
             var meal = await API.meals.create(myMember.household_id, mealFields);
-            await API.mealParticipants.bulkCreateWithTokens(meal.id, memberIds);
+            var issued = await API.mealParticipants.bulkCreateWithTokens(meal.id, memberIds);
+            // 토큰 원본은 DB에 해시로만 남고 지금 이 응답에만 존재 — 3-8(링크 공유)이 방금 만든
+            // 식사를 열었을 때 바로 보여줄 수 있게 이 세션에서만 잠깐 들고 넘어감.
+            try {
+                localStorage.setItem('fresh_links_' + meal.id, JSON.stringify(
+                    issued.map(function (x) { return { memberId: x.memberId, token: x.token }; })
+                ));
+            } catch (err) {}
 
             if (document.getElementById('repeatToggle').checked && repeatDays.length) {
                 await API.recurringMeals.add(myMember.household_id, {

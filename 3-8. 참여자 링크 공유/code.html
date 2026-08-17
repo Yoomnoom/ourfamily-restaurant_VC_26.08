@@ -3,6 +3,9 @@
 <meta content="width=device-width, initial-scale=1.0" name="viewport">
 <title>우리집식당 - 링크 공유</title>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../shared/supabase-client.js"></script>
+<script src="../shared/api.js"></script>
 <link href="https://fonts.googleapis.com" rel="preconnect">
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
@@ -55,8 +58,6 @@
         toastTimer = setTimeout(function () { toast.classList.remove('opacity-100'); toast.classList.add('opacity-0'); }, 2600);
     }
 
-    var AVATAR_COLORS = ['#8a9a7b', '#9b8ab5', '#c98a5a', '#5f8fa3', '#b57a7a'];
-
     function copyLink(url, btn) {
         var fallback = function () {
             var original = btn.textContent;
@@ -68,62 +69,98 @@
         } else { fallback(); }
     }
 
-    (function init() {
-        var meal = null;
-        try { meal = JSON.parse(localStorage.getItem('draft_meal') || 'null'); } catch (err) {}
-        var participants = (meal && meal.participants && meal.participants.length) ? meal.participants : ['김영희 (나)', '박철수', '이지은'];
+    function linkUrlFor(token) {
+        // 실제 도메인이 아직 없어서(정적 파일 배포) 지금 열려있는 origin 기준 상대 경로로 링크를 만듦.
+        // 폴더명에 한글·공백이 있어서 encodeURI로 감싸야 카톡 등에 붙여넣었을 때 안 깨짐.
+        var base = window.location.origin + window.location.pathname.replace(/\/[^/]*\/[^/]*$/, '') + '/3-3. 참여자 응답/code.html';
+        return encodeURI(base) + '?token=' + token;
+    }
+
+    function renderRow(r, freshToken) {
+        var row = document.createElement('div');
+        row.className = 'bg-surface-container-lowest rounded-xl p-card-padding shadow-[0px_4px_12px_rgba(120,119,119,0.08)]';
+
+        var top = document.createElement('div');
+        top.className = 'flex items-center gap-2.5 mb-2';
+        top.innerHTML =
+            '<span class="w-8 h-8 rounded-full flex items-center justify-center text-on-primary font-label-sm text-label-sm shrink-0" style="background-color:' + (r.color || '#8a9a7b') + ';">' + (r.name || '?').trim().charAt(0) + '</span>' +
+            '<span class="font-body-md text-body-md text-on-surface flex-1">' + r.name + '</span>';
+        row.appendChild(top);
+
+        var actions = document.createElement('div');
+        actions.className = 'flex flex-col gap-2';
+
+        if (!freshToken) {
+            var lostLine = document.createElement('p');
+            lostLine.className = 'font-label-sm text-label-sm text-on-surface-variant mb-2';
+            lostLine.textContent = '이 링크는 다시 만들어야 볼 수 있어요 (보안을 위해 원본은 저장하지 않아요)';
+            row.appendChild(lostLine);
+            var regenBtn = document.createElement('button');
+            regenBtn.type = 'button';
+            regenBtn.className = 'w-full py-2.5 rounded-full bg-surface-container text-on-surface-variant font-label-sm text-label-sm';
+            regenBtn.textContent = '새 링크 만들기';
+            regenBtn.onclick = async function () {
+                regenBtn.disabled = true;
+                var token = await API.mealParticipants.regenerateToken(r.participantId);
+                row.replaceWith(renderRow(r, token));
+            };
+            row.appendChild(regenBtn);
+            return row;
+        }
+
+        var url = linkUrlFor(freshToken);
+        var linkLine = document.createElement('p');
+        linkLine.className = 'font-label-sm text-label-sm text-on-surface-variant mb-3 break-all';
+        linkLine.textContent = url;
+        row.appendChild(linkLine);
+
+        var topRow = document.createElement('div');
+        topRow.className = 'flex gap-2';
+
+        var copyBtn = document.createElement('button');
+        copyBtn.type = 'button';
+        copyBtn.className = 'flex-1 py-2.5 rounded-full bg-surface-container text-on-surface-variant font-label-sm text-label-sm';
+        copyBtn.textContent = '복사';
+        copyBtn.onclick = function () { copyLink(url, copyBtn); };
+        topRow.appendChild(copyBtn);
+
+        var shareBtn = document.createElement('button');
+        shareBtn.type = 'button';
+        shareBtn.className = 'flex-1 py-2.5 rounded-full bg-surface-container text-on-surface-variant font-label-sm text-label-sm whitespace-nowrap';
+        shareBtn.textContent = '카카오톡';
+        shareBtn.onclick = function () { showToast('카카오톡 공유는 실제 서비스에서 연동돼요.'); };
+        topRow.appendChild(shareBtn);
+        actions.appendChild(topRow);
+
+        var previewBtn = document.createElement('button');
+        previewBtn.type = 'button';
+        previewBtn.className = 'w-full py-2.5 rounded-full border border-outline-variant text-on-surface-variant font-label-sm text-label-sm';
+        previewBtn.textContent = '미리보기';
+        previewBtn.onclick = function () { window.location.href = '../3-3. 참여자 응답/code.html?token=' + freshToken; };
+        actions.appendChild(previewBtn);
+
+        row.appendChild(actions);
+        return row;
+    }
+
+    (async function init() {
+        await requireSession();
+        var params = new URLSearchParams(window.location.search);
+        var mealId = params.get('meal');
+        if (!mealId) { showToast('식사 정보를 찾을 수 없어요'); return; }
+
+        var roster = await API.mealParticipants.getRoster(mealId);
+        var freshLinks = {};
+        try { freshLinks = {}; (JSON.parse(localStorage.getItem('fresh_links_' + mealId) || '[]')).forEach(function (x) { freshLinks[x.memberId] = x.token; }); } catch (err) {}
 
         var list = document.getElementById('linkList');
-        participants.forEach(function (name, i) {
-            var token = Math.random().toString(36).slice(2, 8);
-            var url = 'woorijip.kr/meal/' + token;
-
-            var row = document.createElement('div');
-            row.className = 'bg-surface-container-lowest rounded-xl p-card-padding shadow-[0px_4px_12px_rgba(120,119,119,0.08)]';
-
-            var top = document.createElement('div');
-            top.className = 'flex items-center gap-2.5 mb-2';
-            top.innerHTML =
-                '<span class="w-8 h-8 rounded-full flex items-center justify-center text-on-primary font-label-sm text-label-sm shrink-0" style="background-color:' + AVATAR_COLORS[i % AVATAR_COLORS.length] + ';">' + name.trim().charAt(0) + '</span>' +
-                '<span class="font-body-md text-body-md text-on-surface flex-1">' + name + '</span>';
-            row.appendChild(top);
-
-            var linkLine = document.createElement('p');
-            linkLine.className = 'font-label-sm text-label-sm text-on-surface-variant mb-3';
-            linkLine.textContent = url;
-            row.appendChild(linkLine);
-
-            var actions = document.createElement('div');
-            actions.className = 'flex flex-col gap-2';
-
-            var topRow = document.createElement('div');
-            topRow.className = 'flex gap-2';
-
-            var copyBtn = document.createElement('button');
-            copyBtn.type = 'button';
-            copyBtn.className = 'flex-1 py-2.5 rounded-full bg-surface-container text-on-surface-variant font-label-sm text-label-sm';
-            copyBtn.textContent = '복사';
-            copyBtn.onclick = function () { copyLink(url, copyBtn); };
-            topRow.appendChild(copyBtn);
-
-            var shareBtn = document.createElement('button');
-            shareBtn.type = 'button';
-            shareBtn.className = 'flex-1 py-2.5 rounded-full bg-surface-container text-on-surface-variant font-label-sm text-label-sm whitespace-nowrap';
-            shareBtn.textContent = '카카오톡';
-            shareBtn.onclick = function () { showToast('카카오톡 공유는 실제 서비스에서 연동돼요.'); };
-            topRow.appendChild(shareBtn);
-            actions.appendChild(topRow);
-
-            var previewBtn = document.createElement('button');
-            previewBtn.type = 'button';
-            previewBtn.className = 'w-full py-2.5 rounded-full border border-outline-variant text-on-surface-variant font-label-sm text-label-sm';
-            previewBtn.textContent = '미리보기';
-            previewBtn.onclick = function () { window.location.href = '../3-3. 참여자 응답/code.html?name=' + encodeURIComponent(name.replace(' (나)', '')); };
-            actions.appendChild(previewBtn);
-
-            row.appendChild(actions);
-            list.appendChild(row);
+        list.innerHTML = '';
+        roster.forEach(function (r) {
+            list.appendChild(renderRow(r, freshLinks[r.memberId]));
         });
+
+        // 한 번 보여줬으면 이 임시 저장은 정리 — 새로고침해도 다시 안 보이는 게 맞음(원본은 해시로만 저장되므로).
+        try { localStorage.removeItem('fresh_links_' + mealId); } catch (err) {}
     })();
 </script>
 </body></html>

@@ -259,6 +259,15 @@ API.mealParticipants = {
     });
   },
 
+  // 이전 링크를 잃어버렸을 때(원본 토큰은 해시로만 저장돼서 복구 불가) 새 링크 발급 — 기존 링크는 무효화됨.
+  async regenerateToken(participantId) {
+    var token = crypto.randomUUID();
+    var tokenHash = await sha256Hex(token);
+    var res = await sb.from('meal_participants_vc2608').update({ response_token_hash: tokenHash }).eq('id', participantId);
+    if (res.error) throw res.error;
+    return token;
+  },
+
   // 1인1링크로 들어온 사람이 자기 정보를 볼 때(로그인 불필요)
   async getByToken(tokenHash) {
     var res = await sb.rpc('get_participant_by_token_vc2608', { p_token_hash: tokenHash });
