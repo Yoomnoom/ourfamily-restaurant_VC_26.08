@@ -22,9 +22,12 @@ async function getSession() {
 async function getMyMember() {
   var session = await getSession();
   if (!session) return null;
+  // households_vc2608!household_members_vc2608_household_id_fkey — last_seen_vc2608가
+  // household_members_vc2608·households_vc2608 둘 다 참조하는 바람에 PostgREST가
+  // 어느 관계로 조인할지 애매해했음(PGRST201) — FK 이름을 명시해 해결.
   var res = await sb
     .from('household_members_vc2608')
-    .select('*, households_vc2608(*)')
+    .select('*, households_vc2608!household_members_vc2608_household_id_fkey(*)')
     .eq('profile_id', session.user.id)
     .maybeSingle();
   if (res.error) throw res.error;
