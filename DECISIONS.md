@@ -575,3 +575,13 @@
 - **버그 3 — 가족 구성원 등록 실패("permission denied for table household_members_vc2608")**: 1단계에서 새로 만든 도메인 테이블 9개(advance_answers·weekday_defaults·recurring_meals·menu_poll·guestbook_notes·last_seen·saved_places·saved_guests·milkit_orders)와 기존 테이블 2개(household_members_vc2608, notifications_vc2608)에 RLS 정책만 만들고 **테이블 자체의 GRANT(SQL 권한)를 `authenticated` 롤에 준 적이 없었음** — Postgres는 새 테이블 생성 시 자동으로 권한을 안 주고, RLS 정책은 GRANT가 있어야만 의미가 있음(둘은 별개 레이어). 그래서 클라이언트에서 이 테이블들에 직접 insert/update하는 모든 동작이 다 이 에러로 실패하고 있었음. **조치**: 위 11개 테이블에 필요한 GRANT(select/insert/update/delete)를 authenticated 롤에 부여. 직접 REST 호출로 재현·수정 확인 후 테스트용 행은 정리함.
 - **참고**: 디버깅 중 `admin@admin.com` 계정에 가구가 2개 생겨있음(반복 테스트로 생긴 것) — 실사용에 지장 없지만 나중에 정리하고 싶으면 알려달라고 안내함.
 - **버그 4 — 프로필 사진 재업로드 시 "new row violates row-level security policy"**: `avatars` 스토리지 버킷에 INSERT(신규 업로드) 정책만 있고 UPDATE(덮어쓰기) 정책이 없었음. `uploadAvatar()`가 같은 사람은 항상 같은 파일명(`avatar-me.png` 등)으로 덮어써서 파일이 안 쌓이게 했는데, 이전 시도로 파일이 이미 존재하는 상태에서 재시도하면 upsert가 내부적으로 UPDATE를 타면서 막혔음. `storage.objects`의 avatars 버킷에 UPDATE 정책 추가(기존 INSERT 정책과 동일 조건)로 해결, 실제 덮어쓰기 curl 테스트로 확인.
+
+## 3-0(홈)·3-1(내 식탁) 실제 DB 연동 완료, 무한루프로 계속 진행 (2026-08-17 밤)
+
+- 사용자가 "일어날 때까지 무한루프처리해줘"라고 요청 → `/loop` 스킬(다이나믹 모드)로 전환, 화면 전환을 계속 이어감.
+- **3-0 홈**: 오늘의 식탁(원형 좌석 비주얼), 방명록 한마디, 오늘 안 본 사람, 알림, 메뉴 요청, 메뉴 투표 전부 실제 DB 연동. Realtime 구독(meals·meal_responses·notifications·guestbook_notes·menu_poll) 추가.
+- **3-1 내 식탁**: 오늘/내일 카드, 탭 1~2번 즉시 응답, 반복일정 자동생성, 알림 전부 실 DB 연동. "방금 만든 식사" 섹션은 실데이터 기준으로는 오늘/내일 카드와 완전히 중복이라 제거(3-0의 "오늘/내일 카드 중복 제거"와 같은 이유).
+- `shared/api.js`에 `API.mealResponses.respondSelf` 추가 — 로그인한 사람이 1인1링크 없이 카드에서 바로 탭해서 응답할 때 씀(3-3의 토큰 기반 응답과는 별개 경로, RLS는 동일하게 `is_my_member_vc2608`로 보호됨).
+- 확정 전 요약(3-4)으로 넘어가는 부분은 3-4가 아직 미전환이라 과도기적으로 `localStorage.meal_summary` 핸드오프를 유지 + `?meal=<id>` 쿼리도 같이 넘김(3-4 전환 시 정리 예정).
+- 두 화면 모두 전 파일(35개) JS 문법·링크 재검증 통과, 커밋·푸시 완료.
+- **다음**: 3-3(참여자 응답 — 1인1링크 토큰 스킴), 3-8(링크 공유 — 토큰 발급), 3-9(무가입 연결), 3-4, 3-5, 3-7 순서로 계속.
