@@ -401,10 +401,13 @@ API.advanceAnswers = {
 // 메뉴 투표 / 메뉴 요청 / 저장된 장소
 // ---------------------------------------------------------
 API.menuPoll = {
+  // household당 활성 투표 1개가 원칙이지만 DB엔 이를 강제하는 유니크 제약이 없어(레이스 등으로
+  // 2개가 생기면) .maybeSingle()이 에러를 던져 홈 화면 전체가 멈추는 걸 막기 위해 최신 것 하나만 반환.
   async get(householdId) {
-    var res = await sb.from('menu_poll_vc2608').select('*').eq('household_id', householdId).maybeSingle();
+    var res = await sb.from('menu_poll_vc2608').select('*').eq('household_id', householdId)
+      .order('created_at', { ascending: false }).limit(1);
     if (res.error) throw res.error;
-    return res.data;
+    return res.data && res.data[0] ? res.data[0] : null;
   },
   async start(householdId, options) {
     var res = await sb.from('menu_poll_vc2608').insert({ household_id: householdId, options: options, votes: {} }).select().single();

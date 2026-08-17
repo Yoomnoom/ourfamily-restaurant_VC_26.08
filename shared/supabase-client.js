@@ -18,7 +18,12 @@ async function getSession() {
 }
 
 // 현재 로그인한 사용자의 household_members_vc2608 행(=나의 멤버 레코드) 조회.
-// 가구가 여러 개일 가능성은 이 앱 범위에서 없음(1인 1가구 전제).
+// 1인 1가구가 제품상 전제지만, 반복 테스트 등으로 실제로는 한 계정이 가구 2개의 owner가 되는
+// 경우가 생겼었음(.maybeSingle()이 행 2개를 받으면 에러를 던져 로그인 이후 전체 화면이
+// "-" 플레이스홀더에서 멈추는 실제 버그로 이어짐) — 가장 최근에 합류한(=온보딩을 마지막으로
+// 끝낸) 가구 하나만 골라 항상 안전하게 반환하도록 방어. 실제로 확인해보니 중간에 온보딩을
+// 중단했다 다시 시작한 계정은 예전(더 오래된) 가구가 구성원 1명뿐인 미완성 상태로 남아있고,
+// 나중에 만든 가구가 진짜 쓰는 곳이었음 — 최신순이 더 안전한 기본값.
 async function getMyMember() {
   var session = await getSession();
   if (!session) return null;
@@ -29,9 +34,10 @@ async function getMyMember() {
     .from('household_members_vc2608')
     .select('*, households_vc2608!household_members_vc2608_household_id_fkey(*)')
     .eq('profile_id', session.user.id)
-    .maybeSingle();
+    .order('joined_at', { ascending: false })
+    .limit(1);
   if (res.error) throw res.error;
-  return res.data;
+  return res.data && res.data[0] ? res.data[0] : null;
 }
 
 // 로그인 안 돼 있으면 로그인 화면으로 돌려보내는 공통 가드.
