@@ -3,6 +3,9 @@
 <meta content="width=device-width, initial-scale=1.0" name="viewport">
 <title>우리집식당 - 오늘 저녁은요?</title>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../shared/supabase-client.js"></script>
+<script src="../shared/api.js"></script>
 <link href="https://fonts.googleapis.com" rel="preconnect">
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif:wght@400;700&amp;family=Plus+Jakarta+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
@@ -114,8 +117,8 @@
 <h1 class="font-emotional-quote text-emotional-quote text-on-surface text-center mb-6"><span id="guestName">진영</span>님, 오늘 저녁은요?</h1>
 
 <div class="bg-surface-container-lowest rounded-xl p-card-padding shadow-[0px_4px_12px_rgba(120,119,119,0.08)] mb-6 text-center">
-<p class="font-headline-lg text-headline-lg text-on-surface mb-1">김치찌개 외 2개</p>
-<p class="font-body-md text-body-md text-on-surface-variant">19:00 도착 예정</p>
+<p id="mealMenuLine" class="font-headline-lg text-headline-lg text-on-surface mb-1">김치찌개 외 2개</p>
+<p id="mealTimeLine" class="font-body-md text-body-md text-on-surface-variant">19:00 도착 예정</p>
 </div>
 
 <div class="grid grid-cols-2 gap-3 mb-4">
@@ -158,15 +161,6 @@
 </main>
 
 <script>
-    // 참고문서 §7.6: 무가입 응답자 유형에 따라 완료 후 안내가 달라짐.
-    // guest = 일회성 손님(가입 유도 없음), member_unsigned = 가입은 안 했지만 가입하고 싶은 가족(가입 유도 표시)
-    var PERSONAS = {
-        '최유진': { kind: 'guest' },
-        '박철수': { kind: 'member_signed' },
-        '김하준': { kind: 'member_unsigned' }
-    };
-    var currentPersona = '진영';
-
     var toastTimer;
     function showToast(msg) {
         var toast = document.getElementById('toast');
@@ -179,8 +173,9 @@
 
     var attending = null;
     var arrival = null;
-    var firstChoice = null;
-    var hasSubmittedOnce = false;
+    var noteText = null;
+    var tokenHash = null;
+    var participant = null; // get_participant_by_token_vc2608 결과
 
     function showForm() {
         document.getElementById('inviteView').classList.add('hidden');
@@ -188,7 +183,7 @@
     }
 
     function goSignup() {
-        window.location.href = '../3-9. 무가입 응답 연결/code.html?name=' + encodeURIComponent(currentPersona);
+        window.location.href = '../3-9. 무가입 응답 연결/code.html?token=' + new URLSearchParams(window.location.search).get('token');
     }
 
     function editResponse() {
@@ -217,47 +212,55 @@
         btn.classList.add('bg-primary', 'text-on-primary', 'border-primary');
     }
 
-    function notifyHostOfChange(fromValue, toValue) {
-        // 3-0/3-1/3-7의 알림 패널이 type 기준으로 상세를 그려서(showNotiDetail), 그 스키마와 맞춰야 함.
-        var fromLabel = fromValue ? '먹어요' : '안 먹어요';
-        var toLabel = toValue ? '먹어요' : '안 먹어요';
-        var notice = {
-            id: 'notif' + Date.now() + Math.random().toString(36).slice(2, 6),
-            icon: 'sync_alt', color: '#9b8ab5',
-            title: currentPersona + '님이 응답을 바꿨어요',
-            body: fromLabel + ' → ' + toLabel,
-            time: '방금 전', unread: true,
-            type: 'response_change', name: currentPersona, from: fromLabel, to: toLabel
-        };
-        var notices = [];
-        try { notices = JSON.parse(localStorage.getItem('notifications') || '[]'); } catch (err) {}
-        notices.unshift(notice);
-        try { localStorage.setItem('notifications', JSON.stringify(notices)); } catch (err) {}
-    }
-
-    function submitResponse() {
+    async function submitResponse() {
         if (attending === null) { showToast('참여 여부를 선택해주세요.'); return; }
 
-        if (hasSubmittedOnce && firstChoice !== attending) {
-            notifyHostOfChange(firstChoice, attending);
+        // arrival_time 컬럼은 실제 시각(예: 19:30) 전용이라, "제시간/좀 늦어요/모르겠어요" 같은
+        // 정성적 선택은 note에 자유 메모와 합쳐서 저장 — 새 컬럼을 늘리지 않는 선에서 정직하게 처리.
+        var customNote = document.getElementById('noteInput').value.trim();
+        var combinedNote = [attending ? arrival : null, customNote].filter(Boolean).join(' · ') || null;
+
+        try {
+            await API.mealParticipants.respondByToken(tokenHash, attending ? 'attending' : 'absent', null, combinedNote);
+        } catch (err) {
+            showToast('저장에 실패했어요: ' + err.message);
+            return;
         }
-        firstChoice = attending;
-        hasSubmittedOnce = true;
 
         document.getElementById('formView').classList.add('hidden');
         document.getElementById('doneView').classList.remove('hidden');
 
-        var persona = PERSONAS[currentPersona] || { kind: 'guest' };
-        if (persona.kind === 'member_unsigned') {
+        if (participant && !participant.member_has_account) {
             document.getElementById('signupPrompt').classList.remove('hidden');
         }
     }
 
-    (function init() {
+    (async function init() {
         var params = new URLSearchParams(window.location.search);
-        currentPersona = params.get('name') || '진영';
-        document.getElementById('inviteName').textContent = currentPersona;
-        document.getElementById('guestName').textContent = currentPersona;
+        tokenHash = await sha256Hex(params.get('token') || '');
+
+        participant = await API.mealParticipants.getByToken(tokenHash);
+        if (!participant) {
+            document.getElementById('inviteView').innerHTML =
+                '<p class="font-body-md text-body-md text-on-surface-variant">유효하지 않거나 만료된 링크예요. 이 식사를 만든 사람에게 새 링크를 요청해주세요.</p>';
+            return;
+        }
+
+        document.getElementById('inviteName').textContent = participant.member_name;
+        document.getElementById('guestName').textContent = participant.member_name;
+
+        var menuLine = (participant.menu && participant.menu.length)
+            ? (participant.menu.length > 1 ? participant.menu[0] + ' 외 ' + (participant.menu.length - 1) + '개' : participant.menu[0])
+            : '메뉴 미정';
+        document.getElementById('mealMenuLine').textContent = menuLine;
+        document.getElementById('mealTimeLine').textContent =
+            (participant.meal_time || '시간 미정') + (participant.meal_time ? ' 도착 예정' : '');
+
+        // 이미 응답한 적 있으면(1인1링크로 재방문) 이전 선택을 미리 채워둠 — 링크는 확정 전까지 계속 같은 걸 씀.
+        if (participant.status === 'attending' || participant.status === 'absent') {
+            selectAttend(participant.status === 'attending');
+            if (participant.note) document.getElementById('noteInput').value = participant.note;
+        }
     })();
 </script>
 </body></html>
