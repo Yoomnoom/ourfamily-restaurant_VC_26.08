@@ -3,6 +3,9 @@
 <meta content="width=device-width, initial-scale=1.0" name="viewport">
 <title>우리집식당 - 내 식탁</title>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../shared/supabase-client.js"></script>
+<script src="../shared/api.js"></script>
 <link href="https://fonts.googleapis.com" rel="preconnect">
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif:wght@400;700&amp;family=Plus+Jakarta+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
@@ -136,12 +139,6 @@
 <div id="tomorrowCards" class="flex flex-col gap-3"></div>
 </section>
 
-<!-- 방금 만든 식사(3-2에서 생성) -->
-<section id="createdSection" class="hidden">
-<h2 class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wide mb-3 px-1">방금 만든 식사</h2>
-<div id="createdCards" class="flex flex-col gap-3"></div>
-</section>
-
 <!-- 오늘 당장 알아야 할 것(위 오늘/내일 카드)보다는 뒤에: 참고용 요약 -->
 <button class="w-full bg-surface-container-lowest rounded-xl px-4 py-3 mb-3 shadow-[0px_2px_8px_rgba(120,119,119,0.06)] flex items-center gap-3 text-left" onclick="window.location.href='../5-2. 식사 기록/code.html'">
 <span class="material-symbols-outlined text-primary">bar_chart</span>
@@ -216,137 +213,81 @@
         clearTimeout(toastTimer);
         toastTimer = setTimeout(function () { toast.classList.remove('opacity-100'); toast.classList.add('opacity-0'); }, 2600);
     }
-    // 유형(type)별로 알림 패널 안에서 바로 확인·처리하게(전체 이동 없이) — 항목마다 눌렀을 때 반응이 다르면 안 됨(사용자 지적).
-    var NOTIS = [
-        { id: 'demo-response-change', icon: 'sync_alt', color: '#9b8ab5', title: '박철수님이 응답을 바꿨어요', body: '먹어요 → 안 먹어요', time: '조금 전', unread: true,
-          type: 'response_change', name: '박철수', from: '먹어요', to: '안 먹어요', expectedFrom: 2, expectedTo: 1 },
-        { id: 'demo-reminder', icon: 'schedule_send', color: '#8a9a7b', title: '이지은님이 아직 응답하지 않았어요', body: '오늘 저녁 식사 · 리마인드를 보내보세요', time: '1시간 전', unread: true,
-          type: 'reminder', name: '이지은', detailPath: '../3-4. 확정 전 요약/code.html' },
-        { id: 'demo-confirmed', icon: 'check_circle', color: '#8a9a7b', title: '오늘의 식탁이 확정됐어요', body: '준비 인원 2명', time: '어제', unread: false,
-          type: 'confirmed', count: 2, detailPath: '../3-5. 오늘의 식탁 완성/code.html' },
-        { id: 'demo-welcome', icon: 'celebration', color: '#c98a5a', title: '우리집식당에 오신 걸 환영해요!', body: '가구를 만들고 첫 식사를 열어보세요', time: '3일 전', unread: false,
-          type: 'welcome', detailPath: '../3-2. 식사 만들기/code.html' }
-    ];
-
     var NOTI_PREVIEW_COUNT = 5; // 알림도 쌓이면 무한정 길어지지 않게 — 더보기로 펼침
     var notiExpanded = false;
+    var notisCache = [];
 
-    function loadReadIds() {
-        var ids = [];
-        try { ids = JSON.parse(localStorage.getItem('notification_reads') || '[]'); } catch (err) {}
-        return ids;
-    }
-    function markNotiRead(id) {
-        if (!id) return;
-        var ids = loadReadIds();
-        if (ids.indexOf(id) === -1) {
-            ids.push(id);
-            try { localStorage.setItem('notification_reads', JSON.stringify(ids)); } catch (err) {}
-        }
-        updateNotiDot();
-    }
-    function isUnread(n) {
-        return !!n.unread && (!n.id || loadReadIds().indexOf(n.id) === -1);
+    async function loadNotis() {
+        notisCache = await API.notifications.listForMember(myMember.id);
     }
 
     function updateNotiDot() {
-        var liveNotis = [];
-        try { liveNotis = JSON.parse(localStorage.getItem('notifications') || '[]'); } catch (err) {}
-        var hasUnread = liveNotis.concat(NOTIS).some(isUnread);
+        var hasUnread = notisCache.some(function (n) { return !n.read; });
         var dot = document.getElementById('notiDot');
-        if (dot) { dot.classList.toggle('hidden', !hasUnread); }
+        if (dot) dot.classList.toggle('hidden', !hasUnread);
     }
 
     function renderNotiPanel() {
-        var liveNotis = [];
-        try { liveNotis = JSON.parse(localStorage.getItem('notifications') || '[]'); } catch (err) {}
-        var allNotis = liveNotis.concat(NOTIS);
-        var visibleNotis = notiExpanded ? allNotis : allNotis.slice(0, NOTI_PREVIEW_COUNT);
-
+        var visibleNotis = notiExpanded ? notisCache : notisCache.slice(0, NOTI_PREVIEW_COUNT);
         var list = document.getElementById('notiList');
         list.innerHTML = '';
+
+        if (!notisCache.length) {
+            var empty = document.createElement('p');
+            empty.className = 'font-label-sm text-label-sm text-on-surface-variant text-center py-6';
+            empty.textContent = '아직 알림이 없어요';
+            list.appendChild(empty);
+            return;
+        }
+
         visibleNotis.forEach(function (n) {
             var row = document.createElement('button');
             row.className = 'text-left w-full bg-surface-container-lowest rounded-xl p-4 shadow-[0px_2px_8px_rgba(120,119,119,0.06)] flex items-start gap-3';
             row.onclick = function () { showNotiDetail(n); };
             row.innerHTML =
-                '<span class="w-9 h-9 rounded-full flex items-center justify-center shrink-0" style="background:' + n.color + '22; color:' + n.color + ';"><span class="material-symbols-outlined text-[20px]">' + n.icon + '</span></span>' +
+                '<span class="w-9 h-9 rounded-full flex items-center justify-center shrink-0 bg-tertiary-container text-on-tertiary-container"><span class="material-symbols-outlined text-[20px]">notifications</span></span>' +
                 '<div class="flex-1 min-w-0">' +
                 '<div class="flex items-center gap-2">' +
-                '<p class="font-body-md text-body-md text-on-surface font-medium">' + n.title + '</p>' +
-                (isUnread(n) ? '<span class="w-2 h-2 rounded-full bg-primary shrink-0"></span>' : '') +
+                '<p class="font-body-md text-body-md text-on-surface font-medium">' + n.text + '</p>' +
+                (!n.read ? '<span class="w-2 h-2 rounded-full bg-primary shrink-0"></span>' : '') +
                 '</div>' +
-                '<p class="font-label-sm text-label-sm text-on-surface-variant">' + n.body + '</p>' +
-                '<p class="font-label-sm text-label-sm text-on-surface-variant mt-0.5">' + n.time + '</p>' +
+                (n.detail ? '<p class="font-label-sm text-label-sm text-on-surface-variant">' + n.detail + '</p>' : '') +
+                '<p class="font-label-sm text-label-sm text-on-surface-variant mt-0.5">' + new Date(n.created_at).toLocaleString('ko-KR') + '</p>' +
                 '</div>';
             list.appendChild(row);
         });
 
-        if (!notiExpanded && allNotis.length > NOTI_PREVIEW_COUNT) {
+        if (!notiExpanded && notisCache.length > NOTI_PREVIEW_COUNT) {
             var moreBtn = document.createElement('button');
             moreBtn.type = 'button';
             moreBtn.className = 'w-full text-center font-label-sm text-label-sm text-primary py-2';
-            moreBtn.textContent = '+ ' + (allNotis.length - NOTI_PREVIEW_COUNT) + '개 더보기';
+            moreBtn.textContent = '+ ' + (notisCache.length - NOTI_PREVIEW_COUNT) + '개 더보기';
             moreBtn.onclick = function () { notiExpanded = true; renderNotiPanel(); };
             list.appendChild(moreBtn);
         }
     }
 
-    function showNotiDetail(n) {
-        markNotiRead(n.id);
+    async function showNotiDetail(n) {
+        if (!n.read) { await API.notifications.markRead(n.id); n.read = true; updateNotiDot(); }
         var list = document.getElementById('notiList');
         var back = '<button id="notiBackBtn" class="flex items-center gap-1 font-label-sm text-label-sm text-on-surface-variant mb-1"><span class="material-symbols-outlined text-[18px]">arrow_back</span>목록으로</button>';
-        var body, actions;
-
-        if (n.type === 'response_change') {
-            var hasCount = n.expectedFrom !== undefined && n.expectedTo !== undefined;
-            body = '<div class="bg-surface-container-lowest rounded-xl p-4 shadow-[0px_2px_8px_rgba(120,119,119,0.06)]">' +
-                '<p class="font-body-md text-body-md text-on-surface mb-1"><b>' + n.name + '</b>님이 응답을 바꿨어요</p>' +
-                '<p class="font-label-sm text-label-sm text-on-surface-variant' + (hasCount ? ' mb-3' : '') + '">' + n.from + ' → ' + n.to + '</p>' +
-                (hasCount ?
-                    '<div class="bg-surface-container rounded-lg px-3 py-2.5">' +
-                    '<p class="font-label-sm text-label-sm text-on-surface-variant">예상 준비 <s class="opacity-60">' + n.expectedFrom + '명</s> → <b class="text-on-surface">' + n.expectedTo + '명</b>으로 바뀌었어요</p>' +
-                    '</div>' : '') +
-                '</div>';
-            actions = '<div class="flex gap-2 mt-3">' +
-                '<button id="notiAckBtn" class="flex-1 py-2.5 rounded-full bg-surface-container text-on-surface font-label-sm text-label-sm">확인했어요</button>' +
-                '<a href="tel:010-0000-0000" class="flex-1 py-2.5 rounded-full bg-primary text-on-primary font-label-sm text-label-sm text-center">' + n.name + '에게 전화</a>' +
-                '</div>';
-        } else if (n.type === 'reminder') {
-            body = '<div class="bg-surface-container-lowest rounded-xl p-4 shadow-[0px_2px_8px_rgba(120,119,119,0.06)]">' +
-                '<p class="font-body-md text-body-md text-on-surface mb-1"><b>' + n.name + '</b>님이 아직 응답하지 않았어요</p>' +
-                '<p class="font-label-sm text-label-sm text-on-surface-variant">오늘 저녁 식사 응답을 기다리고 있어요</p></div>';
-            actions = '<div class="flex gap-2 mt-3">' +
-                '<button id="notiRemindBtn" class="flex-1 py-2.5 rounded-full bg-primary text-on-primary font-label-sm text-label-sm">리마인드 보내기</button>' +
-                '<a href="' + n.detailPath + '" class="flex-1 py-2.5 rounded-full bg-surface-container text-on-surface font-label-sm text-label-sm text-center">자세히 보기</a>' +
-                '</div>';
-        } else if (n.type === 'confirmed') {
-            body = '<div class="bg-surface-container-lowest rounded-xl p-4 shadow-[0px_2px_8px_rgba(120,119,119,0.06)]">' +
-                '<p class="font-body-md text-body-md text-on-surface mb-1">오늘의 식탁이 확정됐어요</p>' +
-                '<p class="font-label-sm text-label-sm text-on-surface-variant">준비 인원 <b class="text-on-surface">' + n.count + '명</b></p></div>';
-            actions = '<div class="flex gap-2 mt-3">' +
-                '<button id="notiAckBtn" class="flex-1 py-2.5 rounded-full bg-surface-container text-on-surface font-label-sm text-label-sm">확인했어요</button>' +
-                '<a href="' + n.detailPath + '" class="flex-1 py-2.5 rounded-full bg-primary text-on-primary font-label-sm text-label-sm text-center">자세히 보기</a>' +
-                '</div>';
-        } else {
-            body = '<div class="bg-surface-container-lowest rounded-xl p-4 shadow-[0px_2px_8px_rgba(120,119,119,0.06)]">' +
-                '<p class="font-body-md text-body-md text-on-surface mb-1">우리집식당에 오신 걸 환영해요!</p>' +
-                '<p class="font-label-sm text-label-sm text-on-surface-variant">가구를 만들고 첫 식사를 열어보세요</p></div>';
-            actions = '<div class="flex gap-2 mt-3">' +
-                '<button id="notiAckBtn" class="flex-1 py-2.5 rounded-full bg-surface-container text-on-surface font-label-sm text-label-sm">확인했어요</button>' +
-                '<a href="' + n.detailPath + '" class="flex-1 py-2.5 rounded-full bg-primary text-on-primary font-label-sm text-label-sm text-center">식사 만들러 가기</a>' +
-                '</div>';
-        }
+        var body = '<div class="bg-surface-container-lowest rounded-xl p-4 shadow-[0px_2px_8px_rgba(120,119,119,0.06)]">' +
+            '<p class="font-body-md text-body-md text-on-surface mb-1">' + n.text + '</p>' +
+            (n.detail ? '<p class="font-label-sm text-label-sm text-on-surface-variant">' + n.detail + '</p>' : '') +
+            '</div>';
+        var actions = '<div class="flex gap-2 mt-3">' +
+            '<button id="notiAckBtn" class="flex-1 py-2.5 rounded-full bg-surface-container text-on-surface font-label-sm text-label-sm">확인했어요</button>' +
+            (n.meal_id ? '<a href="../3-1. 내 식탁/code.html" class="flex-1 py-2.5 rounded-full bg-primary text-on-primary font-label-sm text-label-sm text-center">내 식탁에서 보기</a>' : '') +
+            '</div>';
 
         list.innerHTML = back + body + actions;
         document.getElementById('notiBackBtn').onclick = renderNotiPanel;
         var ackBtn = document.getElementById('notiAckBtn');
         if (ackBtn) ackBtn.onclick = renderNotiPanel;
-        var remindBtn = document.getElementById('notiRemindBtn');
-        if (remindBtn) remindBtn.onclick = function () { renderNotiPanel(); showToast(n.name + '님에게 리마인드를 보냈어요'); };
     }
 
-    function openNotiPanel() {
+    async function openNotiPanel() {
+        await loadNotis();
         renderNotiPanel();
         document.getElementById('notiBackdrop').classList.remove('hidden');
         document.getElementById('notiPanel').classList.remove('hidden');
@@ -359,108 +300,77 @@
         setTimeout(function () { document.getElementById('notiPanel').classList.add('hidden'); }, 250);
     }
 
-    var IDENTITY_COLOR = { '김영희': '#8a9a7b', '박철수': '#9b8ab5', '이지은': '#c98a5a', '김하준': '#5f8fa3' };
+    var myMember = null;
+    var householdId = null;
+    var membersCache = [];
 
-    // 참고문서 화면03(카드목록)+화면07(역할뷰) 결합 데이터. creator가 곧 host.
-    var MEALS = [
-        {
-            id: 'meal-today-1', when: '오늘', time: '19:00', creator: '김영희', menu: '김치찌개 외 1개',
-            roster: [
-                { name: '김영희', status: 'attending', note: '제시간' },
-                { name: '박철수', status: 'attending', note: '좀 늦어요' },
-                { name: '이지은', status: 'pending', note: '평소 안 먹음' },
-                { name: '김하준', status: 'pending', note: null }
-            ]
-        },
-        {
-            id: 'meal-tomorrow-1', when: '내일', time: '12:30', creator: '박철수', menu: '비빔국수 외 1개',
-            roster: [
-                { name: '박철수', status: 'attending', note: '제시간' },
-                { name: '김영희', status: 'pending', note: null }
-            ]
-        },
-        { id: 'meal-tomorrow-2', when: '내일', time: null, creator: '김영희', menu: null, roster: [] }
-    ];
+    function memberById(id) { return membersCache.find(function (m) { return m.id === id; }); }
+    function todayKey() { var d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+    function tomorrowKey() { var d = new Date(); d.setDate(d.getDate() + 1); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
 
     // 홈 카드에서 먹어요/안먹어요를 누르면 그 자리에서 바로 결정되게(§5.1 "응답은 짧고, 탭 1~2번") —
-    // 이전엔 3-3(참여자 응답)으로 보내서 같은 질문을 또 하게 했던 걸 없앰.
-    function loadMealResponses() {
-        var responses = {};
-        try { responses = JSON.parse(localStorage.getItem('meal_responses') || '{}'); } catch (err) {}
-        return responses;
-    }
-
-    function applyStoredResponses(meal) {
-        var responses = loadMealResponses()[meal.id];
-        if (!responses) return;
-        Object.keys(responses).forEach(function (name) {
-            var entry = meal.roster.find(function (r) { return r.name === name; });
-            if (entry) { entry.status = responses[name].status; entry.note = responses[name].note; }
-            else { meal.roster.push({ name: name, status: responses[name].status, note: responses[name].note }); }
-        });
-    }
-
-    function respondToMeal(mealId, persona, status) {
-        var responses = loadMealResponses();
-        responses[mealId] = responses[mealId] || {};
-        responses[mealId][persona] = { status: status, note: status === 'attending' ? '제시간' : null };
-        try { localStorage.setItem('meal_responses', JSON.stringify(responses)); } catch (err) {}
+    // 3-3(참여자 응답)의 개인 링크로 안 보내고 여기서 즉시 처리.
+    async function respondToMeal(mealId, status) {
+        await API.mealResponses.respondSelf(mealId, myMember.id, status);
         showToast(status === 'attending' ? '먹어요로 답했어요' : '안 먹어요로 답했어요');
-        renderAllMeals(CURRENT_PERSONA);
+        await renderAllMeals();
     }
 
-    var CURRENT_PERSONA = '김영희';
-
-    function renderAllMeals(persona) {
+    async function renderAllMeals() {
         var todayEl = document.getElementById('todayCards');
         var tomorrowEl = document.getElementById('tomorrowCards');
         todayEl.innerHTML = '';
         tomorrowEl.innerHTML = '';
-        MEALS.forEach(function (meal) {
-            applyStoredResponses(meal);
-            var card = renderMealCard(meal, persona);
-            (meal.when === '오늘' ? todayEl : tomorrowEl).appendChild(card);
-        });
+
+        var meals = await API.meals.listByHousehold(householdId);
+        var today = todayKey(), tomorrow = tomorrowKey();
+        var relevant = meals.filter(function (m) { return m.date === today || m.date === tomorrow; });
+
+        for (var i = 0; i < relevant.length; i++) {
+            var meal = relevant[i];
+            var roster = await API.mealParticipants.getRoster(meal.id);
+            var card = renderMealCard(meal, roster, meal.date === today ? '오늘' : '내일');
+            (meal.date === today ? todayEl : tomorrowEl).appendChild(card);
+        }
+        if (!todayEl.children.length) todayEl.innerHTML = '<p class="font-label-sm text-label-sm text-on-surface-variant px-1">오늘은 아직 만든 식사가 없어요</p>';
+        if (!tomorrowEl.children.length) tomorrowEl.innerHTML = '<p class="font-label-sm text-label-sm text-on-surface-variant px-1">내일은 아직 만든 식사가 없어요</p>';
     }
 
-    function goToSummary(meal) {
+    function goToSummary(meal, roster) {
         var attending = [], late = [], pending = [];
-        meal.roster.forEach(function (r) {
-            if (r.status === 'attending' && r.note === '좀 늦어요') {
-                late.push({ name: r.name, note: r.note });
-            } else if (r.status === 'attending') {
-                attending.push({ name: r.name, note: r.note || '제시간' });
-            } else {
-                pending.push({ name: r.name, reason: r.note || '아직 확인 전' });
-            }
+        roster.forEach(function (r) {
+            if (r.status === 'attending') attending.push({ name: r.name, note: r.note || '제시간' });
+            else pending.push({ name: r.name, reason: r.note || '아직 확인 전' });
         });
+        // 3-4가 아직 실 DB 연동 전이라 기존 localStorage 핸드오프도 함께 남겨둠(다음 전환 때 제거 예정).
         var summary = {
-            title: meal.when + '의 식탁, 확정할까요?',
-            menu: meal.menu || '메뉴 미정',
+            title: (meal.date === todayKey() ? '오늘' : '내일') + '의 식탁, 확정할까요?',
+            menu: (meal.menu && meal.menu.length) ? meal.menu.join(' · ') : '메뉴 미정',
             attending: attending, late: late, pending: pending
         };
         try { localStorage.setItem('meal_summary', JSON.stringify(summary)); } catch (err) {}
-        window.location.href = '../3-4. 확정 전 요약/code.html';
+        window.location.href = '../3-4. 확정 전 요약/code.html?meal=' + meal.id;
     }
 
-    function renderMealCard(meal, persona) {
-        var isHost = meal.creator === persona;
-        var color = IDENTITY_COLOR[meal.creator] || '#8a9a7b';
+    function renderMealCard(meal, roster, when) {
+        var isHost = meal.creator_id === myMember.profile_id;
+        var creatorMember = membersCache.find(function (m) { return m.profile_id === meal.creator_id; });
+        var color = (creatorMember && creatorMember.color) || '#8a9a7b';
         var card = document.createElement('article');
         card.className = 'identity-line rounded-xl bg-surface-container-lowest shadow-[0px_4px_12px_rgba(120,119,119,0.08)] p-card-padding';
         card.style.borderLeftColor = color;
 
-        var timeBadgeClass = meal.when === '오늘' ? 'bg-tertiary-container text-on-tertiary-container' : 'bg-secondary-container text-on-secondary-container';
-        var timeLabel = meal.when + ' · ' + (meal.time || '시간 미정');
-        var roleLabel = isHost ? '내가 만든 식사' : (meal.creator + '님이 만든 식사');
+        var timeBadgeClass = when === '오늘' ? 'bg-tertiary-container text-on-tertiary-container' : 'bg-secondary-container text-on-secondary-container';
+        var timeLabel = when + ' · ' + (meal.time || '시간 미정');
+        var roleLabel = isHost ? '내가 만든 식사' : ((creatorMember ? creatorMember.name : '가족') + '님이 만든 식사');
 
         var head = document.createElement('div');
         head.className = 'flex items-center justify-between mb-2';
         head.innerHTML = '<span class="font-label-sm text-label-sm ' + timeBadgeClass + ' px-2.5 py-1 rounded-full">' + timeLabel + '</span>' +
             '<span class="font-label-sm text-label-sm text-on-surface-variant">' + roleLabel + '</span>';
 
-        if (!meal.menu) {
-            // 메뉴가 없을 땐 우선순위를 보여줄 메뉴가 없으므로 시간·역할부터.
+        var hasMenu = meal.menu && meal.menu.length;
+        if (!hasMenu) {
             card.appendChild(head);
             var undecided = document.createElement('h3');
             undecided.className = 'font-headline-lg text-headline-lg text-on-surface-variant mb-3';
@@ -470,7 +380,7 @@
                 var editBtn = document.createElement('button');
                 editBtn.className = 'w-full text-center font-label-sm text-label-sm text-primary py-1';
                 editBtn.textContent = '메뉴 · 시간 정하기 →';
-                editBtn.onclick = function () { window.location.href = '../3-2. 식사 만들기/code.html'; };
+                editBtn.onclick = function () { window.location.href = '../3-2. 식사 만들기/code.html?edit=' + meal.id; };
                 card.appendChild(editBtn);
             }
             return card;
@@ -479,29 +389,29 @@
         // 카드 정보 우선순위(참고문서 §5.1): 메뉴 → 시간 → 현재 인원 → 참여 여부.
         var title = document.createElement('h3');
         title.className = 'font-headline-lg text-headline-lg text-on-surface mb-2';
-        title.textContent = meal.menu;
+        title.textContent = meal.menu.length > 1 ? (meal.menu[0] + ' 외 ' + (meal.menu.length - 1) + '개') : meal.menu[0];
         card.appendChild(title);
         card.appendChild(head);
 
         if (isHost) {
-            var attending = meal.roster.filter(function (r) { return r.status === 'attending'; }).length;
-            var pending = meal.roster.filter(function (r) { return r.status === 'pending'; }).length;
+            var attending = roster.filter(function (r) { return r.status === 'attending'; }).length;
+            var pending = roster.filter(function (r) { return r.status === 'pending'; }).length;
 
-            var summary = document.createElement('div');
-            summary.className = 'flex items-center gap-2 bg-surface-container rounded-lg px-3 py-2.5 mb-3';
-            summary.innerHTML = '<span class="material-symbols-outlined text-on-surface-variant text-[18px]">groups</span>' +
+            var summaryEl = document.createElement('div');
+            summaryEl.className = 'flex items-center gap-2 bg-surface-container rounded-lg px-3 py-2.5 mb-3';
+            summaryEl.innerHTML = '<span class="material-symbols-outlined text-on-surface-variant text-[18px]">groups</span>' +
                 '<p class="font-label-sm text-label-sm text-on-surface-variant">예상 준비 <b class="text-on-surface">' + attending + '명</b> · 확인 안 됨 <b class="text-on-surface">' + pending + '명</b></p>';
-            card.appendChild(summary);
+            card.appendChild(summaryEl);
 
             var rosterEl = document.createElement('div');
             rosterEl.className = 'flex flex-col gap-2 mb-4';
-            meal.roster.forEach(function (r) {
+            roster.forEach(function (r) {
                 var row = document.createElement('div');
                 row.className = 'flex items-center gap-2.5';
-                var isMe = r.name === persona;
+                var isMe = r.memberId === myMember.id;
                 var statusIcon = r.status === 'attending' ? '<span class="material-symbols-outlined text-[16px]" style="color:#6b7f5c;">check_circle</span>' : '<span class="material-symbols-outlined text-[16px] text-outline">help</span>';
-                var statusText = r.status === 'attending' ? ('먹어요 · ' + r.note) : ('확인 전' + (r.note ? ' · ' + r.note : ''));
-                row.innerHTML = '<span class="w-7 h-7 rounded-full flex items-center justify-center text-on-primary font-label-sm text-label-sm shrink-0" style="background-color:' + (IDENTITY_COLOR[r.name] || '#8a9a7b') + ';">' + r.name.charAt(0) + '</span>' +
+                var statusText = r.status === 'attending' ? ('먹어요' + (r.note ? ' · ' + r.note : '')) : ('확인 전' + (r.note ? ' · ' + r.note : ''));
+                row.innerHTML = '<span class="w-7 h-7 rounded-full flex items-center justify-center text-on-primary font-label-sm text-label-sm shrink-0" style="background-color:' + (r.color || '#8a9a7b') + ';">' + (r.name || '?').charAt(0) + '</span>' +
                     '<span class="font-body-md text-body-md ' + (r.status === 'attending' ? 'text-on-surface' : 'text-on-surface-variant') + ' flex-1">' + r.name + (isMe ? ' (나)' : '') + '</span>' +
                     statusIcon +
                     '<span class="font-label-sm text-label-sm ' + (r.status === 'attending' ? 'text-on-surface-variant' : 'text-outline') + '">' + statusText + '</span>';
@@ -512,28 +422,28 @@
             var detailBtn = document.createElement('button');
             detailBtn.className = 'w-full text-center font-label-sm text-label-sm text-primary py-1';
             detailBtn.textContent = '응답 현황 자세히 보기 →';
-            detailBtn.onclick = function () { goToSummary(meal); };
+            detailBtn.onclick = function () { goToSummary(meal, roster); };
             card.appendChild(detailBtn);
         } else {
-            var mine = meal.roster.find(function (r) { return r.name === persona; });
+            var mine = roster.find(function (r) { return r.memberId === myMember.id; });
             if (mine && mine.status === 'attending') {
                 var done = document.createElement('p');
                 done.className = 'font-label-sm text-label-sm text-on-surface-variant';
-                done.innerHTML = '<span class="material-symbols-outlined text-[16px] align-middle" style="color:#6b7f5c;">check_circle</span> 이미 응답했어요 · 먹어요 · ' + mine.note +
+                done.innerHTML = '<span class="material-symbols-outlined text-[16px] align-middle" style="color:#6b7f5c;">check_circle</span> 이미 응답했어요 · 먹어요' + (mine.note ? ' · ' + mine.note : '') +
                     ' <button type="button" class="change-response-btn underline">바꾸기</button>';
                 card.appendChild(done);
-                done.querySelector('.change-response-btn').onclick = function () { window.location.href = '../3-3. 참여자 응답/code.html?name=' + encodeURIComponent(persona); };
+                done.querySelector('.change-response-btn').onclick = function () { respondToMeal(meal.id, 'absent'); };
             } else if (mine && mine.status === 'absent') {
                 var doneNo = document.createElement('p');
                 doneNo.className = 'font-label-sm text-label-sm text-on-surface-variant';
                 doneNo.innerHTML = '<span class="material-symbols-outlined text-[16px] align-middle text-outline">check_circle</span> 이미 응답했어요 · 안 먹어요' +
                     ' <button type="button" class="change-response-btn underline">바꾸기</button>';
                 card.appendChild(doneNo);
-                doneNo.querySelector('.change-response-btn').onclick = function () { window.location.href = '../3-3. 참여자 응답/code.html?name=' + encodeURIComponent(persona); };
+                doneNo.querySelector('.change-response-btn').onclick = function () { respondToMeal(meal.id, 'attending'); };
             } else {
                 var desc = document.createElement('p');
                 desc.className = 'font-body-md text-body-md text-on-surface-variant mb-4';
-                desc.textContent = meal.creator + ' 님이 만든 식사예요. 아직 응답하지 않았어요.';
+                desc.textContent = roleLabel + '예요. 아직 응답하지 않았어요.';
                 card.appendChild(desc);
 
                 var btnRow = document.createElement('div');
@@ -544,10 +454,8 @@
                 var noBtn = document.createElement('button');
                 noBtn.className = 'flex-1 py-2.5 rounded-full bg-surface-container text-on-surface-variant font-label-sm text-label-sm active:scale-[0.98] transition-transform';
                 noBtn.textContent = '안 먹어요';
-                // 탭하면 그 자리에서 바로 결정(§5.1 "탭 1~2번"). 도착시간까지 더 자세히 남기고 싶으면
-                // 위 "바꾸기"로 개인 응답 화면(3-3)을 열어 조정할 수 있게 남겨둠.
-                yesBtn.onclick = function () { respondToMeal(meal.id, persona, 'attending'); };
-                noBtn.onclick = function () { respondToMeal(meal.id, persona, 'absent'); };
+                yesBtn.onclick = function () { respondToMeal(meal.id, 'attending'); };
+                noBtn.onclick = function () { respondToMeal(meal.id, 'absent'); };
                 btnRow.appendChild(yesBtn);
                 btnRow.appendChild(noBtn);
                 card.appendChild(btnRow);
@@ -558,110 +466,58 @@
     }
 
     // "매번 보내기" 안 해도 되게: 3-2에서 설정해둔 반복 규칙 중 오늘 요일에 해당하는 게 있으면
-    // 오늘치를 자동으로 생성한다(하루 한 번만, recurring_fired로 중복 방지).
-    function checkRecurringMeals() {
-        var rules = [];
-        try { rules = JSON.parse(localStorage.getItem('recurring_meals') || '[]'); } catch (err) {}
+    // 오늘치를 자동으로 생성한다(하루 한 번만, last_fired_date로 중복 방지).
+    async function checkRecurringMeals() {
+        var rules = await API.recurringMeals.list(householdId);
         if (!rules.length) return;
-
-        var todayKey = new Date().toISOString().slice(0, 10);
+        var today = todayKey();
         var todayDay = new Date().getDay();
-        var fired = {};
-        try { fired = JSON.parse(localStorage.getItem('recurring_fired') || '{}'); } catch (err) {}
-
-        var created = [];
-        try { created = JSON.parse(localStorage.getItem('created_meals') || '[]'); } catch (err) {}
-
         var firedAny = false;
-        rules.forEach(function (rule) {
-            if (rule.days.indexOf(todayDay) === -1) return;
-            if (fired[rule.id] === todayKey) return;
-            created.push({
-                id: Date.now() + Math.floor(Math.random() * 1000),
-                date: todayKey,
-                time: rule.time,
-                menus: rule.menus || [],
-                mealType: rule.mealType || 'home',
-                participants: rule.participants || [],
-                auto: true
+
+        for (var i = 0; i < rules.length; i++) {
+            var rule = rules[i];
+            if (rule.days.indexOf(todayDay) === -1) continue;
+            if (rule.last_fired_date === today) continue;
+            var meal = await API.meals.create(householdId, {
+                date: today, time: rule.time, kind: rule.kind, menu: rule.menu, status: 'open'
             });
-            fired[rule.id] = todayKey;
+            await API.mealParticipants.bulkCreateWithTokens(meal.id, rule.participant_member_ids);
+            await API.recurringMeals.markFired(rule.id, today);
             firedAny = true;
-        });
-
-        if (firedAny) {
-            try {
-                localStorage.setItem('created_meals', JSON.stringify(created));
-                localStorage.setItem('recurring_fired', JSON.stringify(fired));
-            } catch (err) {}
-            showToast('반복 일정이 있어서 오늘 식사를 자동으로 열었어요');
         }
+        if (firedAny) showToast('반복 일정이 있어서 오늘 식사를 자동으로 열었어요');
     }
 
-    function renderCreatedMeals(persona) {
-        var created = [];
-        try { created = JSON.parse(localStorage.getItem('created_meals') || '[]'); } catch (err) {}
-        var section = document.getElementById('createdSection');
-        var list = document.getElementById('createdCards');
-        list.innerHTML = '';
-        if (!created.length) { section.classList.add('hidden'); return; }
-        section.classList.remove('hidden');
-        created.forEach(function (meal) {
-            var card = document.createElement('article');
-            card.className = 'identity-line rounded-xl bg-surface-container-lowest shadow-[0px_4px_12px_rgba(120,119,119,0.08)] p-card-padding';
-            card.style.borderLeftColor = IDENTITY_COLOR[persona] || '#8a9a7b';
-            var menuLine = (meal.menus && meal.menus.length) ? meal.menus.join(' · ') : '메뉴 정하는 중';
-            card.innerHTML =
-                '<div class="flex items-center justify-between mb-2">' +
-                '<span class="font-label-sm text-label-sm bg-tertiary-container text-on-tertiary-container px-2.5 py-1 rounded-full">' + (meal.date || '날짜 미정') + ' · ' + (meal.time || '시간 미정') + '</span>' +
-                '<span class="font-label-sm text-label-sm text-on-surface-variant">' + (meal.auto ? '🔁 반복 일정으로 자동 생성' : '내가 만든 식사') + '</span>' +
-                '</div>' +
-                '<h3 class="font-headline-lg text-headline-lg text-on-surface mb-2">' + menuLine + '</h3>' +
-                '<p class="font-label-sm text-label-sm text-on-surface-variant mb-3">아직 아무도 응답하지 않았어요 · 참여자 ' + ((meal.participants || []).length) + '명에게 링크를 보냈어요</p>' +
-                '<button type="button" class="edit-meal-btn w-full text-center font-label-sm text-label-sm text-primary py-1">수정하기 →</button>';
-            card.querySelector('.edit-meal-btn').onclick = function () {
-                try { localStorage.setItem('edit_meal', JSON.stringify(meal)); } catch (err) {}
-                window.location.href = '../3-2. 식사 만들기/code.html?edit=1';
-            };
-            list.appendChild(card);
-        });
-    }
+    var realtimeChannel = null;
 
-    (function init() {
-        var params = new URLSearchParams(window.location.search);
-        var persona = params.get('as') || '김영희';
-        CURRENT_PERSONA = persona;
+    (async function init() {
+        await requireSession();
+        myMember = await getMyMember();
+        if (!myMember) { window.location.href = '../1-2. 온보딩-시작하기/code.html'; return; }
+        householdId = myMember.household_id;
+        membersCache = await API.members.list(householdId);
 
-        var nickname = persona;
-        var householdName = '우리집';
-        var photo = null;
-        try {
-            householdName = localStorage.getItem('onboarding_household_name') || localStorage.getItem('household_name') || '우리집';
-            if (persona === '김영희') {
-                nickname = localStorage.getItem('onboarding_nickname') || localStorage.getItem('household_nickname') || '김영희';
-                photo = localStorage.getItem('onboarding_profile_photo');
-            }
-        } catch (err) {}
-
-        document.getElementById('greetName').textContent = nickname;
-        document.getElementById('greetSub').textContent = householdName + ' · 오늘도 좋은 식사 되세요';
+        var household = myMember.households_vc2608 || (await API.households.get(householdId));
+        document.getElementById('greetName').textContent = myMember.name || '이름 없음';
+        document.getElementById('greetSub').textContent = (household.name || '우리집') + ' · 오늘도 좋은 식사 되세요';
 
         var avatarBtn = document.getElementById('profileAvatarBtn');
-        if (photo) { avatarBtn.innerHTML = '<img src="' + photo + '" class="w-full h-full object-cover">'; }
-        else { avatarBtn.textContent = nickname.trim().charAt(0) || '?'; }
+        if (myMember.avatar_url) { avatarBtn.innerHTML = '<img src="' + myMember.avatar_url + '" class="w-full h-full object-cover">'; }
+        else { avatarBtn.textContent = (myMember.name || '?').trim().charAt(0) || '?'; }
 
-        renderAllMeals(persona);
-
-        checkRecurringMeals();
-        renderCreatedMeals(persona);
+        await checkRecurringMeals();
+        await renderAllMeals();
+        await loadNotis();
         updateNotiDot();
 
-        try {
-            if (localStorage.getItem('meal_edit_saved') === '1') {
-                localStorage.removeItem('meal_edit_saved');
-                showToast('수정됐어요 · 참여자 링크는 그대로예요');
-            }
-        } catch (err) {}
+        var params = new URLSearchParams(window.location.search);
+        if (params.get('edited') === '1') showToast('수정됐어요 · 참여자 링크는 그대로예요');
+
+        realtimeChannel = API.realtime.subscribeToHousehold(
+            householdId, ['meals_vc2608', 'meal_responses_vc2608', 'notifications_vc2608'],
+            function () { renderAllMeals(); loadNotis().then(updateNotiDot); }
+        );
+        window.addEventListener('beforeunload', function () { API.realtime.unsubscribe(realtimeChannel); });
     })();
 </script>
 </body></html>

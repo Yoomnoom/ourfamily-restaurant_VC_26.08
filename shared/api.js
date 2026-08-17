@@ -275,6 +275,16 @@ API.mealParticipants = {
   }
 };
 
+// 로그인한 본인이 3-1 카드에서 바로 탭 한 번으로 응답할 때(1인1링크 없이, 세션 기반으로).
+API.mealResponses = {
+  async respondSelf(mealId, memberId, status, arrivalTime, note) {
+    var res = await sb.from('meal_responses_vc2608')
+      .upsert({ meal_id: mealId, member_id: memberId, is_guest: false, status: status, arrival_time: arrivalTime || null, note: note || null, updated_at: new Date().toISOString() },
+              { onConflict: 'meal_id,member_id' });
+    if (res.error) throw res.error;
+  }
+};
+
 // 손님용 범용 공유 링크(가구에 등록되지 않은, 정말 처음 오는 사람) — meal_share_links_vc2608
 API.mealShareLinks = {
   async create(mealId) {
