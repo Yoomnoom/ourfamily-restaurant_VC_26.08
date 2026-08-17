@@ -476,8 +476,15 @@
         setLoading(false);
         formMessage.textContent = '회원가입이 완료되었어요! 다음 단계로 이동합니다.';
         formMessage.className = 'text-center font-label-sm text-label-sm min-h-[18px] text-primary';
+
+        // 3-9(무가입 응답 연결)에서 넘어온 가입이면, 새 가구를 만드는 온보딩(1-2)이 아니라
+        // 원래 초대받은 가구에 이 계정을 연결하는 3-9로 돌아가야 함(§7.6 B방식).
+        var linkToken = new URLSearchParams(window.location.search).get('linkToken');
+        var nextUrl = linkToken
+            ? '../3-9. 무가입 응답 연결/code.html?token=' + linkToken + '&afterSignup=1'
+            : '../1-2. 온보딩-시작하기/code.html';
         setTimeout(function () {
-            window.location.href = '../1-2. 온보딩-시작하기/code.html';
+            window.location.href = nextUrl;
         }, 800);
     }
 </script>

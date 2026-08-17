@@ -3,6 +3,9 @@
 <meta content="width=device-width, initial-scale=1.0" name="viewport">
 <title>우리집식당 - 계정 연결</title>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../shared/supabase-client.js"></script>
+<script src="../shared/api.js"></script>
 <link href="https://fonts.googleapis.com" rel="preconnect">
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif:wght@400;700&amp;family=Plus+Jakarta+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
@@ -38,7 +41,7 @@
 <p class="font-body-md text-body-md text-on-surface">지난 응답 기록이 그대로 이어지고, 이제부터 가구 홈에서 알림과 일정을 한곳에서 볼 수 있어요.</p>
 </div>
 
-<button class="w-full bg-primary text-on-primary font-label-sm text-[15px] py-4 rounded-full shadow-[0px_4px_12px_rgba(120,119,119,0.08)] active:scale-[0.98] transition-transform mb-2" onclick="connectAccount()">연결하기</button>
+<button class="w-full bg-primary text-on-primary font-label-sm text-[15px] py-4 rounded-full shadow-[0px_4px_12px_rgba(120,119,119,0.08)] active:scale-[0.98] transition-transform mb-2" onclick="goToSignup()">연결하기</button>
 <button class="w-full py-3 rounded-full text-on-surface-variant font-label-sm text-label-sm" onclick="window.location.href='../1-1. 온보딩-회원가입/code.html'">아니요, 새로 시작할게요</button>
 </div>
 
@@ -52,21 +55,50 @@
 </main>
 
 <script>
-    var personaName = '김하준';
+    var rawToken = '';
 
-    function connectAccount() {
+    function goToSignup() {
+        // 실제 가입은 1-1에서 하고, 가입 완료 후 다시 이 화면(?afterSignup=1)으로 돌아와 연결을 마무리함.
+        window.location.href = '../1-1. 온보딩-회원가입/code.html?linkToken=' + rawToken;
+    }
+
+    function goHome() {
+        window.location.href = '../3-0. 홈/code.html';
+    }
+
+    async function finishClaim() {
+        var tokenHash = await sha256Hex(rawToken);
+        try {
+            await API.members.claimViaToken(tokenHash);
+        } catch (err) {
+            document.getElementById('confirmView').classList.add('hidden');
+            document.getElementById('doneView').innerHTML =
+                '<p class="font-body-md text-body-md text-on-surface-variant mb-6">연결에 실패했어요: ' + err.message + '</p>' +
+                '<button class="w-full bg-primary text-on-primary font-label-sm text-[15px] py-4 rounded-full active:scale-[0.98] transition-transform" onclick="goHome()">홈으로 가기</button>';
+            document.getElementById('doneView').classList.remove('hidden');
+            return;
+        }
         document.getElementById('confirmView').classList.add('hidden');
         document.getElementById('doneView').classList.remove('hidden');
     }
 
-    function goHome() {
-        window.location.href = '../3-1. 내 식탁/code.html?as=' + encodeURIComponent(personaName);
-    }
-
-    (function init() {
+    (async function init() {
+        await requireSession(); // 계정 연결은 로그인 상태에서만 의미 있음(가입 직후 세션 포함)
         var params = new URLSearchParams(window.location.search);
-        personaName = params.get('name') || '김하준';
-        document.getElementById('nameSlot').textContent = personaName;
+        rawToken = params.get('token') || '';
+        var tokenHash = await sha256Hex(rawToken);
+        var participant = await API.mealParticipants.getByToken(tokenHash);
+
+        if (!participant) {
+            document.getElementById('confirmView').innerHTML =
+                '<p class="font-body-md text-body-md text-on-surface-variant">유효하지 않거나 만료된 링크예요.</p>';
+            return;
+        }
+        document.getElementById('nameSlot').textContent = participant.member_name;
+
+        if (params.get('afterSignup') === '1') {
+            await finishClaim();
+        }
     })();
 </script>
 </body></html>

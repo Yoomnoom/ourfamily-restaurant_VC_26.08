@@ -142,6 +142,14 @@ API.members = {
   async setRole(memberId, role) {
     var res = await sb.from('household_members_vc2608').update({ role: role }).eq('id', memberId);
     if (res.error) throw res.error;
+  },
+
+  // 무가입(계정 없음) 참여자가 1인1링크로 응답만 하다가 실제로 가입할 때(§7.6 B방식) —
+  // 새로 만든 계정을 기존 household_members_vc2608 행(무가입 상태)에 연결. 로그인 직후에 호출해야 함.
+  async claimViaToken(tokenHash) {
+    var res = await sb.rpc('claim_member_via_token_vc2608', { p_token_hash: tokenHash });
+    if (res.error) throw res.error;
+    return res.data;
   }
 };
 
