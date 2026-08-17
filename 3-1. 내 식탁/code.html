@@ -336,19 +336,7 @@
         if (!tomorrowEl.children.length) tomorrowEl.innerHTML = '<p class="font-label-sm text-label-sm text-on-surface-variant px-1">내일은 아직 만든 식사가 없어요</p>';
     }
 
-    function goToSummary(meal, roster) {
-        var attending = [], late = [], pending = [];
-        roster.forEach(function (r) {
-            if (r.status === 'attending') attending.push({ name: r.name, note: r.note || '제시간' });
-            else pending.push({ name: r.name, reason: r.note || '아직 확인 전' });
-        });
-        // 3-4가 아직 실 DB 연동 전이라 기존 localStorage 핸드오프도 함께 남겨둠(다음 전환 때 제거 예정).
-        var summary = {
-            title: (meal.date === todayKey() ? '오늘' : '내일') + '의 식탁, 확정할까요?',
-            menu: (meal.menu && meal.menu.length) ? meal.menu.join(' · ') : '메뉴 미정',
-            attending: attending, late: late, pending: pending
-        };
-        try { localStorage.setItem('meal_summary', JSON.stringify(summary)); } catch (err) {}
+    function goToSummary(meal) {
         window.location.href = '../3-4. 확정 전 요약/code.html?meal=' + meal.id;
     }
 
@@ -422,7 +410,7 @@
             var detailBtn = document.createElement('button');
             detailBtn.className = 'w-full text-center font-label-sm text-label-sm text-primary py-1';
             detailBtn.textContent = '응답 현황 자세히 보기 →';
-            detailBtn.onclick = function () { goToSummary(meal, roster); };
+            detailBtn.onclick = function () { goToSummary(meal); };
             card.appendChild(detailBtn);
         } else {
             var mine = roster.find(function (r) { return r.memberId === myMember.id; });

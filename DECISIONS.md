@@ -678,3 +678,11 @@
 - 전체 35개 `code.html` JS 문법·링크 재검증 통과(0 errors / 0 broken links). 커밋·푸시 완료.
 - **다음**: 8-1(밀키트 주문) — FEATURE_CATALOG.md "포함" 항목 전환의 마지막 화면.
 
+
+## 8-1(밀키트 주문) 실 DB 연동 — FEATURE_CATALOG "포함" 전체 전환 완료 (2026-08-18)
+
+- 제휴사 API/딥링크 연동 자체는 계약이 필요한 별도 사업 영역이라 여전히 목업 유지(조율만 도와요 문구·연결 준비중 화면 그대로). 대신 이미 스키마에 있던 `milkit_orders_vc2608`(status CHECK `'suggested'`/`'ordered_stub'`, RLS/GRANT 기존 확인)에 실제 이력을 남기도록 `API.milkitOrders`(create/markOrdered/listByHousehold) 추가 — 화면 진입 시 `'suggested'`로 기록, "제휴사에서 보기" 클릭 시 같은 행을 `'ordered_stub'`로 갱신 — 제안 노출 대비 클릭률을 나중에 실제로 볼 수 있게 됨(수익모델 핵심 지표).
+- 7-1/7-3(냉장고 AI 관련, 재검토 대상이라 범위 밖)이 넘겨주는 `localStorage milkit_order` 핸드오프 shape(`{recipeName, missing}`)는 그대로 유지 — 그 화면들은 손대지 않음.
+- 전체 35개 `code.html` JS 문법·링크 재검증 통과(0 errors / 0 broken links). 커밋·푸시 완료.
+- **마일스톤**: 이것으로 `FEATURE_CATALOG.md`에 "포함"으로 표시된 모든 화면(A온보딩~D가구관리, G신규기능, 8-1밀키트)의 Supabase 실 DB 전환이 끝남. 남은 작업은 (1) 카카오 OAuth 외부 설정(사용자가 직접), (2) 사용자가 직접 브라우저로 전체 흐름 실제 테스트, (3) 미루된 두 건(사진기록+SNS 공유, 9장 참고이미지 기반 전면 리디자인) 중 사용자 지시에 따라 진행.
+
