@@ -3,6 +3,9 @@
 <meta content="width=device-width, initial-scale=1.0" name="viewport">
 <title>우리집식당 - 식사 기록</title>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../shared/supabase-client.js"></script>
+<script src="../shared/api.js"></script>
 <link href="https://fonts.googleapis.com" rel="preconnect">
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
@@ -37,21 +40,9 @@
 
 <div class="bg-surface-container-lowest rounded-xl p-card-padding shadow-[0px_4px_12px_rgba(120,119,119,0.08)] mb-4">
 <p class="font-label-sm text-label-sm text-on-surface-variant mb-1">이번 달 총 식사</p>
-<p class="font-headline-lg text-headline-lg text-on-surface mb-3">18<span class="font-body-md text-body-md text-on-surface-variant">회</span></p>
-<div class="w-full h-3 rounded-full overflow-hidden flex bg-surface-container mb-3">
-<div class="h-full" style="width:78%; background:#7a6300;"></div>
-<div class="h-full" style="width:22%; background:#b8621f;"></div>
-</div>
-<div class="flex justify-between mb-3">
-<div class="flex items-center gap-2">
-<span class="w-2.5 h-2.5 rounded-full inline-block" style="background:#7a6300;"></span>
-<span class="font-body-md text-body-md text-on-surface-variant">직접 조리 <b class="text-on-surface">14회</b></span>
-</div>
-<div class="flex items-center gap-2">
-<span class="w-2.5 h-2.5 rounded-full inline-block" style="background:#b8621f;"></span>
-<span class="font-body-md text-body-md text-on-surface-variant">주문 <b class="text-on-surface">4회</b></span>
-</div>
-</div>
+<p class="font-headline-lg text-headline-lg text-on-surface mb-3"><span id="monthTotalCount">-</span><span class="font-body-md text-body-md text-on-surface-variant">회</span></p>
+<div id="monthKindBar" class="w-full h-3 rounded-full overflow-hidden flex bg-surface-container mb-3"></div>
+<div id="monthKindLegend" class="flex flex-wrap gap-x-4 gap-y-1 mb-3"></div>
 <button type="button" class="w-full text-center font-label-sm text-label-sm text-primary py-1 border-t border-outline-variant pt-3" onclick="window.location.href='../8-3. 식비 예산/code.html'">이번 달 식비 예산 보기 →</button>
 </div>
 
@@ -65,17 +56,74 @@
 </main>
 
 <script>
-    var RECORDS = [
-        { date: '8월 16일 (오늘)', dateKey: '2024-08-16', menus: ['김치찌개', '계란말이'], count: 2, participants: ['김영희 (나)', '박철수'] },
-        { date: '8월 13일 (화)', dateKey: '2024-08-13', menus: ['김치찌개', '계란말이'], count: 4, participants: ['김영희 (나)', '박철수', '이지은'] },
-        { date: '8월 9일 (금)', dateKey: '2024-08-09', menus: ['된장찌개', '나물무침'], count: 3, participants: ['김영희 (나)', '박철수'] },
-        { date: '8월 3일 (토)', dateKey: '2024-08-03', menus: ['삼겹살', '상추쌈'], count: 5, participants: ['김영희 (나)', '박철수', '이지은'] }
-    ];
+    var householdId = null;
+    var myMember = null;
+    var RECORDS = []; // meals_vc2608 + 계산된 표시용 필드(date, dateKey, menus, count)
+
+    var KIND_COLORS = { '집밥': '#7a6300', '외식': '#4a7a63', '배달': '#b8621f' };
+    var WEEKDAY_NAMES = ['일', '월', '화', '수', '목', '금', '토'];
+
+    function todayKey() {
+        var d = new Date();
+        return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    }
+
+    function formatRecordDate(dateStr) {
+        var d = new Date(dateStr + 'T00:00:00');
+        var label = (d.getMonth() + 1) + '월 ' + d.getDate() + '일 (' + (dateStr === todayKey() ? '오늘' : WEEKDAY_NAMES[d.getDay()]) + ')';
+        return label;
+    }
+
+    async function loadRecords() {
+        var meals = await API.meals.listByHousehold(householdId);
+        RECORDS = [];
+        for (var i = 0; i < meals.length; i++) {
+            var m = meals[i];
+            var roster = await API.mealParticipants.getRoster(m.id);
+            var attending = roster.filter(function (r) { return r.status === 'attending'; }).length;
+            RECORDS.push({
+                mealId: m.id, dateKey: m.date, date: formatRecordDate(m.date),
+                menus: m.menu || [], kind: m.kind, count: attending
+            });
+        }
+    }
+
+    function renderMonthStats() {
+        var thisMonth = todayKey().slice(0, 7); // YYYY-MM
+        var monthRecords = RECORDS.filter(function (r) { return r.dateKey.slice(0, 7) === thisMonth; });
+        document.getElementById('monthTotalCount').textContent = monthRecords.length;
+
+        var countByKind = {};
+        monthRecords.forEach(function (r) { countByKind[r.kind] = (countByKind[r.kind] || 0) + 1; });
+
+        var bar = document.getElementById('monthKindBar');
+        var legend = document.getElementById('monthKindLegend');
+        bar.innerHTML = '';
+        legend.innerHTML = '';
+        var total = monthRecords.length;
+        Object.keys(countByKind).forEach(function (kind) {
+            var color = KIND_COLORS[kind] || '#8a8a8a';
+            var seg = document.createElement('div');
+            seg.className = 'h-full';
+            seg.style.width = (total ? (countByKind[kind] / total * 100) : 0) + '%';
+            seg.style.background = color;
+            bar.appendChild(seg);
+
+            var item = document.createElement('div');
+            item.className = 'flex items-center gap-2';
+            item.innerHTML = '<span class="w-2.5 h-2.5 rounded-full inline-block" style="background:' + color + ';"></span>' +
+                '<span class="font-body-md text-body-md text-on-surface-variant">' + kind + ' <b class="text-on-surface">' + countByKind[kind] + '회</b></span>';
+            legend.appendChild(item);
+        });
+        if (!total) {
+            legend.innerHTML = '<p class="font-label-sm text-label-sm text-on-surface-variant">이번 달 기록이 아직 없어요</p>';
+        }
+    }
 
     function reuse(index) {
         var record = RECORDS[index];
         try {
-            localStorage.setItem('reuse_meal', JSON.stringify({ menus: record.menus, participants: record.participants }));
+            localStorage.setItem('reuse_meal', JSON.stringify({ menus: record.menus }));
         } catch (err) {}
         window.location.href = '../3-2. 식사 만들기/code.html';
     }
@@ -160,6 +208,15 @@
             list.appendChild(lessBtn);
         }
     }
-    renderRecords();
+    (async function init() {
+        await requireSession();
+        myMember = await getMyMember();
+        if (!myMember) { window.location.href = '../1-2. 온보딩-시작하기/code.html'; return; }
+        householdId = myMember.household_id;
+
+        await loadRecords();
+        renderMonthStats();
+        renderRecords();
+    })();
 </script>
 </body></html>
