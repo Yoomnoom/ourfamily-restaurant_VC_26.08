@@ -647,3 +647,13 @@
 - 전체 35개 `code.html` JS 문법(`new Function` 파스) + 상대링크 무결성 재검증 통과(0 errors / 0 broken links). 커밋·푸시 완료.
 - **다음**: 4-1(홈 달력뷰), 4-3(월 요약 통계), 5-2(식사 기록), 5-4(요일별 기본 응답), 8-1(밀키트 주문).
 
+
+## 4-1(홈 달력뷰) 실 DB 연동 (2026-08-18)
+
+- 고정 데모 날짜(2024년 8월/TODAY=16)와 하드코딩 `CELLS`/`MEALS_BY_DATE`를 걷어내고 실제 `Date` 계산으로 달력을 생성. 월 이전/이후 화살표 버튼은 원래 `onclick`이 없던 장식용 버튼이었는데(목업 정직성 원칙 해당), 실제 월 이동이 동작하도록 구현.
+- `meals_vc2608`/`meal_responses_vc2608`을 실조회해 날짜별 요약(대표 메뉴, 참여/미확인 인원 수)과 그날 상세를 실데이터로 렌더링. 색점은 만든 사람(`creator_id`)의 `household_members_vc2608.color`로 매핑. 상단 범례도 하드코딩 이름 2명 대신 실제 가구 구성원 목록으로 표시.
+- 미리 답해두기(`advance_answers_vc2608`) · 요일별 기본 응답(`weekday_defaults_vc2608`, `status` 체크제약이 `'attending'`/`'absent'`임을 실제 DB 제약조회로 확인 후 맞춤) · 그날의 한마디(`guestbook_notes_vc2608`)를 모두 `localStorage` 대신 실 API로 교체, `?as=` 페르소나 파라미터는 `requireSession`/`getMyMember` 기반 실제 로그인 세션으로 대체.
+- `meals_vc2608`/`meal_responses_vc2608`/`guestbook_notes_vc2608`/`advance_answers_vc2608`에 대한 Realtime 구독 추가(가족 누군가 응답하거나 한마디를 남기면 달력이 새로고침 없이 바로 반영).
+- 전체 35개 `code.html` JS 문법·상대링크 재검증 통과(0 errors / 0 broken links). 커밋·푸시 완료.
+- **다음**: 4-3(월 요약 통계), 5-2(식사 기록), 5-4(요일별 기본 응답), 8-1(밀키트 주문).
+
