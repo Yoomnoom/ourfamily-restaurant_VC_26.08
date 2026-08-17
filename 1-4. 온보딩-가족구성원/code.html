@@ -404,7 +404,12 @@
             nameInput.placeholder = '이름';
             nameInput.value = member.name;
             nameInput.disabled = member.isMe;
-            nameInput.addEventListener('input', function (e) { updateName(member.id, e.target.value); avatar.textContent = member.photo ? '' : initials(e.target.value); });
+            nameInput.addEventListener('input', function (e) {
+                updateName(member.id, e.target.value);
+                // 사진이 있으면 아바타를 건드리지 않음 — textContent를 ''로 덮어쓰면 안에 들어있는
+                // <img>까지 같이 지워져서 사진이 사라지는 버그가 있었음.
+                if (!member.photo) avatar.textContent = initials(e.target.value);
+            });
 
             var tag = document.createElement('button');
             tag.type = 'button';
