@@ -64,6 +64,17 @@ API.storage = {
 // ---------------------------------------------------------
 API.households = {
   async create(name) {
+    // 회원가입 트리거 이전에 만들어진 계정(예: 다른 프로젝트에서 넘어온 테스트 계정)은
+    // profiles_vc2608 행이 없을 수 있음 — households_vc2608.owner_id가 profiles_vc2608을
+    // 참조하므로, 없으면 여기서 만들어 자연스럽게 복구.
+    var session = await getSession();
+    if (session) {
+      var upsert = await sb.from('profiles_vc2608')
+        .upsert({ id: session.user.id, name: session.user.user_metadata && session.user.user_metadata.name || session.user.email.split('@')[0] },
+                { onConflict: 'id', ignoreDuplicates: true });
+      if (upsert.error) throw upsert.error;
+    }
+
     var res = await sb.rpc('create_household_vc2608', { household_name: name });
     if (res.error) throw res.error;
     return res.data;
