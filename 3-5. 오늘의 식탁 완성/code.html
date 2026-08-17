@@ -3,6 +3,9 @@
 <meta content="width=device-width, initial-scale=1.0" name="viewport">
 <title>우리집식당 - 오늘의 식탁 완성</title>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../shared/supabase-client.js"></script>
+<script src="../shared/api.js"></script>
 <link href="https://fonts.googleapis.com" rel="preconnect">
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif:wght@400;700&amp;family=Plus+Jakarta+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
@@ -47,36 +50,35 @@
 </main>
 
 <script>
-    function reopenMeal() {
+    var mealId = null;
+
+    async function reopenMeal() {
         if (!confirm('확정을 취소하고 응답을 다시 받을까요?')) return;
-        var data = null;
-        try { data = JSON.parse(localStorage.getItem('confirmed_meal') || 'null'); } catch (err) {}
-        if (data) {
-            var summary = {
-                title: (data.date || '오늘') + '의 식탁, 확정할까요?',
-                menu: data.menu,
-                attending: (data.attending || []).map(function (name) { return { name: name, note: '제시간' }; }),
-                late: data.late || [],
-                pending: (data.unconfirmed || []).map(function (name) { return { name: name, reason: '아직 확인 전' }; })
-            };
-            try { localStorage.setItem('meal_summary', JSON.stringify(summary)); } catch (err) {}
-        }
-        window.location.href = '../3-4. 확정 전 요약/code.html';
+        await API.meals.update(mealId, { status: 'open' });
+        window.location.href = '../3-4. 확정 전 요약/code.html?meal=' + mealId;
     }
-</script>
 
-<script>
-    (function init() {
-        var data = null;
-        try { data = JSON.parse(localStorage.getItem('confirmed_meal') || 'null'); } catch (err) {}
-        if (!data) {
-            data = { menu: '김치찌개 외 1개', time: '19:00', finalCount: 2, late: [{ name: '박철수', note: '8시쯤 도착해요' }], unconfirmed: ['이지은'] };
-        }
-        document.getElementById('mealLine').textContent = data.menu + ' · ' + data.time;
+    (async function init() {
+        await requireSession();
+        var params = new URLSearchParams(window.location.search);
+        mealId = params.get('meal');
+        if (!mealId) { window.location.href = '../3-1. 내 식탁/code.html'; return; }
 
-        var lines = ['함께 ' + data.finalCount + '명'];
-        (data.late || []).forEach(function (p) { lines.push(p.name + ' ' + p.note); });
-        (data.unconfirmed || []).forEach(function (name) { lines.push(name + ' 확인 안 됨'); });
+        var meal = await API.meals.get(mealId);
+        var roster = await API.mealParticipants.getRoster(mealId);
+        var menuLine = (meal.menu && meal.menu.length) ? meal.menu.join(' · ') : '메뉴 미정';
+        document.getElementById('mealLine').textContent = menuLine + ' · ' + (meal.time || '시간 미정');
+
+        var attendingCount = 0, lines = [];
+        roster.forEach(function (r) {
+            if (r.status === 'attending') {
+                attendingCount++;
+                if (r.note && r.note.indexOf('좀 늦어요') !== -1) lines.push(r.name + ' ' + r.note);
+            } else if (r.status === 'pending') {
+                lines.push(r.name + ' 확인 안 됨');
+            }
+        });
+        lines.unshift('함께 ' + attendingCount + '명');
 
         var list = document.getElementById('summaryList');
         lines.forEach(function (line) {

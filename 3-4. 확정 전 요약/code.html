@@ -200,14 +200,6 @@
     }
 
     async function confirmMeal() {
-        var confirmed = {
-            menu: meal.menu, date: '오늘', time: '19:00',
-            finalCount: count,
-            attending: meal.attending.map(function (p) { return p.name; }),
-            late: meal.late.map(function (p) { return { name: p.name, note: p.note }; }),
-            unconfirmed: meal.pending.map(function (p) { return p.name; })
-        };
-        try { localStorage.setItem('confirmed_meal', JSON.stringify(confirmed)); localStorage.removeItem('meal_summary'); } catch (err) {}
         await API.meals.update(mealId, { status: 'confirmed' });
         window.location.href = '../3-5. 오늘의 식탁 완성/code.html?meal=' + mealId;
     }
