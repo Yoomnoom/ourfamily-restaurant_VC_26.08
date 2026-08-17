@@ -3,6 +3,9 @@
 <meta content="width=device-width, initial-scale=1.0" name="viewport">
 <title>우리집식당 - 밀키트 주문</title>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../shared/supabase-client.js"></script>
+<script src="../shared/api.js"></script>
 <link href="https://fonts.googleapis.com" rel="preconnect">
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif:wght@400;700&amp;family=Plus+Jakarta+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
@@ -73,32 +76,38 @@
 </main>
 
 <script>
-    (function init() {
+    var householdId = null;
+    var currentOrderId = null;
+
+    (async function init() {
+        await requireSession();
+        var myMember = await getMyMember();
+        if (!myMember) { window.location.href = '../1-2. 온보딩-시작하기/code.html'; return; }
+        householdId = myMember.household_id;
+
         var order = null;
         try { order = JSON.parse(localStorage.getItem('milkit_order') || 'null'); } catch (err) {}
+        var recipeName = (order && order.recipeName) || '감자볶음';
+        var missing = (order && order.missing && order.missing.length) ? order.missing : ['감자', '양파', '대파', '당근'];
 
+        document.getElementById('kitName').textContent = recipeName + ' 밀키트';
         var chips = document.getElementById('ingredientChips');
-        if (order && order.missing && order.missing.length) {
-            document.getElementById('kitName').textContent = order.recipeName + ' 밀키트';
-            order.missing.forEach(function (n) {
-                var chip = document.createElement('span');
-                chip.className = 'font-label-sm text-label-sm bg-tertiary-container text-on-tertiary-container px-2 py-1 rounded-full';
-                chip.textContent = n;
-                chips.appendChild(chip);
-            });
-        } else {
-            ['감자', '양파', '대파', '당근'].forEach(function (n) {
-                var chip = document.createElement('span');
-                chip.className = 'font-label-sm text-label-sm bg-tertiary-container text-on-tertiary-container px-2 py-1 rounded-full';
-                chip.textContent = n;
-                chips.appendChild(chip);
-            });
-        }
+        missing.forEach(function (n) {
+            var chip = document.createElement('span');
+            chip.className = 'font-label-sm text-label-sm bg-tertiary-container text-on-tertiary-container px-2 py-1 rounded-full';
+            chip.textContent = n;
+            chips.appendChild(chip);
+        });
 
+        // 제휴사 API/딥링크 연동은 계약이 필요한 별도 사업 영역이라 여전히 목업(§FEATURE_CATALOG 8-1 참고)이지만,
+        // "제안이 실제로 얼마나 보여지고 클릭까지 이어지는지"는 수익모델 핵심 지표라 이력만은 실제로 남김.
+        var row = await API.milkitOrders.create(householdId, null, recipeName, missing);
+        currentOrderId = row.id;
     })();
 
-    function placeOrder() {
+    async function placeOrder() {
         try { localStorage.removeItem('milkit_order'); } catch (err) {}
+        if (currentOrderId) { await API.milkitOrders.markOrdered(currentOrderId); }
         document.getElementById('orderView').classList.add('hidden');
         document.getElementById('doneView').classList.remove('hidden');
     }

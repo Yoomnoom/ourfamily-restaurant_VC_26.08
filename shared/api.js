@@ -478,6 +478,29 @@ API.guestbook = {
   }
 };
 
+// ---------------------------------------------------------
+// 밀키트 주문(제휴사 연동 자체는 범위 밖 — "주문 시도" 이력만 실제로 남김)
+// ---------------------------------------------------------
+API.milkitOrders = {
+  async create(householdId, mealId, recipeName, missingIngredients) {
+    var res = await sb.from('milkit_orders_vc2608').insert({
+      household_id: householdId, meal_id: mealId || null, recipe_name: recipeName,
+      missing_ingredients: missingIngredients || [], status: 'suggested'
+    }).select().single();
+    if (res.error) throw res.error;
+    return res.data;
+  },
+  async markOrdered(orderId) {
+    var res = await sb.from('milkit_orders_vc2608').update({ status: 'ordered_stub' }).eq('id', orderId);
+    if (res.error) throw res.error;
+  },
+  async listByHousehold(householdId) {
+    var res = await sb.from('milkit_orders_vc2608').select('*').eq('household_id', householdId).order('created_at', { ascending: false });
+    if (res.error) throw res.error;
+    return res.data;
+  }
+};
+
 API.lastSeen = {
   async list(householdId) {
     var res = await sb.from('last_seen_vc2608').select('*').eq('household_id', householdId);
