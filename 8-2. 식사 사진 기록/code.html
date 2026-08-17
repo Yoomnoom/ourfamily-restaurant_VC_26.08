@@ -3,6 +3,9 @@
 <meta content="width=device-width, initial-scale=1.0" name="viewport">
 <title>우리집식당 - 식사 사진 기록</title>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../shared/supabase-client.js"></script>
+<script src="../shared/api.js"></script>
 <link href="https://fonts.googleapis.com" rel="preconnect">
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif:wght@400;700&amp;family=Plus+Jakarta+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
@@ -46,9 +49,10 @@
 </label>
 <input type="file" id="photoInput" accept="image/*" class="hidden" onchange="handlePhotoChange(event)">
 
-<input id="captionInput" type="text" placeholder="한 줄 메모 (선택, 예: 오랜만에 다같이)" class="w-full border border-outline-variant rounded-lg px-3 py-2.5 font-body-md text-body-md text-on-surface bg-surface-container-lowest mb-6">
+<input id="captionInput" type="text" placeholder="한 줄 메모 (선택, 예: 오랜만에 다같이)" class="w-full border border-outline-variant rounded-lg px-3 py-2.5 font-body-md text-body-md text-on-surface bg-surface-container-lowest mb-2">
+<p id="formError" class="hidden font-label-sm text-label-sm text-error mb-4"></p>
 
-<button class="w-full bg-primary text-on-primary font-label-sm text-[15px] py-4 rounded-full shadow-[0px_4px_12px_rgba(120,119,119,0.08)] active:scale-[0.98] transition-transform mb-2" onclick="savePhoto()">저장하기</button>
+<button id="saveBtn" class="w-full bg-primary text-on-primary font-label-sm text-[15px] py-4 rounded-full shadow-[0px_4px_12px_rgba(120,119,119,0.08)] active:scale-[0.98] transition-transform mb-2" onclick="savePhoto()">저장하기</button>
 <button class="w-full py-2 font-label-sm text-label-sm text-on-surface-variant" onclick="window.location.href='../3-1. 내 식탁/code.html'">건너뛰기</button>
 </div>
 
@@ -56,39 +60,146 @@
 <span class="material-symbols-outlined text-primary mb-4" style="font-size:52px; font-variation-settings:'FILL' 1;">check_circle</span>
 <h1 class="font-emotional-quote text-emotional-quote text-on-surface mb-2">오늘의 식탁이 기록됐어요</h1>
 <p class="font-body-md text-body-md text-on-surface-variant mb-6">식사 기록에서 다시 볼 수 있어요.</p>
+<button id="shareBtn" class="w-full bg-surface-container-lowest border border-outline-variant text-on-surface font-label-sm text-[15px] py-4 rounded-full active:scale-[0.98] transition-transform mb-2 flex items-center justify-center gap-2" onclick="sharePhoto()">
+<span class="material-symbols-outlined text-[18px]">share</span>
+공유하기
+</button>
+<a id="downloadFallback" class="hidden w-full bg-surface-container-lowest border border-outline-variant text-on-surface font-label-sm text-[15px] py-4 rounded-full active:scale-[0.98] transition-transform mb-2 items-center justify-center gap-2" download="ourhome-meal.jpg">
+<span class="material-symbols-outlined text-[18px]">download</span>
+사진 저장하기 (직접 SNS에 올려주세요)
+</a>
 <button class="w-full bg-primary text-on-primary font-label-sm text-[15px] py-4 rounded-full active:scale-[0.98] transition-transform" onclick="window.location.href='../5-2. 식사 기록/code.html'">식사 기록 보기</button>
 </div>
 
 </main>
 
 <script>
-    var photoDataUrl = null;
+    var mealId = null;
+    var householdId = null;
+    var myMember = null;
+    var meal = null;
+    var photoBlob = null; // 새로 고른 사진의 리사이즈된 업로드용 blob
+    var existingPhotoUrl = null; // 이미 저장돼있던 사진(캡션만 고칠 때 재사용, 재업로드하지 않음)
+
+    // 원본 사진이 너무 크면(요즘 폰카메라는 수 MB) 업로드·저장 비용이 커지므로,
+    // 캔버스로 긴 변 기준 1280px까지 축소 + JPEG 압축 후 업로드.
+    function resizeImage(dataUrl) {
+        return new Promise(function (resolve) {
+            var img = new Image();
+            img.onload = function () {
+                var maxSide = 1280;
+                var scale = Math.min(1, maxSide / Math.max(img.width, img.height));
+                var canvas = document.createElement('canvas');
+                canvas.width = Math.round(img.width * scale);
+                canvas.height = Math.round(img.height * scale);
+                canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+                canvas.toBlob(function (blob) { resolve(blob); }, 'image/jpeg', 0.82);
+            };
+            img.src = dataUrl;
+        });
+    }
 
     function handlePhotoChange(event) {
         var file = event.target.files[0];
         if (!file) return;
         var reader = new FileReader();
-        reader.onload = function (e) {
-            photoDataUrl = e.target.result;
-            document.getElementById('photoPreview').src = photoDataUrl;
+        reader.onload = async function (e) {
+            document.getElementById('photoPreview').src = e.target.result;
             document.getElementById('photoPreview').classList.remove('hidden');
             document.getElementById('photoPlaceholder').classList.add('hidden');
+            photoBlob = await resizeImage(e.target.result);
         };
         reader.readAsDataURL(file);
     }
 
-    function savePhoto() {
-        var caption = document.getElementById('captionInput').value.trim();
-        var params = new URLSearchParams(window.location.search);
-        var date = params.get('date') || '2024-08-16';
-
-        var photos = {};
-        try { photos = JSON.parse(localStorage.getItem('meal_photos') || '{}'); } catch (err) {}
-        photos[date] = { photo: photoDataUrl, caption: caption };
-        try { localStorage.setItem('meal_photos', JSON.stringify(photos)); } catch (err) {}
-
-        document.getElementById('formView').classList.add('hidden');
-        document.getElementById('doneView').classList.remove('hidden');
+    function showError(msg) {
+        var el = document.getElementById('formError');
+        el.textContent = msg;
+        el.classList.remove('hidden');
     }
+
+    async function savePhoto() {
+        if (!photoBlob && !existingPhotoUrl) { showError('사진을 먼저 선택해주세요.'); return; }
+        var saveBtn = document.getElementById('saveBtn');
+        saveBtn.disabled = true;
+        saveBtn.textContent = '저장 중...';
+        try {
+            var caption = document.getElementById('captionInput').value.trim();
+            // 새로 고른 사진이 있을 때만 업로드 — 캡션만 고쳐서 다시 저장하는 경우엔 기존 URL 그대로 재사용.
+            var photoUrl = photoBlob ? await API.storage.uploadMealPhoto(householdId, mealId, photoBlob) : existingPhotoUrl;
+            await API.mealPhotos.upsert(householdId, mealId, myMember.id, photoUrl, caption);
+
+            document.getElementById('formView').classList.add('hidden');
+            document.getElementById('doneView').classList.remove('hidden');
+            setupShare(photoUrl, caption);
+        } catch (err) {
+            saveBtn.disabled = false;
+            saveBtn.textContent = '저장하기';
+            showError('저장에 실패했어요: ' + err.message);
+        }
+    }
+
+    // 인스타그램·카카오톡 등 실제 SNS API 연동은 각 플랫폼 앱 등록·심사가 필요한 별도 영역이라
+    // 만들지 않되(§FEATURE_CATALOG 8-2 참고), 브라우저 표준 Web Share API로 실제 공유는 가능하게 함 —
+    // 사용자가 이미 설치한 앱(카카오톡·인스타그램·문자 등) 공유 시트가 그대로 뜸. 미지원 환경(주로 데스크톱)은
+    // 사진 다운로드 링크로 대체(직접 SNS 앱에 올려달라고 안내) — 가짜 버튼 대신 실제로 되는 대안 제공.
+    var shareFile = null;
+    var shareText = null;
+
+    function setupShare(photoUrl, caption) {
+        var menuLine = (meal.menu && meal.menu.length) ? meal.menu.join(' · ') : '오늘의 식탁';
+        shareText = '우리집식당에서 함께 먹은 ' + menuLine + (caption ? ' · ' + caption : '');
+        if (navigator.share) {
+            fetch(photoUrl).then(function (res) { return res.blob(); }).then(function (blob) {
+                shareFile = new File([blob], 'ourhome-meal.jpg', { type: 'image/jpeg' });
+                var canShareFile = navigator.canShare && navigator.canShare({ files: [shareFile] });
+                if (!canShareFile) { showDownloadFallback(photoUrl); }
+            }).catch(function () { showDownloadFallback(photoUrl); });
+        } else {
+            showDownloadFallback(photoUrl);
+        }
+    }
+
+    function showDownloadFallback(photoUrl) {
+        document.getElementById('shareBtn').classList.add('hidden');
+        var fallback = document.getElementById('downloadFallback');
+        fallback.href = photoUrl;
+        fallback.classList.remove('hidden');
+        fallback.classList.add('flex');
+    }
+
+    async function sharePhoto() {
+        try {
+            if (shareFile && navigator.canShare && navigator.canShare({ files: [shareFile] })) {
+                await navigator.share({ files: [shareFile], text: shareText });
+            } else if (navigator.share) {
+                await navigator.share({ text: shareText });
+            }
+        } catch (err) {
+            // 사용자가 공유 시트를 취소한 경우(AbortError)도 여기로 오므로 별도 에러 처리 없이 무시.
+        }
+    }
+
+    (async function init() {
+        await requireSession();
+        myMember = await getMyMember();
+        if (!myMember) { window.location.href = '../1-2. 온보딩-시작하기/code.html'; return; }
+        householdId = myMember.household_id;
+
+        var params = new URLSearchParams(window.location.search);
+        mealId = params.get('meal');
+        if (!mealId) { window.location.href = '../3-1. 내 식탁/code.html'; return; }
+
+        meal = await API.meals.get(mealId);
+
+        var existing = await API.mealPhotos.getByMeal(mealId);
+        if (existing) {
+            existingPhotoUrl = existing.photo_url;
+            document.getElementById('photoPreview').src = existing.photo_url;
+            document.getElementById('photoPreview').classList.remove('hidden');
+            document.getElementById('photoPlaceholder').classList.add('hidden');
+            document.getElementById('captionInput').value = existing.caption || '';
+        }
+    })();
 </script>
 </body></html>

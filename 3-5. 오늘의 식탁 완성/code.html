@@ -42,7 +42,7 @@
 </div>
 
 <button class="w-full bg-primary text-on-primary font-label-sm text-[15px] py-4 rounded-full active:scale-[0.98] transition-transform mb-2" onclick="window.location.href='../3-1. 내 식탁/code.html'">홈으로</button>
-<button class="w-full border border-outline-variant text-on-surface font-label-sm text-[15px] py-3.5 rounded-full active:scale-[0.98] transition-transform mb-2 flex items-center justify-center gap-2" onclick="window.location.href='../8-2. 식사 사진 기록/code.html'">
+<button id="photoBtn" class="w-full border border-outline-variant text-on-surface font-label-sm text-[15px] py-3.5 rounded-full active:scale-[0.98] transition-transform mb-2 flex items-center justify-center gap-2">
 <span class="material-symbols-outlined text-[18px]">add_a_photo</span>
 사진 남기기 (선택)
 </button>
@@ -63,6 +63,7 @@
         var params = new URLSearchParams(window.location.search);
         mealId = params.get('meal');
         if (!mealId) { window.location.href = '../3-1. 내 식탁/code.html'; return; }
+        document.getElementById('photoBtn').onclick = function () { window.location.href = '../8-2. 식사 사진 기록/code.html?meal=' + mealId; };
 
         var meal = await API.meals.get(mealId);
         var roster = await API.mealParticipants.getRoster(mealId);

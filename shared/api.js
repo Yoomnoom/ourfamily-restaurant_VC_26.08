@@ -56,6 +56,13 @@ API.storage = {
     if (up.error) throw up.error;
     var pub = sb.storage.from('avatars').getPublicUrl(path);
     return pub.data.publicUrl;
+  },
+  async uploadMealPhoto(householdId, mealId, blob) {
+    var path = householdId + '/' + mealId + '.jpg';
+    var up = await sb.storage.from('meal-photos').upload(path, blob, { contentType: 'image/jpeg', upsert: true });
+    if (up.error) throw up.error;
+    var pub = sb.storage.from('meal-photos').getPublicUrl(path);
+    return pub.data.publicUrl;
   }
 };
 
@@ -205,6 +212,30 @@ API.meals = {
 
   async listByHousehold(householdId) {
     var res = await sb.from('meals_vc2608').select('*').eq('household_id', householdId).order('date', { ascending: false });
+    if (res.error) throw res.error;
+    return res.data;
+  }
+};
+
+// ---------------------------------------------------------
+// 식사 사진 기록(8-2) — 식사(meal) 하나당 사진 1장(+선택 메모)
+// ---------------------------------------------------------
+API.mealPhotos = {
+  async upsert(householdId, mealId, memberId, photoUrl, caption) {
+    var res = await sb.from('meal_photos_vc2608')
+      .upsert({ household_id: householdId, meal_id: mealId, member_id: memberId, photo_url: photoUrl, caption: caption || null },
+              { onConflict: 'meal_id' })
+      .select().single();
+    if (res.error) throw res.error;
+    return res.data;
+  },
+  async getByMeal(mealId) {
+    var res = await sb.from('meal_photos_vc2608').select('*').eq('meal_id', mealId).maybeSingle();
+    if (res.error) throw res.error;
+    return res.data;
+  },
+  async listByHousehold(householdId) {
+    var res = await sb.from('meal_photos_vc2608').select('*').eq('household_id', householdId);
     if (res.error) throw res.error;
     return res.data;
   }

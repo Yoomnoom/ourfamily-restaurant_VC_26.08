@@ -74,6 +74,9 @@
         return label;
     }
 
+    var photosCache = [];
+    async function loadPhotos() { photosCache = await API.mealPhotos.listByHousehold(householdId); }
+
     async function loadRecords() {
         var meals = await API.meals.listByHousehold(householdId);
         RECORDS = [];
@@ -145,8 +148,6 @@
 
     function renderRecords() {
         var query = (document.getElementById('searchInput').value || '').trim().toLowerCase();
-        var photos = {};
-        try { photos = JSON.parse(localStorage.getItem('meal_photos') || '{}'); } catch (err) {}
         var costs = {};
         try { costs = JSON.parse(localStorage.getItem('meal_costs') || '{}'); } catch (err) {}
         var list = document.getElementById('recordList');
@@ -161,12 +162,12 @@
 
         visible.forEach(function (index) {
             var record = RECORDS[index];
-            var photo = photos[record.dateKey];
+            var photo = photosCache.find(function (p) { return p.meal_id === record.mealId; });
             var cost = costs[record.dateKey];
             var row = document.createElement('div');
             row.className = 'bg-surface-container-lowest rounded-xl p-card-padding shadow-[0px_4px_12px_rgba(120,119,119,0.08)] flex gap-3';
             row.innerHTML =
-                (photo ? '<img src="' + photo.photo + '" class="w-14 h-14 rounded-lg object-cover shrink-0">' : '') +
+                (photo ? '<img src="' + photo.photo_url + '" class="w-14 h-14 rounded-lg object-cover shrink-0">' : '') +
                 '<div class="flex-1 min-w-0">' +
                 '<div class="flex items-center justify-between mb-1">' +
                 '<span class="font-body-md text-body-md text-on-surface font-medium">' + record.date + '</span>' +
@@ -177,12 +178,14 @@
                 '<div class="flex items-center gap-3 mb-1">' +
                 '<button type="button" class="cost-btn font-label-sm text-label-sm text-primary py-1">' + (cost ? cost.toLocaleString() + '원 · 수정' : '+ 비용 입력') + '</button>' +
                 (cost ? '<button type="button" class="settle-btn font-label-sm text-label-sm text-primary py-1">정산하기 →</button>' : '') +
+                '<button type="button" class="photo-btn font-label-sm text-label-sm text-primary py-1">' + (photo ? '사진 수정' : '+ 사진 남기기') + '</button>' +
                 '</div>' +
                 '<button type="button" class="w-full py-2 rounded-full border border-outline-variant text-on-surface-variant font-label-sm text-label-sm mt-2">이 구성으로 새 식사 만들기</button>' +
                 '</div>';
             row.querySelector('.cost-btn').addEventListener('click', function () { editCost(record.dateKey); });
             var settleBtn = row.querySelector('.settle-btn');
             if (settleBtn) { settleBtn.addEventListener('click', function () { window.location.href = '../8-4. 정산/code.html?date=' + record.dateKey; }); }
+            row.querySelector('.photo-btn').addEventListener('click', function () { window.location.href = '../8-2. 식사 사진 기록/code.html?meal=' + record.mealId; });
             row.querySelector('.w-full.py-2.rounded-full').addEventListener('click', function () { reuse(index); });
             list.appendChild(row);
         });
@@ -215,6 +218,7 @@
         householdId = myMember.household_id;
 
         await loadRecords();
+        await loadPhotos();
         renderMonthStats();
         renderRecords();
     })();
