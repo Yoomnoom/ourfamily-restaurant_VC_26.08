@@ -668,3 +668,13 @@
 - 전체 35개 `code.html` JS 문법·상대링크 재검증 통과(0 errors / 0 broken links). 커밋·푸시 완료.
 - **다음**: 5-4(요일별 기본 응답), 8-1(밀키트 주문).
 
+
+## 5-4(요일별 기본 응답) 실 DB 연동 (2026-08-18)
+
+- 하드코딩 3명 + `localStorage weekday_defaults`를 실제 가구 구성원 목록 + `weekday_defaults_vc2608`(member_id, day_index, status) 실조회로 교체.
+- `status` 체크제약이 `'attending'`/`'absent'`만 허용해(행이 없으면 미정) 3단계 순환(참여→안먹음→미정)의 "미정"은 행 삭제로 표현 — `API.weekdayDefaults`에 `remove(memberId, dayIndex)` 추가(DELETE 권한·RLS는 upsert와 동일하게 가구 구성원 전체 허용임을 실제 정책 조회로 확인 후 추가).
+- 저장은 기존처럼 사람별 행 단위 배치 저장 유지(다른 사람 응답을 실수로 덮지 않는다는 취지는 실제로도 upsert 키가 member_id 단위라 자동으로 보장되지만, "저장" 버튼 UX와 확인 다이얼로그는 그대로 유지).
+- `?as=` 페르소나 파라미터는 `requireSession`/`getMyMember` 기반 실제 로그인 세션으로 대체.
+- 전체 35개 `code.html` JS 문법·링크 재검증 통과(0 errors / 0 broken links). 커밋·푸시 완료.
+- **다음**: 8-1(밀키트 주문) — FEATURE_CATALOG.md "포함" 항목 전환의 마지막 화면.
+
