@@ -111,6 +111,9 @@
 <span class="material-symbols-outlined text-on-surface">notifications</span>
 <span id="notiDot" class="absolute top-2 right-2 w-2 h-2 rounded-full bg-primary"></span>
 </button>
+<button class="w-11 h-11 rounded-full bg-surface-container-lowest shadow-[0px_4px_12px_rgba(120,119,119,0.08)] flex items-center justify-center active:scale-95 transition-transform" onclick="openMenuPanel()" aria-label="전체 메뉴">
+<span class="material-symbols-outlined text-on-surface">menu</span>
+</button>
 </div>
 </header>
 
@@ -203,12 +206,7 @@
 
 </main>
 
-<!-- Floating Action Button -->
-<button class="fixed right-5 z-20 w-14 h-14 rounded-full bg-primary text-on-primary shadow-[0px_6px_16px_rgba(27,28,28,0.25)] flex items-center justify-center active:scale-95 transition-transform" style="bottom: calc(84px + env(safe-area-inset-bottom));" onclick="window.location.href='../3-2. 식사 만들기/code.html'" aria-label="식사 만들기">
-<span class="material-symbols-outlined" style="font-size:28px;">add</span>
-</button>
-
-<!-- Bottom Tab Nav -->
+<!-- Bottom Tab Nav — 홈/내식탁/+(식사 만들기)/달력/기록. 냉장고·설정은 햄버거 메뉴로 이동(§리디자인 2026-08-19). -->
 <nav class="fixed bottom-0 left-0 right-0 z-10 bg-surface-container-lowest/90 backdrop-blur-md border-t border-outline-variant" style="padding-bottom: env(safe-area-inset-bottom);">
 <div class="max-w-[600px] mx-auto flex items-stretch">
 <button class="flex-1 flex flex-col items-center gap-0.5 py-2.5 text-primary">
@@ -219,17 +217,18 @@
 <span class="material-symbols-outlined">table_restaurant</span>
 <span class="font-label-sm text-label-sm">내 식탁</span>
 </button>
+<button class="flex-1 flex flex-col items-center" onclick="window.location.href='../3-2. 식사 만들기/code.html'" aria-label="식사 만들기">
+<span class="w-12 h-12 -mt-4 rounded-full bg-primary text-on-primary shadow-[0px_4px_12px_rgba(27,28,28,0.25)] flex items-center justify-center">
+<span class="material-symbols-outlined" style="font-size:26px;">add</span>
+</span>
+</button>
 <button class="flex-1 flex flex-col items-center gap-0.5 py-2.5 text-on-surface-variant" onclick="window.location.href='../4-1. 홈 달력뷰/code.html'">
 <span class="material-symbols-outlined">calendar_month</span>
 <span class="font-label-sm text-label-sm">달력</span>
 </button>
-<button class="flex-1 flex flex-col items-center gap-0.5 py-2.5 text-on-surface-variant" onclick="window.location.href='../7-1. 우리집 냉장고/code.html'">
-<span class="material-symbols-outlined">kitchen</span>
-<span class="font-label-sm text-label-sm">냉장고</span>
-</button>
-<button class="flex-1 flex flex-col items-center gap-0.5 py-2.5 text-on-surface-variant" onclick="window.location.href='../5-3. 설정/code.html'">
-<span class="material-symbols-outlined">settings</span>
-<span class="font-label-sm text-label-sm">설정</span>
+<button class="flex-1 flex flex-col items-center gap-0.5 py-2.5 text-on-surface-variant" onclick="window.location.href='../5-2. 식사 기록/code.html'">
+<span class="material-symbols-outlined">history</span>
+<span class="font-label-sm text-label-sm">기록</span>
 </button>
 </div>
 </nav>
@@ -244,6 +243,53 @@
 </button>
 </div>
 <div id="notiList" class="flex flex-col gap-2 p-4"></div>
+</aside>
+
+<!-- 전체 메뉴 (슬라이드인) — 하단 탭에서 빠진 냉장고·설정과, 자주 쓰지 않는 가구 관리 화면들의 진입점.
+     실제로 존재하는 화면으로만 연결(참고 이미지의 "공동 관리자"/"반복 식사 관리" 등은 아직 별도 화면이
+     없어 목록에서 뺌 — 없는 화면으로 가는 가짜 링크를 만들지 않기 위함). -->
+<div id="menuBackdrop" class="hidden fixed inset-0 bg-on-surface/30 z-[60]" onclick="closeMenuPanel()"></div>
+<aside id="menuPanel" class="hidden fixed top-0 right-0 h-full w-[88%] max-w-[360px] bg-surface z-[70] shadow-2xl overflow-y-auto" style="transform: translateX(100%); transition: transform .25s ease;">
+<div class="flex items-center justify-between px-5 py-4 border-b border-outline-variant">
+<h2 class="font-headline-lg text-headline-lg text-on-surface">전체 메뉴</h2>
+<button class="w-11 h-11 flex items-center justify-center rounded-full active:bg-surface-container transition-colors" onclick="closeMenuPanel()" aria-label="메뉴 닫기">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<div class="p-4 flex flex-col gap-6">
+<div>
+<p class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wide mb-2 px-1">가족과 가구</p>
+<button class="w-full flex items-center gap-3 px-3 py-3 rounded-xl active:bg-surface-container" onclick="window.location.href='../5-1. 가구 설정/code.html'">
+<span class="material-symbols-outlined text-primary">group</span>
+<span class="font-body-md text-body-md text-on-surface">가구 설정</span>
+</button>
+</div>
+<div>
+<p class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wide mb-2 px-1">반복 설정</p>
+<button class="w-full flex items-center gap-3 px-3 py-3 rounded-xl active:bg-surface-container" onclick="window.location.href='../5-4. 요일별 기본 응답/code.html'">
+<span class="material-symbols-outlined text-primary">event_repeat</span>
+<span class="font-body-md text-body-md text-on-surface">요일별 기본 응답</span>
+</button>
+</div>
+<div>
+<p class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wide mb-2 px-1">살림과 제안</p>
+<button class="w-full flex items-center gap-3 px-3 py-3 rounded-xl active:bg-surface-container" onclick="window.location.href='../7-1. 우리집 냉장고/code.html'">
+<span class="material-symbols-outlined text-primary">kitchen</span>
+<span class="font-body-md text-body-md text-on-surface">우리집 냉장고</span>
+</button>
+<button class="w-full flex items-center gap-3 px-3 py-3 rounded-xl active:bg-surface-container" onclick="window.location.href='../8-1. 밀키트 주문/code.html'">
+<span class="material-symbols-outlined text-primary">local_shipping</span>
+<span class="font-body-md text-body-md text-on-surface">밀키트 둘러보기</span>
+</button>
+</div>
+<div>
+<p class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wide mb-2 px-1">서비스</p>
+<button class="w-full flex items-center gap-3 px-3 py-3 rounded-xl active:bg-surface-container" onclick="window.location.href='../5-3. 설정/code.html'">
+<span class="material-symbols-outlined text-primary">settings</span>
+<span class="font-body-md text-body-md text-on-surface">계정 설정</span>
+</button>
+</div>
+</div>
 </aside>
 
 <script>
@@ -342,6 +388,18 @@
         document.getElementById('notiPanel').style.transform = 'translateX(100%)';
         document.getElementById('notiBackdrop').classList.add('hidden');
         setTimeout(function () { document.getElementById('notiPanel').classList.add('hidden'); }, 250);
+    }
+
+    function openMenuPanel() {
+        document.getElementById('menuBackdrop').classList.remove('hidden');
+        document.getElementById('menuPanel').classList.remove('hidden');
+        requestAnimationFrame(function () { document.getElementById('menuPanel').style.transform = 'translateX(0)'; });
+    }
+
+    function closeMenuPanel() {
+        document.getElementById('menuPanel').style.transform = 'translateX(100%)';
+        document.getElementById('menuBackdrop').classList.add('hidden');
+        setTimeout(function () { document.getElementById('menuPanel').classList.add('hidden'); }, 250);
     }
 
     var householdId = null;

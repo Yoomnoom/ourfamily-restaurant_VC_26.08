@@ -32,10 +32,12 @@
   </style>
   </head>
 <body class="bg-surface text-on-surface font-body-md antialiased min-h-screen flex flex-col items-center">
-<main class="w-full max-w-[600px] flex flex-col px-safe-area-inset pt-section-margin pb-28 relative">
+<main class="w-full max-w-[600px] flex flex-col px-safe-area-inset pt-section-margin pb-8 relative">
 
-<header class="flex items-center gap-2 mb-6">
-<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1; font-size: 26px;">restaurant</span>
+<header class="flex items-center gap-3 mb-6">
+<button class="w-11 h-11 flex items-center justify-center rounded-full bg-surface-container-lowest text-on-surface shadow-[0px_4px_12px_rgba(120,119,119,0.08)] active:scale-95 transition-transform" onclick="window.location.href='../3-0. 홈/code.html'" aria-label="뒤로">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
 <span class="font-display-serif text-display-serif text-on-surface">우리집식당</span>
 </header>
 
@@ -122,31 +124,6 @@
 <p class="font-label-sm text-label-sm text-on-surface-variant text-center">제안은 필요할 때만 조용히 보여요. 알림으로 재촉하지 않아요.</p>
 
 </main>
-
-<nav class="fixed bottom-0 left-0 right-0 z-10 bg-surface-container-lowest/90 backdrop-blur-md border-t border-outline-variant" style="padding-bottom: env(safe-area-inset-bottom);">
-<div class="max-w-[600px] mx-auto flex items-stretch">
-<button class="flex-1 flex flex-col items-center gap-0.5 py-2.5 text-on-surface-variant" onclick="window.location.href='../3-0. 홈/code.html'">
-<span class="material-symbols-outlined">home</span>
-<span class="font-label-sm text-label-sm">홈</span>
-</button>
-<button class="flex-1 flex flex-col items-center gap-0.5 py-2.5 text-on-surface-variant" onclick="window.location.href='../3-1. 내 식탁/code.html'">
-<span class="material-symbols-outlined">table_restaurant</span>
-<span class="font-label-sm text-label-sm">내 식탁</span>
-</button>
-<button class="flex-1 flex flex-col items-center gap-0.5 py-2.5 text-on-surface-variant" onclick="window.location.href='../4-1. 홈 달력뷰/code.html'">
-<span class="material-symbols-outlined">calendar_month</span>
-<span class="font-label-sm text-label-sm">달력</span>
-</button>
-<button class="flex-1 flex flex-col items-center gap-0.5 py-2.5 text-primary">
-<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">kitchen</span>
-<span class="font-label-sm text-label-sm">냉장고</span>
-</button>
-<button class="flex-1 flex flex-col items-center gap-0.5 py-2.5 text-on-surface-variant" onclick="window.location.href='../5-3. 설정/code.html'">
-<span class="material-symbols-outlined">settings</span>
-<span class="font-label-sm text-label-sm">설정</span>
-</button>
-</div>
-</nav>
 
 <script>
     // 신선도는 등록일부터 며칠 지났는지로 실제 계산함(예전엔 freshness를 그냥 값으로 박아뒀었음 — 등록일도

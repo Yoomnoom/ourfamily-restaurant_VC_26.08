@@ -29,7 +29,7 @@
 <style>body { min-height: max(884px, 100dvh); -webkit-tap-highlight-color: transparent; }</style>
   </head>
 <body class="bg-surface text-on-surface font-body-md antialiased min-h-screen flex flex-col items-center">
-<main class="w-full max-w-[600px] flex flex-col px-safe-area-inset py-section-margin">
+<main class="w-full max-w-[600px] flex flex-col px-safe-area-inset pt-section-margin pb-28">
 
 <header class="flex items-center gap-3 mb-6">
 <button class="w-11 h-11 flex items-center justify-center rounded-full bg-surface-container-lowest text-on-surface shadow-[0px_4px_12px_rgba(120,119,119,0.08)] active:scale-95 transition-transform" onclick="window.location.href='../3-0. 홈/code.html'" aria-label="뒤로">
@@ -54,6 +54,33 @@
 <div id="recordList" class="flex flex-col gap-3"></div>
 
 </main>
+
+<!-- Bottom Tab Nav — 홈/내식탁/+(식사 만들기)/달력/기록. 냉장고·설정은 햄버거 메뉴로 이동(§리디자인 2026-08-19). -->
+<nav class="fixed bottom-0 left-0 right-0 z-10 bg-surface-container-lowest/90 backdrop-blur-md border-t border-outline-variant" style="padding-bottom: env(safe-area-inset-bottom);">
+<div class="max-w-[600px] mx-auto flex items-stretch">
+<button class="flex-1 flex flex-col items-center gap-0.5 py-2.5 text-on-surface-variant" onclick="window.location.href='../3-0. 홈/code.html'">
+<span class="material-symbols-outlined">home</span>
+<span class="font-label-sm text-label-sm">홈</span>
+</button>
+<button class="flex-1 flex flex-col items-center gap-0.5 py-2.5 text-on-surface-variant" onclick="window.location.href='../3-1. 내 식탁/code.html'">
+<span class="material-symbols-outlined">table_restaurant</span>
+<span class="font-label-sm text-label-sm">내 식탁</span>
+</button>
+<button class="flex-1 flex flex-col items-center" onclick="window.location.href='../3-2. 식사 만들기/code.html'" aria-label="식사 만들기">
+<span class="w-12 h-12 -mt-4 rounded-full bg-primary text-on-primary shadow-[0px_4px_12px_rgba(27,28,28,0.25)] flex items-center justify-center">
+<span class="material-symbols-outlined" style="font-size:26px;">add</span>
+</span>
+</button>
+<button class="flex-1 flex flex-col items-center gap-0.5 py-2.5 text-on-surface-variant" onclick="window.location.href='../4-1. 홈 달력뷰/code.html'">
+<span class="material-symbols-outlined">calendar_month</span>
+<span class="font-label-sm text-label-sm">달력</span>
+</button>
+<button class="flex-1 flex flex-col items-center gap-0.5 py-2.5 text-primary">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">history</span>
+<span class="font-label-sm text-label-sm">기록</span>
+</button>
+</div>
+</nav>
 
 <script>
     var householdId = null;
