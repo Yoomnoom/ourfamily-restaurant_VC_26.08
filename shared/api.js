@@ -31,7 +31,10 @@ API.auth = {
       provider: 'kakao',
       options: {
         redirectTo: window.location.origin + encodeURI('/2-1.로그인 화면/code.html'),
-        scopes: 'profile_nickname profile_image'
+        scopes: 'profile_nickname profile_image',
+        // 카카오 세션이 남아있어도 매번 로그인 화면을 보여줌(사용자가 명시적으로 요청).
+        // 나중에 지문 등 간편 인증을 넣으면 이 옵션을 빼고 조용히 넘어가는 방식으로 바꿀 것.
+        queryParams: { prompt: 'login' }
       }
     });
     if (res.error) throw res.error;
