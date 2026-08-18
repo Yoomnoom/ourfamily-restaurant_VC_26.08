@@ -107,10 +107,18 @@
         50% { border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%; }
         100% { border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; }
     }
+    .spinner-lg {
+        width: 22px; height: 22px; border: 3px solid #ded3ef; border-top-color: #6d5a92;
+        border-radius: 50%; display: inline-block; animation: spin 0.7s linear infinite;
+    }
   </style>
   </head>
 <body class="bg-surface text-on-surface font-body-md antialiased min-h-screen flex flex-col items-center justify-center">
-<main class="w-full max-w-[600px] flex flex-col px-safe-area-inset py-6 relative">
+<div id="auth-check-loading" class="w-full max-w-[600px] flex flex-col items-center justify-center gap-3 text-on-surface-variant py-24">
+<span class="spinner-lg"></span>
+<p class="font-label-sm text-label-sm">로그인 확인 중...</p>
+</div>
+<main id="main-content" class="hidden w-full max-w-[600px] flex flex-col px-safe-area-inset py-6 relative">
 
 <button class="absolute top-4 left-4 z-20 w-11 h-11 flex items-center justify-center rounded-full bg-surface-container-lowest text-on-surface shadow-[0px_4px_12px_rgba(120,119,119,0.08)] active:scale-95 transition-transform" onclick="window.location.href='../2-1.로그인 화면/code.html'" aria-label="뒤로">
 <span class="material-symbols-outlined">arrow_back</span>
@@ -189,7 +197,12 @@
 
     (async function checkAutoLogin() {
         var session = await getSession();
-        if (session) await goAfterLogin();
+        if (session) {
+            await goAfterLogin();
+            return;
+        }
+        document.getElementById('auth-check-loading').classList.add('hidden');
+        document.getElementById('main-content').classList.remove('hidden');
     })();
 
     kakaoBtn.addEventListener('click', function () {
