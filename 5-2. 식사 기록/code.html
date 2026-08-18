@@ -102,7 +102,26 @@
     }
 
     var photosCache = [];
+    var menuImageCache = {}; // 메뉴 대표 이미지(menu name -> url) 캐시 — 실 사진 없을 때 대체용
     async function loadPhotos() { photosCache = await API.mealPhotos.listByHousehold(householdId); }
+
+    // 실제 사진이 없는 식사의 대표 메뉴 이름으로 기본 이미지를 미리 조회(생성 API 연동 전엔 항상
+    // null이라 결정론적 로컬 플레이스홀더로 대체됨 — foodPlaceholderHtml, shared/api.js).
+    async function loadMenuImages() {
+        var names = Array.from(new Set(RECORDS.map(function (r) { return r.menus && r.menus[0]; }).filter(Boolean)));
+        for (var i = 0; i < names.length; i++) {
+            if (menuImageCache[names[i]] !== undefined) continue;
+            menuImageCache[names[i]] = await API.menuImages.get(names[i]);
+        }
+    }
+
+    function recordThumbnailHtml(record, photo) {
+        if (photo) return '<img src="' + photo.photo_url + '" class="w-14 h-14 rounded-lg object-cover shrink-0">';
+        var repName = record.menus && record.menus[0];
+        var cachedUrl = repName ? menuImageCache[repName] : null;
+        if (cachedUrl) return '<img src="' + cachedUrl + '" class="w-14 h-14 rounded-lg object-cover shrink-0">';
+        return foodPlaceholderHtml(repName, 'w-14 h-14 rounded-lg shrink-0');
+    }
 
     async function loadRecords() {
         var meals = await API.meals.listByHousehold(householdId);
@@ -194,7 +213,7 @@
             var row = document.createElement('div');
             row.className = 'bg-surface-container-lowest rounded-xl p-card-padding shadow-[0px_4px_12px_rgba(120,119,119,0.08)] flex gap-3';
             row.innerHTML =
-                (photo ? '<img src="' + photo.photo_url + '" class="w-14 h-14 rounded-lg object-cover shrink-0">' : '') +
+                recordThumbnailHtml(record, photo) +
                 '<div class="flex-1 min-w-0">' +
                 '<div class="flex items-center justify-between mb-1">' +
                 '<span class="font-body-md text-body-md text-on-surface font-medium">' + record.date + '</span>' +
@@ -246,6 +265,7 @@
 
         await loadRecords();
         await loadPhotos();
+        await loadMenuImages();
         renderMonthStats();
         renderRecords();
     })();

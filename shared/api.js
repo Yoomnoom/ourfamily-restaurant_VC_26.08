@@ -4,6 +4,26 @@
 
 var API = {};
 
+// 실제 사진도, 생성된 기본 이미지(API.menuImages, 아직 이미지 생성 API 미연동)도 없을 때 쓰는
+// 마지막 대체 — 메뉴 이름을 해시해 항상 같은 이모지·색을 결정론적으로 골라줌(네트워크 없이 즉시).
+var FOOD_PLACEHOLDER_EMOJI = ['🍲', '🍜', '🍚', '🥘', '🍛', '🍳', '🥗', '🍖', '🍗', '🥙', '🍱', '🍙'];
+var FOOD_PLACEHOLDER_COLORS = ['#e8efe1', '#dce8dd', '#eef2e6', '#e3ede6', '#e9f0e2'];
+function foodPlaceholder(menuName) {
+  var name = menuName || '';
+  var hash = 0;
+  for (var i = 0; i < name.length; i++) { hash = (hash * 31 + name.charCodeAt(i)) >>> 0; }
+  return {
+    emoji: FOOD_PLACEHOLDER_EMOJI[hash % FOOD_PLACEHOLDER_EMOJI.length],
+    color: FOOD_PLACEHOLDER_COLORS[hash % FOOD_PLACEHOLDER_COLORS.length]
+  };
+}
+// 이미지 태그 대신 쓸 수 있는 완성된 <div> HTML(정사각형 타일). className으로 크기·모서리 지정.
+function foodPlaceholderHtml(menuName, className) {
+  var p = foodPlaceholder(menuName);
+  return '<div class="' + (className || '') + ' flex items-center justify-center" style="background:' + p.color + ';">' +
+    '<span style="font-size:1.6em;">' + p.emoji + '</span></div>';
+}
+
 // ---------------------------------------------------------
 // 인증
 // ---------------------------------------------------------
@@ -249,6 +269,26 @@ API.mealPhotos = {
     var res = await sb.from('meal_photos_vc2608').select('*').eq('household_id', householdId);
     if (res.error) throw res.error;
     return res.data;
+  }
+};
+
+// ---------------------------------------------------------
+// 메뉴 이름별 기본 이미지 캐시 — 실제 사진이 없는 식사에 보여줄 대표 이미지를
+// 메뉴 이름 단위로 한 번 만들어두고 재사용(전역 공유, household 무관).
+// 실제 생성(이미지 생성 API 연동)은 아직 키가 없어 비워둠 — get()이 null을 돌려주면
+// 화면 쪽에서 결정론적 로컬 플레이스홀더(foodPlaceholder, shared/food-placeholder.js)로 대체.
+// ---------------------------------------------------------
+API.menuImages = {
+  async get(menuName) {
+    var res = await sb.from('menu_default_images_vc2608').select('image_url').eq('menu_name', menuName).maybeSingle();
+    if (res.error) throw res.error;
+    return res.data ? res.data.image_url : null;
+  },
+  // 이미지 생성 API가 연결되면 생성된 이미지를 Storage(menu-images 버킷)에 올린 뒤 여기로 캐시.
+  async save(menuName, imageUrl, source) {
+    var res = await sb.from('menu_default_images_vc2608')
+      .upsert({ menu_name: menuName, image_url: imageUrl, source: source || 'generated' }, { onConflict: 'menu_name' });
+    if (res.error) throw res.error;
   }
 };
 
@@ -576,23 +616,6 @@ API.notifications = {
   },
   async markRead(id) {
     var res = await sb.from('notifications_vc2608').update({ read: true }).eq('id', id);
-    if (res.error) throw res.error;
-  }
-};
-
-// ---------------------------------------------------------
-// 밀키트 주문(제안 이력만)
-// ---------------------------------------------------------
-API.milkitOrders = {
-  async create(householdId, mealId, recipeName, missingIngredients) {
-    var res = await sb.from('milkit_orders_vc2608').insert({
-      household_id: householdId, meal_id: mealId || null, recipe_name: recipeName, missing_ingredients: missingIngredients || []
-    }).select().single();
-    if (res.error) throw res.error;
-    return res.data;
-  },
-  async markOrderedStub(id) {
-    var res = await sb.from('milkit_orders_vc2608').update({ status: 'ordered_stub' }).eq('id', id);
     if (res.error) throw res.error;
   }
 };
