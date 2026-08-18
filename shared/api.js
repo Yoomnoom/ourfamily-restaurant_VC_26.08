@@ -25,9 +25,14 @@ API.auth = {
   },
 
   async signInKakao() {
+    // Supabase가 기본으로 요청하는 'account_email' 스코프는 이 앱이 비즈 앱 전환 전이라
+    // 카카오 쪽 권한 자체가 없어(invalid_scope 에러) 명시적으로 허용받은 스코프만 요청.
     var res = await sb.auth.signInWithOAuth({
       provider: 'kakao',
-      options: { redirectTo: window.location.origin + window.location.pathname.replace(/\/[^/]*$/, '/../2-1.로그인 화면/code.html') }
+      options: {
+        redirectTo: window.location.origin + window.location.pathname.replace(/\/[^/]*$/, '/../2-1.로그인 화면/code.html'),
+        scopes: 'profile_nickname profile_image'
+      }
     });
     if (res.error) throw res.error;
     return res.data;
@@ -111,8 +116,11 @@ API.members = {
     for (var i = 0; i < members.length; i++) {
       var m = members[i];
       if (m.isMe) {
+        // 사용자가 직접 사진을 안 올렸으면 카카오 로그인 프로필 사진을 기본값으로 사용
+        var kakaoAvatar = session.user.user_metadata &&
+          (session.user.user_metadata.avatar_url || session.user.user_metadata.picture);
         var upd = await sb.from('household_members_vc2608')
-          .update({ name: m.name, avatar_url: m.avatar_url || null, color: m.color || null, default_response: m.defaultResponse || 'attending' })
+          .update({ name: m.name, avatar_url: m.avatar_url || kakaoAvatar || null, color: m.color || null, default_response: m.defaultResponse || 'attending' })
           .eq('household_id', householdId).eq('profile_id', session.user.id)
           .select().single();
         if (upd.error) throw upd.error;

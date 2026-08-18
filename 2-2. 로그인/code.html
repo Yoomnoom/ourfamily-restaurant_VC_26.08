@@ -98,6 +98,15 @@
     body { min-height: max(884px, 100dvh); -webkit-tap-highlight-color: transparent; }
     .spinner { width: 14px; height: 14px; border: 2px solid #ded3ef; border-top-color: #6d5a92; border-radius: 50%; display: inline-block; animation: spin 0.7s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
+    .organic-blob-sm {
+        border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+        animation: blobAnimSm 8s ease-in-out infinite alternate;
+    }
+    @keyframes blobAnimSm {
+        0% { border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; }
+        50% { border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%; }
+        100% { border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; }
+    }
   </style>
   </head>
 <body class="bg-surface text-on-surface font-body-md antialiased min-h-screen flex flex-col items-center justify-center">
@@ -108,7 +117,13 @@
 </button>
 
 <div class="z-10">
-<div class="mb-3 text-center">
+<div class="mb-3 flex flex-col items-center text-center">
+<div class="relative w-16 h-16 mb-2 shrink-0">
+<div class="absolute inset-0 bg-status-today-yellow opacity-40 organic-blob-sm"></div>
+<div class="relative w-16 h-16 bg-surface-container-lowest organic-blob-sm overflow-hidden shadow-[0px_4px_12px_rgba(100,100,150,0.12)]">
+<div class="bg-cover bg-center w-full h-full" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBGvSeucYIv7NCpvc2I4nflmfMqC4ag0SEZs_F4xiTmiqD5tHSC2_JvSrJeS9D9gj0apZ1duA13tu48K3En2mGPJiPcs84EZZKa0EYwikeINxd6lO0TJRaiXR58eNlEyYkvyB8TxyM6hnphdXYMka2ZC7gUK6VJMDEYnWFVgNtgUc5f9Ofv1u1Zqh5r1lbpl2pzQrI2CnAKGUg6lenXmJDrf1uQO2fEYjQkiw4vbWOyjMN4X1BLSeOZ')"></div>
+</div>
+</div>
 <h1 class="font-display-serif text-display-serif text-primary mb-1">우리집식당</h1>
 <p class="font-emotional-quote text-emotional-quote text-on-surface-variant italic">"묻지 않아도 아는 집"</p>
 </div>

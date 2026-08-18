@@ -107,7 +107,7 @@
                 묻지 않아도 아는 우리집 식탁
             </p>
 <!-- CTA Button -->
-<button class="bg-on-background text-background font-label-sm text-[15px] px-8 py-4 rounded-full flex items-center gap-3 hover:bg-secondary transition-colors shadow-md transform hover:scale-[1.02] active:scale-95 transition-transform duration-200 shrink-0" onclick="window.location.href='../2-2. 로그인/code.html'">
+<button class="bg-on-background text-background font-label-sm text-[15px] px-8 py-4 rounded-full flex items-center gap-3 hover:bg-secondary transition-colors shadow-md transform hover:scale-[1.02] active:scale-95 transition-transform duration-200 shrink-0" onclick="localStorage.setItem('wrf_seen_splash','1'); window.location.href='../2-2. 로그인/code.html'">
                 식당열기
                 <span class="w-6 h-6 rounded-full bg-status-today-yellow flex items-center justify-center text-on-background">
 <span class="material-symbols-outlined text-[16px]" data-icon="arrow_forward">arrow_forward</span>
@@ -118,9 +118,15 @@
 <script>
     (async function checkAutoLogin() {
         var session = await getSession();
-        if (!session) return;
-        var member = await getMyMember();
-        window.location.href = member ? '../3-0. 홈/code.html' : '../1-2. 온보딩-시작하기/code.html';
+        if (session) {
+            var member = await getMyMember();
+            window.location.href = member ? '../3-0. 홈/code.html' : '../1-2. 온보딩-시작하기/code.html';
+            return;
+        }
+        // 이 스플래시 화면을 한번이라도 본 적 있으면(재방문), 바로 로그인 폼으로 직행
+        if (localStorage.getItem('wrf_seen_splash')) {
+            window.location.href = '../2-2. 로그인/code.html';
+        }
     })();
 
     function openMenuPanel() {
