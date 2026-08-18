@@ -30,7 +30,7 @@ API.auth = {
     var res = await sb.auth.signInWithOAuth({
       provider: 'kakao',
       options: {
-        redirectTo: window.location.origin + window.location.pathname.replace(/\/[^/]*$/, '/../2-1.로그인 화면/code.html'),
+        redirectTo: window.location.origin + encodeURI('/2-1.로그인 화면/code.html'),
         scopes: 'profile_nickname profile_image'
       }
     });
