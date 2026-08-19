@@ -246,6 +246,7 @@
 <section class="mb-6">
 <h2 class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wide mb-3 px-1">메뉴 <span class="normal-case opacity-70">(선택)</span></h2>
 <div class="bg-surface-container-lowest rounded-xl p-card-padding shadow-[0px_4px_12px_rgba(120,119,119,0.08)]">
+<button type="button" id="menuSuggestionChip" class="hidden w-full text-left px-3 py-2.5 mb-3 rounded-lg border border-dashed border-outline-variant text-on-surface-variant font-label-sm text-label-sm flex items-center gap-2"></button>
 <div id="menuList" class="flex flex-col gap-2 mb-3"></div>
 <div class="relative mb-3">
 <div class="flex gap-2">
@@ -623,6 +624,7 @@
         if (!name) return;
         menus.push({ id: 'menu' + Date.now() + Math.random().toString(36).slice(2, 5), name: name });
         renderMenus();
+        document.getElementById('menuSuggestionChip').classList.add('hidden');
     }
     function addMenuFromInput() {
         var input = document.getElementById('menuInput');
@@ -847,6 +849,19 @@
     var WEATHER_TO_DISH = {
         Rain: '김치찌개', Drizzle: '김치찌개', Thunderstorm: '부대찌개', Snow: '매운탕'
     };
+
+    // 예전엔 추천 메뉴를 바로 "대표" 배지까지 붙여서 확정된 것처럼 넣었는데, 사용자가 고른 적
+    // 없는 걸 이미 정해진 것처럼 보여주는 게 이상하다는 피드백(2026-08-19) — 눌러야만 추가되는
+    // 제안 칩으로 변경. 메뉴를 아무거나 하나라도 추가하면(직접 입력이든 칩이든) 칩은 사라짐.
+    async function showMenuSuggestionChip() {
+        var name = await getSuggestedDefaultMenu();
+        if (!name || menus.length) return; // 그 사이에 사용자가 이미 뭔가 추가했으면 스킵
+        var chip = document.getElementById('menuSuggestionChip');
+        chip.innerHTML = '<span class="material-symbols-outlined text-[18px]">add_circle</span>' +
+            '<span>오늘 같은 날엔 <b>' + name + '</b> 어때요?</span>';
+        chip.onclick = function () { addMenu(name); };
+        chip.classList.remove('hidden');
+    }
 
     async function getSuggestedDefaultMenu() {
         var weather = await API.weather.getCurrent();
@@ -1254,7 +1269,7 @@
         } else if (reuse && reuse.menus && reuse.menus.length) {
             reuse.menus.forEach(function (name) { addMenu(name); });
         } else {
-            addMenu(await getSuggestedDefaultMenu());
+            showMenuSuggestionChip();
         }
 
         var members = await API.members.list(myMember.household_id);
