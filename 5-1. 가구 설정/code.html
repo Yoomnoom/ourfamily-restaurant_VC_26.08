@@ -59,7 +59,11 @@
 <h2 class="font-headline-lg text-headline-lg text-on-surface mb-1">① 가구 정보</h2>
 <p class="font-label-sm text-label-sm text-on-surface-variant mb-3">구성원, 공동 관리자, 가구 삭제</p>
 <div id="memberList" class="flex flex-col gap-2 mb-3"></div>
-<button type="button" class="w-full py-2.5 rounded-xl border border-dashed border-outline-variant text-on-surface-variant font-label-sm text-label-sm mb-3" onclick="showToast('가구 구성원 초대(온보딩 이후 추가)는 이번 전환 범위 밖이에요.')">+ 구성원 초대</button>
+<div class="flex gap-2 mb-3">
+<input id="newMemberInput" type="text" placeholder="가족 이름 (예: 아빠, 다람쥐)" class="flex-1 min-w-0 border border-outline-variant rounded-lg px-3 py-2.5 font-body-md text-body-md bg-surface-container-lowest" onkeydown="if(event.key==='Enter'){event.preventDefault();addMember();}">
+<button type="button" class="px-4 rounded-lg bg-surface-container text-on-surface-variant font-label-sm text-label-sm" onclick="addMember()">+ 구성원 초대</button>
+</div>
+<p class="font-label-sm text-label-sm text-on-surface-variant mb-3 px-1">계정 없이도 추가돼요 · 식사에 초대되면 그 사람만의 링크로 직접 응답할 수 있어요.</p>
 <button type="button" id="deleteHouseholdBtn" class="hidden w-full text-center font-label-sm text-label-sm text-error py-2" onclick="deleteHousehold()">가구 삭제 (오너만 가능)</button>
 </section>
 
@@ -143,6 +147,22 @@
         });
 
         document.getElementById('deleteHouseholdBtn').classList.toggle('hidden', myMember.role !== 'owner');
+    }
+
+    // 1인 가구로 시작했다가 나중에 가족을 추가하고 싶을 때(사용자 신고: 이전엔 안내 토스트만
+    // 뜨고 실제로 추가가 안 됐음) — 손님 추가와 같은 무가입 방식, role만 'member'라 이 목록에 남음.
+    async function addMember() {
+        var input = document.getElementById('newMemberInput');
+        var name = input.value.trim();
+        if (!name) return;
+        try {
+            await API.members.add(myMember.household_id, name);
+            input.value = '';
+            showToast(name + ' 님을 가구에 추가했어요');
+            await renderMembers();
+        } catch (err) {
+            showToast('추가에 실패했어요: ' + err.message);
+        }
     }
 
     async function toggleCoAdmin(memberId, isCurrentlyCoAdmin) {

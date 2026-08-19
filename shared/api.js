@@ -215,6 +215,17 @@ API.members = {
 
   // 3-2에서 즉석으로 입력한 손님도 무가입 구성원으로 등록(role: 'guest') — 재사용·통계·개인 링크가
   // 가족 구성원과 동일하게 적용되도록. 가구 구성원 목록 화면(5-1)에서는 role='guest'는 숨김.
+  // 온보딩 때 혼자(1인 가구)로 시작했다가 나중에 가족을 추가하고 싶을 때(5-1 "+ 구성원 초대") —
+  // 손님(role:'guest')과 같은 무가입 방식이지만 role:'member'라 5-1 목록에 계속 보이고,
+  // 3-2 "누구에게 물어볼까요" 기본 참여자 목록에도 자동으로 포함됨.
+  async add(householdId, name) {
+    var res = await sb.from('household_members_vc2608').insert({
+      household_id: householdId, profile_id: null, name: name, role: 'member', default_response: 'attending'
+    }).select().single();
+    if (res.error) throw res.error;
+    return res.data;
+  },
+
   async addGuestMember(householdId, name) {
     var res = await sb.from('household_members_vc2608').insert({
       household_id: householdId, profile_id: null, name: name, role: 'guest', default_response: 'attending'
