@@ -89,10 +89,7 @@
 <style>
     body { min-height: max(884px, 100dvh); -webkit-tap-highlight-color: transparent; }
     .identity-line { border-left-width: 4px; border-left-style: solid; }
-    /* 아직 응답 안 한 좌석 = "자리에 못 앉고 서성이는" 느낌으로 살짝 흔들림. 응답하면(=착석) 멈춤. */
-    @keyframes seat-wander { 0%, 100% { transform: translate(-50%, -50%) rotate(-6deg); } 50% { transform: translate(-50%, -50%) rotate(6deg); } }
-    .seat-wander { animation: seat-wander 1.6s ease-in-out infinite; }
-  
+
     /* 애플 디자인 원칙: 눌림 피드백은 즉시, 정지는 스프링형(임계감쇠)으로 — WWDC "Designing Fluid Interfaces" */
     .active\:scale-95:active, .active\:scale-\[0\.98\]:active, .active\:scale-\[0\.95\]:active {
       transition-timing-function: cubic-bezier(0.34, 1.3, 0.64, 1) !important;
@@ -165,24 +162,28 @@
 </div>
 </header>
 
-<!-- 오늘의 식탁 카드(참고 이미지 01_home_corrected.png 구조 반영, 2026-08-19): 왼쪽에 메뉴·인원 현황
-     텍스트, 오른쪽에 작은 원형 식탁 그림. 사진 우선순위는 8-2/3-1과 동일: 실제 식사 사진 → 메뉴
-     이름으로 등록된 대표 사진(음식사진/ 폴더에서 받은 실사 사진 등) → 이모지 플레이스홀더. -->
+<!-- 오늘의 식탁 카드(참고 이미지 01_home_corrected.png 구조 반영, 2026-08-19 재수정): 왼쪽에
+     메뉴·인원 현황 텍스트+응답 현황 보기 버튼, 오른쪽에 식탁 사진 — 확인된 사람은 이름표가
+     사진 위쪽에, 아직 응답 안 한 사람은 점선 이름표가 사진 아래쪽에(원형 좌석 배치가 아니라
+     "확인/대기" 두 줄 구조 — 처음엔 사진 둘레에 작은 점으로 배치해서 사용자가 "크기부터 방향까지
+     잘못됐다"고 지적함). 사진 우선순위는 8-2/3-1과 동일: 실제 식사 사진 → 메뉴 이름으로 등록된
+     대표 사진(음식사진/ 폴더에서 받은 실사 사진 등) → 이모지 플레이스홀더. -->
 <div class="mb-3">
 <h1 id="householdTitle" class="font-headline-lg text-headline-lg text-on-surface">우리집, 오늘 식탁</h1>
 </div>
 
 <a id="myTableLink" class="block bg-surface-container-lowest rounded-2xl p-card-padding shadow-[0px_4px_12px_rgba(120,119,119,0.08)] mb-2" href="../3-1. 내 식탁/code.html">
-<div class="flex items-center gap-4">
-<div class="flex-1 min-w-0">
+<div class="flex gap-4">
+<div class="flex-1 min-w-0 flex flex-col justify-center">
 <p class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wide mb-1">오늘의 식탁</p>
-<p id="tableHeroMenu" class="font-headline-lg text-headline-lg text-on-surface font-semibold mb-1 truncate">-</p>
-<p id="householdSubtitle" class="font-label-sm text-label-sm text-on-surface-variant mb-2">-</p>
-<span class="inline-flex items-center gap-0.5 font-label-sm text-label-sm text-primary font-semibold">응답 현황 보기<span class="material-symbols-outlined" style="font-size:16px;">chevron_right</span></span>
+<p id="tableHeroMenu" class="font-headline-lg text-headline-lg text-on-surface font-semibold mb-1">-</p>
+<p id="householdSubtitle" class="font-label-sm text-label-sm text-on-surface-variant mb-3">-</p>
+<span class="inline-flex items-center justify-center gap-1 bg-primary text-on-primary rounded-full py-2.5 px-4 font-label-sm text-label-sm font-semibold">응답 현황 보기<span class="material-symbols-outlined" style="font-size:16px;">chevron_right</span></span>
 </div>
-<div class="relative w-28 h-28 shrink-0">
-<div id="tableHeroPhoto" class="absolute rounded-full overflow-hidden bg-tertiary-container flex items-center justify-center" style="inset:16%;"></div>
-<div id="tableHeroSeats" class="absolute inset-0"></div>
+<div class="w-36 shrink-0 flex flex-col items-center justify-center gap-1.5">
+<div id="tableHeroConfirmed" class="flex flex-wrap justify-center gap-1"></div>
+<div id="tableHeroPhoto" class="w-28 h-28 rounded-full overflow-hidden bg-tertiary-container flex items-center justify-center shrink-0"></div>
+<div id="tableHeroPending" class="flex flex-wrap justify-center gap-1"></div>
 </div>
 </div>
 </a>
@@ -743,8 +744,10 @@
 
         var menuEl = document.getElementById('tableHeroMenu');
         var photoEl = document.getElementById('tableHeroPhoto');
-        var seatsEl = document.getElementById('tableHeroSeats');
-        seatsEl.innerHTML = '';
+        var confirmedEl = document.getElementById('tableHeroConfirmed');
+        var pendingEl = document.getElementById('tableHeroPending');
+        confirmedEl.innerHTML = '';
+        pendingEl.innerHTML = '';
 
         if (!todayMeals.length) {
             menuEl.textContent = '아직 식사가 없어요';
@@ -778,35 +781,23 @@
         }
         var rows = Object.keys(rowByMember).map(function (id) { return rowByMember[id]; });
 
-        // 상태를 위치·움직임으로도 구분: 먹어요(착석) = 식탁에 붙어 가만히, 확인 안 됨 = 아직 못 앉고 서성임(흔들림),
-        // 안 먹어요 = 식탁에서 한 걸음 물러남(반경 확대) — "착석하면 먹는다, 서성이면 아직, 물러나면 안 먹는다"는 직관 반영.
-        rows.forEach(function (r, i) {
-            var angle = (i * 360 / rows.length) - 90; // 12시 방향부터 시계 방향으로 배치
-            var rad = angle * Math.PI / 180;
+        // 참고 이미지 구조: 원형으로 둘러앉은 좌석이 아니라 "확인된 사람은 이름표가 식탁 위쪽에,
+        // 아직 응답 안 한 사람은 점선 이름표가 식탁 아래쪽에" — 두 줄로 명확히 나눔.
+        rows.forEach(function (r) {
             var status = r.status;
-            var radius = status === 'absent' ? 50 : 42; // 컨테이너 대비 %
-            var x = 50 + radius * Math.cos(rad);
-            var y = 50 + radius * Math.sin(rad);
-
-            var seat = document.createElement('div');
-            seat.className = 'absolute w-6 h-6 rounded-full flex items-center justify-center text-on-primary font-label-sm shadow-[0px_2px_6px_rgba(120,119,119,0.15)]' +
-                (status === 'pending' ? ' border-2 border-dashed border-outline seat-wander' : '') +
-                (status === 'absent' ? ' opacity-40' : '');
-            seat.style.left = x + '%';
-            seat.style.top = y + '%';
-            seat.style.fontSize = '10px';
-            if (status !== 'pending') { seat.style.transform = 'translate(-50%, -50%)'; } // wander 애니메이션이 transform을 직접 관리하므로 겹치지 않게
-            seat.style.backgroundColor = r.color || '#8a9a7b';
-            seat.textContent = (r.name || '?').charAt(0);
-            seat.title = r.name + (status === 'attending' ? ' · 먹어요' : status === 'absent' ? ' · 안 먹어요' : ' · 확인 안 됨');
-
+            var tag = document.createElement('div');
+            tag.className = 'flex flex-col items-center';
             if (status === 'attending') {
-                var badge = document.createElement('span');
-                badge.className = 'absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-surface flex items-center justify-center';
-                badge.innerHTML = '<span class="material-symbols-outlined text-primary" style="font-size:9px;">check</span>';
-                seat.appendChild(badge);
+                tag.innerHTML =
+                    '<span class="px-2.5 py-1 rounded-full text-on-primary font-label-sm font-semibold whitespace-nowrap" style="background-color:' + (r.color || '#8a9a7b') + ';font-size:11px;">' + r.name + '</span>' +
+                    '<span class="font-label-sm text-on-surface-variant mt-0.5" style="font-size:10px;">확인 완료</span>';
+                confirmedEl.appendChild(tag);
+            } else {
+                tag.innerHTML =
+                    '<span class="px-2.5 py-1 rounded-full border-2 border-dashed border-outline text-on-surface-variant whitespace-nowrap" style="font-size:11px;">' + r.name + '</span>' +
+                    '<span class="font-label-sm text-on-surface-variant mt-0.5" style="font-size:10px;">' + (status === 'absent' ? '안 먹어요' : '응답 대기') + '</span>';
+                pendingEl.appendChild(tag);
             }
-            seatsEl.appendChild(seat);
         });
 
         pendingMembersForRemind = rows.filter(function (r) { return r.status === 'pending'; });
