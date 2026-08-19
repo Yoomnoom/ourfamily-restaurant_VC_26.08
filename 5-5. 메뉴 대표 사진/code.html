@@ -143,16 +143,25 @@
     }
 
     async function replaceMenuPhoto(menuName, file) {
-        var result = await resizeImageFile(file);
-        var url = await API.storage.uploadMenuImage(menuName, result.blob);
-        await API.menuImages.save(menuName, url, 'manual');
-        await renderList();
+        try {
+            var result = await resizeImageFile(file);
+            var url = await API.storage.uploadMenuImage(menuName, result.blob);
+            await API.menuImages.save(menuName, url, 'manual');
+            await renderList();
+        } catch (err) {
+            alert('사진 변경에 실패했어요: ' + err.message);
+            throw err;
+        }
     }
 
     async function removeMenuPhoto(menuName) {
         if (!confirm('"' + menuName + '"의 대표 사진을 삭제할까요? 다음부터는 이모지 플레이스홀더로 보여요.')) return;
-        await API.menuImages.remove(menuName);
-        await renderList();
+        try {
+            await API.menuImages.remove(menuName);
+            await renderList();
+        } catch (err) {
+            alert('삭제에 실패했어요: ' + err.message);
+        }
     }
 
     async function renderList() {
