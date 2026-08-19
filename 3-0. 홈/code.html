@@ -169,20 +169,24 @@
 <h1 id="householdTitle" class="font-headline-lg text-headline-lg text-on-surface">우리집, 오늘 식탁</h1>
 </div>
 
-<div class="bg-surface-container-lowest rounded-2xl p-card-padding shadow-[0px_4px_12px_rgba(120,119,119,0.08)] mb-2">
-<div class="flex gap-4">
-<div class="flex-1 min-w-0 flex flex-col justify-center items-start">
+<!-- 오늘의 식탁 카드 재구성(2026-08-19, 사용자가 준 새 참고 이미지 기준): 사진을 작은 원형
+     썸네일이 아니라 카드 오른쪽 3/4을 위/오른쪽/아래 끝까지 꽉 채우는 큰 실사 사진으로,
+     확인/대기 이름표는 사진 주변이 아니라 왼쪽 텍스트 칸 맨 아래(응답 버튼·미응답자 링크
+     다음)로. 카드 자체는 overflow-hidden + 패딩 없음, 왼쪽 칸에만 패딩을 줘서 사진이
+     카드 모서리에 자연스럽게 맞물리게 함. -->
+<div class="bg-surface-container-lowest rounded-2xl shadow-[0px_4px_12px_rgba(120,119,119,0.08)] mb-2 overflow-hidden">
+<div class="flex items-stretch">
+<div class="w-1/4 min-w-0 flex flex-col justify-center p-card-padding">
 <p class="font-headline-lg text-headline-lg text-on-surface font-bold mb-1">오늘의 식탁</p>
 <p id="tableHeroWhen" class="font-label-sm text-label-sm text-on-surface-variant mb-1">-</p>
 <p id="tableHeroMenu" class="font-headline-lg text-headline-lg text-on-surface font-bold mb-1">-</p>
 <p id="householdSubtitle" class="font-body-md text-body-md text-on-surface-variant mb-3">-</p>
-<button type="button" class="inline-flex items-center justify-center gap-1 bg-primary text-on-primary rounded-full py-2.5 px-4 font-label-sm text-label-sm font-semibold" onclick="window.location.href='../3-1. 내 식탁/code.html'">응답 현황 보기<span class="material-symbols-outlined" style="font-size:16px;">chevron_right</span></button>
-<button type="button" id="remindPendingBtn" class="hidden font-label-sm text-label-sm text-on-surface-variant underline mt-2" onclick="remindPending()">미응답자에게 다시 보내기</button>
+<button type="button" class="self-start inline-flex items-center justify-center gap-1 bg-primary text-on-primary rounded-full py-2.5 px-4 font-label-sm text-label-sm font-semibold" onclick="window.location.href='../3-1. 내 식탁/code.html'">응답 현황 보기<span class="material-symbols-outlined" style="font-size:16px;">chevron_right</span></button>
+<button type="button" id="remindPendingBtn" class="hidden font-label-sm text-label-sm text-on-surface-variant underline mt-2 self-start" onclick="remindPending()">미응답자에게 다시 보내기</button>
+<div id="tableHeroRoster" class="flex flex-wrap gap-2 mt-3"></div>
 </div>
-<div class="w-36 shrink-0 flex flex-col items-center justify-center gap-1.5">
-<div id="tableHeroConfirmed" class="flex flex-wrap justify-center gap-1"></div>
-<div id="tableHeroPhoto" class="w-28 h-28 rounded-full overflow-hidden bg-tertiary-container flex items-center justify-center shrink-0"></div>
-<div id="tableHeroPending" class="flex flex-wrap justify-center gap-1"></div>
+<div class="w-3/4 shrink-0 relative">
+<div id="tableHeroPhoto" class="absolute inset-0 w-full h-full bg-tertiary-container flex items-center justify-center"></div>
 </div>
 </div>
 </div>
@@ -756,10 +760,8 @@
 
         var menuEl = document.getElementById('tableHeroMenu');
         var photoEl = document.getElementById('tableHeroPhoto');
-        var confirmedEl = document.getElementById('tableHeroConfirmed');
-        var pendingEl = document.getElementById('tableHeroPending');
-        confirmedEl.innerHTML = '';
-        pendingEl.innerHTML = '';
+        var rosterEl = document.getElementById('tableHeroRoster');
+        rosterEl.innerHTML = '';
 
         var whenEl = document.getElementById('tableHeroWhen');
         if (!todayMeals.length) {
@@ -801,23 +803,23 @@
         }
         var rows = Object.keys(rowByMember).map(function (id) { return rowByMember[id]; });
 
-        // 참고 이미지 구조: 원형으로 둘러앉은 좌석이 아니라 "확인된 사람은 이름표가 식탁 위쪽에,
-        // 아직 응답 안 한 사람은 점선 이름표가 식탁 아래쪽에" — 두 줄로 명확히 나눔.
+        // 참고 이미지 구조(재수정, 2026-08-19): 사진 주변 이름표가 아니라 왼쪽 텍스트 칸 맨 아래에
+        // 이름이 그대로 적힌 뱃지 한 줄로 — 짧은 이름(1자)은 동그랗게, 긴 이름은 알약 모양으로
+        // 자연스럽게(rounded-full + 내용에 맞는 너비). 확인된 사람은 색이 채워짐, 대기는 점선.
         rows.forEach(function (r) {
             var status = r.status;
             var tag = document.createElement('div');
             tag.className = 'flex flex-col items-center';
             if (status === 'attending') {
                 tag.innerHTML =
-                    '<span class="px-2.5 py-1 rounded-full text-on-primary font-label-sm font-semibold whitespace-nowrap" style="background-color:' + (r.color || '#8a9a7b') + ';font-size:11px;">' + r.name + '</span>' +
+                    '<span class="min-w-[2.25rem] h-9 px-2 rounded-full flex items-center justify-center text-on-primary font-label-sm font-semibold whitespace-nowrap" style="background-color:' + (r.color || '#8a9a7b') + ';">' + r.name + '</span>' +
                     '<span class="font-label-sm text-on-surface-variant mt-0.5" style="font-size:10px;">확인 완료</span>';
-                confirmedEl.appendChild(tag);
             } else {
                 tag.innerHTML =
-                    '<span class="px-2.5 py-1 rounded-full border-2 border-dashed border-outline text-on-surface-variant whitespace-nowrap" style="font-size:11px;">' + r.name + '</span>' +
+                    '<span class="min-w-[2.25rem] h-9 px-2 rounded-full border-2 border-dashed border-outline flex items-center justify-center text-on-surface-variant font-label-sm font-semibold whitespace-nowrap">' + r.name + '</span>' +
                     '<span class="font-label-sm text-on-surface-variant mt-0.5" style="font-size:10px;">' + (status === 'absent' ? '안 먹어요' : '응답 대기') + '</span>';
-                pendingEl.appendChild(tag);
             }
+            rosterEl.appendChild(tag);
         });
 
         pendingMembersForRemind = rows.filter(function (r) { return r.status === 'pending'; });
