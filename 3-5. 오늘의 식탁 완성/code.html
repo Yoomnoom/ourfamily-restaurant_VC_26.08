@@ -78,7 +78,7 @@
         var meal = await API.meals.get(mealId);
         var roster = await API.mealParticipants.getRoster(mealId);
         var menuLine = (meal.menu && meal.menu.length) ? meal.menu.join(' · ') : '메뉴 미정';
-        document.getElementById('mealLine').textContent = menuLine + ' · ' + (meal.time || '시간 미정');
+        document.getElementById('mealLine').textContent = menuLine + ' · ' + (meal.time ? meal.time.slice(0, 5) : '시간 미정');
 
         var attendingCount = 0, lines = [];
         roster.forEach(function (r) {

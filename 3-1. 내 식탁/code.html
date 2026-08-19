@@ -360,7 +360,9 @@
 
     function appendCountdownIfNeeded(card, meal, when) {
         if (when !== '오늘' || !meal.time) return;
-        var target = new Date(meal.date + 'T' + meal.time + ':00');
+        // meal.time은 DB의 time 컬럼이라 "19:00:00"처럼 초까지 옴 — 그대로 ':00'을 더 붙이면
+        // "19:00:00:00"이 되어 Date 파싱이 깨지고(NaN) 카운트다운이 "NaN분 남았어요"로 보이던 버그.
+        var target = new Date(meal.date + 'T' + meal.time.slice(0, 5) + ':00');
         var span = document.createElement('p');
         span.className = 'font-label-sm text-label-sm text-on-tertiary-container -mt-1 mb-2';
         card.appendChild(span);
@@ -480,7 +482,7 @@
         card.style.borderLeftColor = color;
 
         var timeBadgeClass = when === '오늘' ? 'bg-tertiary-container text-on-tertiary-container' : 'bg-secondary-container text-on-secondary-container';
-        var timeLabel = when + ' · ' + (meal.time || '시간 미정');
+        var timeLabel = when + ' · ' + (meal.time ? meal.time.slice(0, 5) : '시간 미정');
         var roleLabel = isHost ? '내가 만든 식사' : ((creatorMember ? creatorMember.name : '가족') + '님이 만든 식사');
 
         var head = document.createElement('div');

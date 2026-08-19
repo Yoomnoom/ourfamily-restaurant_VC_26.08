@@ -873,6 +873,13 @@
 
             var meal = await API.meals.create(myMember.household_id, mealFields);
             var issued = await API.mealParticipants.bulkCreateWithTokens(meal.id, memberIds);
+
+            // 내가 만든 식사엔 이미 "내가 먹는다"는 뜻이 담겨 있음 — 스스로를 체크했다면
+            // 다른 사람처럼 응답 대기 상태로 두지 않고 바로 참석으로 확정(사용자 지적: 본인이
+            // 요청한 식사인데 본인도 따로 응답해야 하는 게 이상하다고 함).
+            if (memberIds.indexOf(myMember.id) !== -1) {
+                await API.mealResponses.respondSelf(meal.id, myMember.id, 'attending');
+            }
             // 토큰 원본은 DB에 해시로만 남고 지금 이 응답에만 존재 — 3-8(링크 공유)이 방금 만든
             // 식사를 열었을 때 바로 보여줄 수 있게 이 세션에서만 잠깐 들고 넘어감.
             try {
