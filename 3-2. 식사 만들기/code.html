@@ -247,9 +247,12 @@
 <h2 class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wide mb-3 px-1">메뉴 <span class="normal-case opacity-70">(선택)</span></h2>
 <div class="bg-surface-container-lowest rounded-xl p-card-padding shadow-[0px_4px_12px_rgba(120,119,119,0.08)]">
 <div id="menuList" class="flex flex-col gap-2 mb-3"></div>
-<div class="flex gap-2 mb-3">
-<input id="menuInput" type="text" placeholder="메뉴를 입력하세요 (예: 김치찌개)" class="flex-1 min-w-0 border border-outline-variant rounded-lg px-3 py-2.5 font-body-md text-body-md text-on-surface bg-surface-container-lowest" onkeydown="if(event.key==='Enter'){event.preventDefault();addMenuFromInput();}">
+<div class="relative mb-3">
+<div class="flex gap-2">
+<input id="menuInput" type="text" placeholder="메뉴를 입력하세요 (예: 김치찌개)" autocomplete="off" class="flex-1 min-w-0 border border-outline-variant rounded-lg px-3 py-2.5 font-body-md text-body-md text-on-surface bg-surface-container-lowest" onkeydown="if(event.key==='Enter'){event.preventDefault();addMenuFromInput();}">
 <button type="button" class="px-4 rounded-lg bg-surface-container text-on-surface-variant font-label-sm text-label-sm" onclick="addMenuFromInput()">추가</button>
+</div>
+<div id="menuSuggestions" class="hidden absolute left-0 right-0 top-full mt-1 bg-surface-container-lowest border border-outline-variant rounded-lg shadow-[0px_4px_12px_rgba(120,119,119,0.12)] z-20 overflow-hidden"></div>
 </div>
 <div id="homeOnlyMenuTools">
 <button type="button" class="w-full py-2.5 rounded-lg border border-dashed border-outline-variant text-on-surface-variant font-label-sm text-label-sm flex items-center justify-center gap-2 mb-3" onclick="window.location.href='../7-3. 메뉴 추천/code.html'">
@@ -618,8 +621,48 @@
         if (!value) return;
         addMenu(value);
         input.value = '';
+        hideMenuSuggestions();
     }
     function removeMenu(id) { menus = menus.filter(function (m) { return m.id !== id; }); renderMenus(); }
+
+    // 메뉴 입력창 실시간 검색(집밥일 때만 — DISH_CATALOG가 가정식 위주라서).
+    // 후보를 눌러 바로 추가하면 카테고리 찾기와 동일하게 menu_categories_vc2608에도 저장해
+    // 나중에 카테고리/통계에서 재사용되게 함.
+    function hideMenuSuggestions() {
+        var box = document.getElementById('menuSuggestions');
+        box.classList.add('hidden');
+        box.innerHTML = '';
+    }
+
+    function renderMenuSuggestions(query) {
+        var box = document.getElementById('menuSuggestions');
+        if (mealType !== 'home' || !query) { hideMenuSuggestions(); return; }
+        var matches = DISH_CATALOG.filter(function (d) { return d.name.indexOf(query) !== -1; }).slice(0, 8);
+        if (!matches.length) { hideMenuSuggestions(); return; }
+        box.innerHTML = '';
+        matches.forEach(function (d) {
+            var item = document.createElement('button');
+            item.type = 'button';
+            item.className = 'w-full text-left px-3 py-2.5 font-body-md text-body-md text-on-surface hover:bg-surface-container active:bg-surface-container';
+            item.textContent = d.name;
+            item.onclick = function () {
+                pickCategoryDish(d);
+                document.getElementById('menuInput').value = '';
+                hideMenuSuggestions();
+            };
+            box.appendChild(item);
+        });
+        box.classList.remove('hidden');
+    }
+
+    document.getElementById('menuInput').addEventListener('input', function (e) {
+        renderMenuSuggestions(e.target.value.trim());
+    });
+    document.addEventListener('click', function (e) {
+        var box = document.getElementById('menuSuggestions');
+        if (box.contains(e.target) || e.target === document.getElementById('menuInput')) return;
+        hideMenuSuggestions();
+    });
 
     // 드래그 재정렬은 터치 화면에서 잘 안 먹으니, 탭 한 번으로 대표를 바꾸는 버튼을 기본 수단으로 둠.
     // 대표 메뉴는 최대 2개(맨 앞 두 자리) — 홈 카드 등에서 "뭘 먹는지"를 대표 메뉴 2개까지 그대로 보여줌.
@@ -698,6 +741,7 @@
 
     var DISH_CATALOG = [
         { name: '김치찌개', group: '한식', cookType: '국물요리', tags: ['찌개', '매운맛', '고기'] },
+        { name: '참치김치찌개', group: '한식', cookType: '국물요리', tags: ['찌개', '매운맛', '생선'] },
         { name: '된장찌개', group: '한식', cookType: '국물요리', tags: ['찌개', '채소'] },
         { name: '순두부찌개', group: '한식', cookType: '국물요리', tags: ['찌개', '매운맛'] },
         { name: '부대찌개', group: '한식', cookType: '국물요리', tags: ['찌개', '매운맛', '고기', '공유 메뉴'] },
