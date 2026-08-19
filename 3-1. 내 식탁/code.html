@@ -137,17 +137,24 @@
 <p id="greetSub" class="font-body-md text-body-md text-on-surface-variant">우리집 · 오늘도 좋은 식사 되세요</p>
 </div>
 
-<!-- 오늘 내가 가장 먼저 알아야 할 것: 누가 먹는지/안 먹는지 -->
-<section class="mb-6">
-<h2 class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wide mb-3 px-1">오늘</h2>
-<div id="todayCards" class="flex flex-col gap-3"></div>
+<!-- 참고 이미지(02_my_table.png) 기준: 날짜(오늘/내일) 대신 "내가 지금 뭘 해야 하는지" 상태로 재편.
+     각 카드 안에는 여전히 오늘/내일 배지가 남아있어 날짜 정보는 그대로 보임. -->
+<section id="needsResponseSection" class="mb-6 hidden">
+<h2 class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wide mb-3 px-1">응답이 필요해요</h2>
+<div id="needsResponseCards" class="flex flex-col gap-3"></div>
 </section>
 
-<!-- 내일 -->
-<section class="mb-6">
-<h2 class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wide mb-3 px-1">내일</h2>
-<div id="tomorrowCards" class="flex flex-col gap-3"></div>
+<section id="hostedSection" class="mb-6 hidden">
+<h2 class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wide mb-3 px-1">내가 만든 식사</h2>
+<div id="hostedCards" class="flex flex-col gap-3"></div>
 </section>
+
+<section id="confirmedSection" class="mb-6 hidden">
+<h2 class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wide mb-3 px-1">확정된 식사</h2>
+<div id="confirmedCards" class="flex flex-col gap-3"></div>
+</section>
+
+<p id="noMealsMsg" class="hidden font-label-sm text-label-sm text-on-surface-variant text-center py-6">오늘·내일 아직 만든 식사가 없어요</p>
 
 <!-- 오늘 당장 알아야 할 것(위 오늘/내일 카드)보다는 뒤에: 참고용 요약 -->
 <button class="w-full bg-surface-container-lowest rounded-xl px-4 py-3 mb-3 shadow-[0px_2px_8px_rgba(120,119,119,0.06)] flex items-center gap-3 text-left" onclick="window.location.href='../5-2. 식사 기록/code.html'">
@@ -327,11 +334,22 @@
         await renderAllMeals();
     }
 
+    // 참고 이미지 기준 버킷 분류: 확정된 식사가 최우선(더 이상 할 일 없음), 그다음 내가
+    // 만든 식사(응답 현황을 내가 챙겨야 함), 나머지는 전부 "내 응답이 필요한" 식사(이미 답했어도
+    // 바꿀 수 있게 그대로 이 버킷에 남김 — renderMealCard의 참여자 분기가 이미 처리해줌).
+    function bucketFor(meal) {
+        if (meal.status === 'confirmed') return 'confirmed';
+        if (meal.creator_id === myMember.profile_id) return 'hosted';
+        return 'needsResponse';
+    }
+
     async function renderAllMeals() {
-        var todayEl = document.getElementById('todayCards');
-        var tomorrowEl = document.getElementById('tomorrowCards');
-        todayEl.innerHTML = '';
-        tomorrowEl.innerHTML = '';
+        var sections = {
+            needsResponse: { section: document.getElementById('needsResponseSection'), list: document.getElementById('needsResponseCards') },
+            hosted: { section: document.getElementById('hostedSection'), list: document.getElementById('hostedCards') },
+            confirmed: { section: document.getElementById('confirmedSection'), list: document.getElementById('confirmedCards') }
+        };
+        Object.keys(sections).forEach(function (k) { sections[k].list.innerHTML = ''; });
 
         var meals = await API.meals.listByHousehold(householdId);
         var today = todayKey(), tomorrow = tomorrowKey();
@@ -340,18 +358,38 @@
         for (var i = 0; i < relevant.length; i++) {
             var meal = relevant[i];
             var roster = await API.mealParticipants.getRoster(meal.id);
-            var card = renderMealCard(meal, roster, meal.date === today ? '오늘' : '내일');
-            (meal.date === today ? todayEl : tomorrowEl).appendChild(card);
+            var thumbHtml = await mealThumbnailHtml(meal);
+            var card = renderMealCard(meal, roster, meal.date === today ? '오늘' : '내일', thumbHtml);
+            sections[bucketFor(meal)].list.appendChild(card);
         }
-        if (!todayEl.children.length) todayEl.innerHTML = '<p class="font-label-sm text-label-sm text-on-surface-variant px-1">오늘은 아직 만든 식사가 없어요</p>';
-        if (!tomorrowEl.children.length) tomorrowEl.innerHTML = '<p class="font-label-sm text-label-sm text-on-surface-variant px-1">내일은 아직 만든 식사가 없어요</p>';
+
+        var anyMeals = false;
+        Object.keys(sections).forEach(function (k) {
+            var hasCards = sections[k].list.children.length > 0;
+            sections[k].section.classList.toggle('hidden', !hasCards);
+            if (hasCards) anyMeals = true;
+        });
+        document.getElementById('noMealsMsg').classList.toggle('hidden', anyMeals);
+    }
+
+    // 실제 사진이 있으면 사진, 없으면 메뉴 이름으로 캐시된 대표 이미지, 그것도 없으면
+    // 로컬 플레이스홀더(foodPlaceholderHtml, shared/api.js) — 8-2/5-2와 동일한 폴백 순서.
+    var menuImageCache = {};
+    async function mealThumbnailHtml(meal) {
+        var photo = await API.mealPhotos.getByMeal(meal.id);
+        if (photo) return '<img src="' + photo.photo_url + '" class="w-12 h-12 rounded-lg object-cover shrink-0">';
+        var repName = meal.menu && meal.menu[0];
+        if (!repName) return foodPlaceholderHtml(null, 'w-12 h-12 rounded-lg shrink-0');
+        if (menuImageCache[repName] === undefined) menuImageCache[repName] = await API.menuImages.get(repName);
+        if (menuImageCache[repName]) return '<img src="' + menuImageCache[repName] + '" class="w-12 h-12 rounded-lg object-cover shrink-0">';
+        return foodPlaceholderHtml(repName, 'w-12 h-12 rounded-lg shrink-0');
     }
 
     function goToSummary(meal) {
         window.location.href = '../3-4. 확정 전 요약/code.html?meal=' + meal.id;
     }
 
-    function renderMealCard(meal, roster, when) {
+    function renderMealCard(meal, roster, when, thumbHtml) {
         var isHost = meal.creator_id === myMember.profile_id;
         var creatorMember = membersCache.find(function (m) { return m.profile_id === meal.creator_id; });
         var color = (creatorMember && creatorMember.color) || '#8a9a7b';
@@ -386,10 +424,16 @@
         }
 
         // 카드 정보 우선순위(참고문서 §5.1): 메뉴 → 시간 → 현재 인원 → 참여 여부.
+        // 실제 사진(또는 메뉴 이름 매칭 대표 이미지/플레이스홀더)을 제목 옆에 작게 배치 —
+        // "사진 유무 차이가 크다"는 사용자 피드백 반영, 참고 이미지의 썸네일 구성과 동일.
+        var titleRow = document.createElement('div');
+        titleRow.className = 'flex items-center gap-3 mb-2';
+        titleRow.innerHTML = (thumbHtml || '');
         var title = document.createElement('h3');
-        title.className = 'font-headline-lg text-headline-lg text-on-surface mb-2';
+        title.className = 'font-headline-lg text-headline-lg text-on-surface flex-1 min-w-0';
         title.textContent = meal.menu.length > 1 ? (meal.menu[0] + ' 외 ' + (meal.menu.length - 1) + '개') : meal.menu[0];
-        card.appendChild(title);
+        titleRow.appendChild(title);
+        card.appendChild(titleRow);
         card.appendChild(head);
 
         if (isHost) {
