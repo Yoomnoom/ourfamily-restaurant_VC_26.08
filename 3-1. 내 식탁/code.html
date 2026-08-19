@@ -518,6 +518,17 @@
         // 대표 메뉴 최대 2개(3-2에서 정한 순서)를 그대로 보여줌 — "외 N개"로 뭉개지 않음(홈 카드와 동일한 규칙).
         title.textContent = meal.menu.length ? meal.menu.slice(0, 2).join(', ') : '메뉴 미정';
         titleRow.appendChild(title);
+        // 메뉴를 이미 정한 뒤엔 수정할 방법이 아예 없던 문제 발견(사용자 질문) — 메뉴·시간을
+        // 다시 고를 수 있게 호스트에게만 연필 아이콘으로 3-2 수정 화면 진입점을 항상 남겨둠.
+        if (isHost) {
+            var editIconBtn = document.createElement('button');
+            editIconBtn.type = 'button';
+            editIconBtn.className = 'w-8 h-8 flex items-center justify-center rounded-full text-on-surface-variant shrink-0 active:scale-95 transition-transform';
+            editIconBtn.setAttribute('aria-label', '메뉴·시간 수정');
+            editIconBtn.innerHTML = '<span class="material-symbols-outlined text-[18px]">edit</span>';
+            editIconBtn.onclick = function () { window.location.href = '../3-2. 식사 만들기/code.html?edit=' + meal.id; };
+            titleRow.appendChild(editIconBtn);
+        }
         card.appendChild(titleRow);
         card.appendChild(head);
         appendCountdownIfNeeded(card, meal, when);
