@@ -221,6 +221,16 @@
 <div id="notiList" class="flex flex-col gap-2 p-4"></div>
 </aside>
 
+<!-- 식사 시간 알림(수업21일차_알람에서 이식) — 오늘 시간이 정해진 식사가 되면 뜸.
+     소리는 오디오 파일 없이 Web Audio 오실레이터로 직접 생성. -->
+<div id="mealAlarmBackdrop" class="hidden fixed inset-0 bg-on-surface/50 z-[90] flex items-center justify-center px-6">
+<div class="bg-surface-container-lowest rounded-2xl p-8 text-center shadow-2xl max-w-[320px] w-full">
+<span class="material-symbols-outlined text-primary mb-3" style="font-size:48px;">alarm</span>
+<p id="mealAlarmLabel" class="font-headline-lg text-headline-lg text-on-surface mb-6">식사 시간이에요!</p>
+<button type="button" class="w-full bg-primary text-on-primary font-label-sm text-[15px] py-3.5 rounded-full active:scale-[0.98] transition-transform" onclick="stopMealAlarm()">확인했어요</button>
+</div>
+</div>
+
 <script>
     var toastTimer;
     function showToast(msg) {
@@ -343,7 +353,64 @@
         return 'needsResponse';
     }
 
+    // 식사 시간 알림(수업21일차_알람에서 이식) — 오늘 시간이 정해진 식사마다 실시간 카운트다운을
+    // 보여주고, 시간이 되면 화면 알림 + 소리(Web Audio 오실레이터, 오디오 파일 없이 직접 생성)로 알려줌.
+    var countdownTargets = []; // { el, meal, target } — renderAllMeals()가 다시 그릴 때마다 초기화
+    var alertedMealIds = new Set(); // 이미 울린 식사는 페이지 열려있는 동안 다시 안 울림
+
+    function appendCountdownIfNeeded(card, meal, when) {
+        if (when !== '오늘' || !meal.time) return;
+        var target = new Date(meal.date + 'T' + meal.time + ':00');
+        var span = document.createElement('p');
+        span.className = 'font-label-sm text-label-sm text-on-tertiary-container -mt-1 mb-2';
+        card.appendChild(span);
+        var entry = { el: span, meal: meal, target: target };
+        countdownTargets.push(entry);
+        updateOneCountdown(entry);
+    }
+
+    function updateOneCountdown(entry) {
+        var diff = entry.target.getTime() - Date.now();
+        if (diff <= 0) {
+            entry.el.textContent = '⏰ 식사 시간이에요';
+            if (!alertedMealIds.has(entry.meal.id)) {
+                alertedMealIds.add(entry.meal.id);
+                ringMealAlarm(entry.meal);
+            }
+            return;
+        }
+        var totalMin = Math.floor(diff / 60000);
+        var h = Math.floor(totalMin / 60), m = totalMin % 60;
+        entry.el.textContent = '⏰ ' + (h > 0 ? h + '시간 ' + m + '분' : m + '분') + ' 남았어요';
+    }
+
+    setInterval(function () { countdownTargets.forEach(updateOneCountdown); }, 15000);
+
+    var mealBeepInterval = null, mealAudioCtx = null;
+    function ringMealAlarm(meal) {
+        var menuLine = (meal.menu && meal.menu.length) ? meal.menu.join(', ') : '식사';
+        document.getElementById('mealAlarmLabel').textContent = menuLine + ' 시간이에요!';
+        document.getElementById('mealAlarmBackdrop').classList.remove('hidden');
+        mealAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playTone() {
+            var osc = mealAudioCtx.createOscillator(), gain = mealAudioCtx.createGain();
+            osc.type = 'sine'; osc.frequency.value = 880; gain.gain.value = 0.2;
+            osc.connect(gain).connect(mealAudioCtx.destination);
+            osc.start(); osc.stop(mealAudioCtx.currentTime + 0.35);
+        }
+        playTone();
+        mealBeepInterval = setInterval(playTone, 600);
+        if (navigator.vibrate) navigator.vibrate([500, 200, 500, 200, 500]);
+    }
+    function stopMealAlarm() {
+        if (mealBeepInterval) { clearInterval(mealBeepInterval); mealBeepInterval = null; }
+        if (mealAudioCtx) { mealAudioCtx.close(); mealAudioCtx = null; }
+        if (navigator.vibrate) navigator.vibrate(0);
+        document.getElementById('mealAlarmBackdrop').classList.add('hidden');
+    }
+
     async function renderAllMeals() {
+        countdownTargets = [];
         var sections = {
             needsResponse: { section: document.getElementById('needsResponseSection'), list: document.getElementById('needsResponseCards') },
             hosted: { section: document.getElementById('hostedSection'), list: document.getElementById('hostedCards') },
@@ -450,6 +517,7 @@
         titleRow.appendChild(title);
         card.appendChild(titleRow);
         card.appendChild(head);
+        appendCountdownIfNeeded(card, meal, when);
 
         if (isHost) {
             var attending = roster.filter(function (r) { return r.status === 'attending'; }).length;
