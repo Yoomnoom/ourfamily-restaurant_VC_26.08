@@ -292,6 +292,23 @@ API.menuImages = {
   }
 };
 
+// ---------------------------------------------------------
+// 메뉴 이름별 음식군/조리유형/세부태그 캐시 — 3-2 카테고리로 메뉴 찾기에서 고른 메뉴에
+// 붙여 저장해두고, 5-2 기록 통계 등에서 재사용(전역 공유, household 무관 — menu_default_images와 동일한 성격).
+// ---------------------------------------------------------
+API.menuCategories = {
+  async get(menuName) {
+    var res = await sb.from('menu_categories_vc2608').select('food_group, cook_type, detail_tags').eq('menu_name', menuName).maybeSingle();
+    if (res.error) throw res.error;
+    return res.data || null;
+  },
+  async save(menuName, foodGroup, cookType, detailTags) {
+    var res = await sb.from('menu_categories_vc2608')
+      .upsert({ menu_name: menuName, food_group: foodGroup, cook_type: cookType, detail_tags: detailTags || [] }, { onConflict: 'menu_name' });
+    if (res.error) throw res.error;
+  }
+};
+
 API.mealParticipants = {
   // memberIds에 대해 meal_participants_vc2608 행 + 1인1링크 토큰을 새로 만듦.
   // 반환값의 token은 이번 호출에서만 알 수 있음(디비엔 해시만 저장) — 바로 공유 URL 생성에 사용.

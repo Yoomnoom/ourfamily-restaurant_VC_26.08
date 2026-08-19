@@ -256,11 +256,13 @@
 냉장고 재료로 추천받기
 </button>
 <details>
-<summary class="font-label-sm text-label-sm text-on-surface-variant cursor-pointer">▾ 저장된 메뉴에서 담기</summary>
-<div class="flex flex-wrap gap-2 mt-2">
-<button type="button" class="px-3 py-1.5 rounded-full bg-surface-container text-on-surface-variant font-label-sm text-label-sm" onclick="addMenu('계란말이')">계란말이</button>
-<button type="button" class="px-3 py-1.5 rounded-full bg-surface-container text-on-surface-variant font-label-sm text-label-sm" onclick="addMenu('나물무침')">나물무침</button>
-<button type="button" class="px-3 py-1.5 rounded-full bg-surface-container text-on-surface-variant font-label-sm text-label-sm" onclick="addMenu('된장국')">된장국</button>
+<summary class="font-label-sm text-label-sm text-on-surface-variant cursor-pointer">▾ 카테고리로 메뉴 찾기</summary>
+<div class="mt-2 flex flex-col gap-2">
+<div id="catGroupChips" class="flex flex-wrap gap-2"></div>
+<div id="catTypeChips" class="hidden flex flex-wrap gap-2"></div>
+<div id="catTagChips" class="hidden flex flex-wrap gap-2"></div>
+<div id="catSuggestions" class="hidden flex flex-wrap gap-2 pt-2 border-t border-outline-variant"></div>
+<p id="catEmptyMsg" class="hidden font-label-sm text-label-sm text-on-surface-variant">이 조합엔 아직 추천 메뉴가 없어요 · 위 입력창에 직접 적어주세요</p>
 </div>
 </details>
 </div>
@@ -665,6 +667,158 @@
         });
     }
 
+    // 카테고리로 메뉴 찾기(집밥 전용) — 뭐 만들지 고민될 때 3단계(음식군→조리유형→세부태그)로
+    // 좁혀서 구체적인 메뉴 이름을 추천. 고른 메뉴는 menu_categories_vc2608에 저장해서
+    // 5-2 기록 통계 등에서 나중에 재사용(사용자 요청, 2026-08-19).
+    var FOOD_GROUPS = ['한식', '분식', '중식', '일식', '양식', '동남아', '퓨전·기타'];
+    var COOK_TYPES = ['국물요리', '밥', '면', '볶음·조림', '구이·전', '찜·수육', '샐러드·무침', '기타'];
+    var DETAIL_TAGS = ['찌개', '국', '탕', '전골', '매운맛', '고기', '생선', '채소', '한 그릇', '공유 메뉴'];
+
+    var DISH_CATALOG = [
+        { name: '김치찌개', group: '한식', cookType: '국물요리', tags: ['찌개', '매운맛', '고기'] },
+        { name: '된장찌개', group: '한식', cookType: '국물요리', tags: ['찌개', '채소'] },
+        { name: '순두부찌개', group: '한식', cookType: '국물요리', tags: ['찌개', '매운맛'] },
+        { name: '부대찌개', group: '한식', cookType: '국물요리', tags: ['찌개', '매운맛', '고기', '공유 메뉴'] },
+        { name: '육개장', group: '한식', cookType: '국물요리', tags: ['탕', '매운맛', '고기'] },
+        { name: '갈비탕', group: '한식', cookType: '국물요리', tags: ['탕', '고기'] },
+        { name: '삼계탕', group: '한식', cookType: '국물요리', tags: ['탕', '고기', '한 그릇'] },
+        { name: '미역국', group: '한식', cookType: '국물요리', tags: ['국', '고기'] },
+        { name: '콩나물국', group: '한식', cookType: '국물요리', tags: ['국', '채소'] },
+        { name: '북엇국', group: '한식', cookType: '국물요리', tags: ['국', '생선'] },
+        { name: '매운탕', group: '한식', cookType: '국물요리', tags: ['탕', '생선', '매운맛', '공유 메뉴'] },
+        { name: '비빔밥', group: '한식', cookType: '밥', tags: ['한 그릇', '채소'] },
+        { name: '불고기', group: '한식', cookType: '구이·전', tags: ['고기', '공유 메뉴'] },
+        { name: '제육볶음', group: '한식', cookType: '볶음·조림', tags: ['고기', '매운맛'] },
+        { name: '갈비찜', group: '한식', cookType: '찜·수육', tags: ['고기', '공유 메뉴'] },
+        { name: '나물무침', group: '한식', cookType: '샐러드·무침', tags: ['채소'] },
+        { name: '잡채', group: '한식', cookType: '기타', tags: ['채소', '공유 메뉴'] },
+
+        { name: '떡볶이', group: '분식', cookType: '볶음·조림', tags: ['매운맛', '공유 메뉴'] },
+        { name: '김밥', group: '분식', cookType: '밥', tags: ['한 그릇'] },
+        { name: '순대', group: '분식', cookType: '찜·수육', tags: ['고기'] },
+        { name: '튀김', group: '분식', cookType: '구이·전', tags: ['공유 메뉴'] },
+        { name: '어묵탕', group: '분식', cookType: '국물요리', tags: ['국', '생선'] },
+        { name: '라볶이', group: '분식', cookType: '면', tags: ['매운맛'] },
+        { name: '쫄면', group: '분식', cookType: '면', tags: ['매운맛'] },
+        { name: '만두', group: '분식', cookType: '찜·수육', tags: ['고기', '공유 메뉴'] },
+
+        { name: '짜장면', group: '중식', cookType: '면', tags: ['한 그릇'] },
+        { name: '짬뽕', group: '중식', cookType: '면', tags: ['매운맛', '한 그릇'] },
+        { name: '탕수육', group: '중식', cookType: '구이·전', tags: ['고기', '공유 메뉴'] },
+        { name: '마파두부', group: '중식', cookType: '볶음·조림', tags: ['채소', '매운맛'] },
+        { name: '양장피', group: '중식', cookType: '샐러드·무침', tags: ['공유 메뉴'] },
+        { name: '깐풍기', group: '중식', cookType: '구이·전', tags: ['고기', '매운맛'] },
+        { name: '군만두', group: '중식', cookType: '구이·전', tags: ['고기'] },
+        { name: '유산슬', group: '중식', cookType: '볶음·조림', tags: ['고기', '공유 메뉴'] },
+        { name: '팔보채', group: '중식', cookType: '볶음·조림', tags: ['고기', '생선'] },
+
+        { name: '초밥', group: '일식', cookType: '밥', tags: ['생선', '공유 메뉴'] },
+        { name: '돈카츠', group: '일식', cookType: '구이·전', tags: ['고기'] },
+        { name: '우동', group: '일식', cookType: '면', tags: ['한 그릇'] },
+        { name: '라멘', group: '일식', cookType: '면', tags: ['한 그릇'] },
+        { name: '가라아게', group: '일식', cookType: '구이·전', tags: ['고기'] },
+        { name: '규동', group: '일식', cookType: '밥', tags: ['한 그릇', '고기'] },
+        { name: '사케동', group: '일식', cookType: '밥', tags: ['생선', '한 그릇'] },
+        { name: '오코노미야키', group: '일식', cookType: '구이·전', tags: ['채소', '공유 메뉴'] },
+
+        { name: '스파게티', group: '양식', cookType: '면', tags: ['한 그릇'] },
+        { name: '스테이크', group: '양식', cookType: '구이·전', tags: ['고기'] },
+        { name: '피자', group: '양식', cookType: '구이·전', tags: ['공유 메뉴', '채소'] },
+        { name: '리조또', group: '양식', cookType: '밥', tags: ['한 그릇'] },
+        { name: '샐러드', group: '양식', cookType: '샐러드·무침', tags: ['채소'] },
+        { name: '그라탕', group: '양식', cookType: '구이·전', tags: ['채소', '공유 메뉴'] },
+        { name: '햄버거', group: '양식', cookType: '기타', tags: ['고기', '한 그릇'] },
+        { name: '오믈렛', group: '양식', cookType: '구이·전', tags: ['채소'] },
+
+        { name: '쌀국수', group: '동남아', cookType: '면', tags: ['한 그릇', '고기'] },
+        { name: '팟타이', group: '동남아', cookType: '면', tags: ['한 그릇'] },
+        { name: '똠얌꿍', group: '동남아', cookType: '국물요리', tags: ['탕', '매운맛', '생선'] },
+        { name: '나시고랭', group: '동남아', cookType: '밥', tags: ['한 그릇'] },
+        { name: '카오만가이', group: '동남아', cookType: '밥', tags: ['한 그릇', '고기'] },
+        { name: '반미', group: '동남아', cookType: '기타', tags: ['고기', '한 그릇'] },
+
+        { name: '부리또', group: '퓨전·기타', cookType: '기타', tags: ['한 그릇', '고기'] },
+        { name: '타코', group: '퓨전·기타', cookType: '기타', tags: ['고기'] },
+        { name: '포케', group: '퓨전·기타', cookType: '샐러드·무침', tags: ['생선', '채소', '한 그릇'] },
+        { name: '훠궈', group: '퓨전·기타', cookType: '국물요리', tags: ['탕', '매운맛', '공유 메뉴'] },
+        { name: '마라탕', group: '퓨전·기타', cookType: '국물요리', tags: ['탕', '매운맛', '채소'] },
+        { name: '크림파스타', group: '퓨전·기타', cookType: '면', tags: ['한 그릇'] }
+    ];
+
+    var catState = { group: null, cookType: null, tags: [] };
+
+    function chipButton(label, active, onClick) {
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'px-3 py-1.5 rounded-full font-label-sm text-label-sm ' +
+            (active ? 'bg-primary text-on-primary' : 'bg-surface-container text-on-surface-variant');
+        btn.textContent = label;
+        btn.onclick = onClick;
+        return btn;
+    }
+
+    function renderCatGroupChips() {
+        var row = document.getElementById('catGroupChips');
+        row.innerHTML = '';
+        FOOD_GROUPS.forEach(function (g) {
+            row.appendChild(chipButton(g, catState.group === g, function () {
+                catState.group = (catState.group === g) ? null : g;
+                catState.cookType = null; catState.tags = [];
+                renderCatGroupChips(); renderCatTypeChips(); renderCatTagChips(); renderCatSuggestions();
+            }));
+        });
+    }
+
+    function renderCatTypeChips() {
+        var wrap = document.getElementById('catTypeChips');
+        wrap.classList.toggle('hidden', !catState.group);
+        if (!catState.group) return;
+        wrap.innerHTML = '';
+        COOK_TYPES.forEach(function (t) {
+            wrap.appendChild(chipButton(t, catState.cookType === t, function () {
+                catState.cookType = (catState.cookType === t) ? null : t;
+                catState.tags = [];
+                renderCatTypeChips(); renderCatTagChips(); renderCatSuggestions();
+            }));
+        });
+    }
+
+    function renderCatTagChips() {
+        var wrap = document.getElementById('catTagChips');
+        wrap.classList.toggle('hidden', !catState.cookType);
+        if (!catState.cookType) return;
+        wrap.innerHTML = '';
+        DETAIL_TAGS.forEach(function (tag) {
+            var active = catState.tags.indexOf(tag) !== -1;
+            wrap.appendChild(chipButton(tag, active, function () {
+                if (active) { catState.tags = catState.tags.filter(function (t) { return t !== tag; }); }
+                else { catState.tags.push(tag); }
+                renderCatTagChips(); renderCatSuggestions();
+            }));
+        });
+    }
+
+    async function pickCategoryDish(dish) {
+        addMenu(dish.name);
+        await API.menuCategories.save(dish.name, dish.group, dish.cookType, dish.tags);
+    }
+
+    function renderCatSuggestions() {
+        var wrap = document.getElementById('catSuggestions');
+        var emptyMsg = document.getElementById('catEmptyMsg');
+        if (!catState.cookType) { wrap.classList.add('hidden'); emptyMsg.classList.add('hidden'); return; }
+        var matches = DISH_CATALOG.filter(function (d) {
+            return d.group === catState.group && d.cookType === catState.cookType &&
+                catState.tags.every(function (t) { return d.tags.indexOf(t) !== -1; });
+        });
+        wrap.innerHTML = '';
+        wrap.classList.toggle('hidden', matches.length === 0);
+        emptyMsg.classList.toggle('hidden', matches.length > 0);
+        matches.forEach(function (d) {
+            wrap.appendChild(chipButton(d.name, false, function () { pickCategoryDish(d); }));
+        });
+    }
+
     var MENU_PLACEHOLDER = {
         home: '메뉴를 입력하세요 (예: 김치찌개)',
         eatout: '식당 · 메뉴를 입력하세요 (예: OO파스타집)',
@@ -974,6 +1128,7 @@
 
         applyAdvanceAnswers();
         renderParticipants();
+        renderCatGroupChips();
     })();
 </script>
 </body></html>
