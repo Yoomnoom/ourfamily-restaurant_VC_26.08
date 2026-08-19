@@ -136,8 +136,20 @@
         try {
             var caption = document.getElementById('captionInput').value.trim();
             // 새로 고른 사진이 있을 때만 업로드 — 캡션만 고쳐서 다시 저장하는 경우엔 기존 URL 그대로 재사용.
+            var isNewPhoto = !!photoBlob;
             var photoUrl = photoBlob ? await API.storage.uploadMealPhoto(householdId, mealId, photoBlob) : existingPhotoUrl;
             await API.mealPhotos.upsert(householdId, mealId, myMember.id, photoUrl, caption);
+
+            // 이 메뉴로 등록된 대표 사진이 아직 없으면, 사용자가 지금 올린 실제 사진을 그 메뉴의
+            // 기본 이미지로 캐시(household 무관, 전역 공유) — 누구든 그 메뉴로 식사를 처음 사진 찍어
+            // 올리면 자동으로 채워짐. 이미 있으면 덮어쓰지 않음(먼저 올라온 사진 우선).
+            if (isNewPhoto && meal.menu && meal.menu.length) {
+                meal.menu.forEach(function (name) {
+                    API.menuImages.get(name).then(function (existing) {
+                        if (!existing) return API.menuImages.save(name, photoUrl, 'user_photo');
+                    }).catch(function () {}); // 실패해도 사진 저장 자체는 이미 끝났으니 조용히 무시
+                });
+            }
 
             document.getElementById('formView').classList.add('hidden');
             document.getElementById('doneView').classList.remove('hidden');
