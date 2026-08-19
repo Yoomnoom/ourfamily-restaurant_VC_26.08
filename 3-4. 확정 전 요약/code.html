@@ -71,7 +71,10 @@
 
 <div class="flex items-center gap-2 bg-surface-container rounded-lg px-4 py-3 mb-5">
 <span class="material-symbols-outlined text-on-surface-variant">groups</span>
-<p class="font-body-md text-body-md text-on-surface-variant">예상 준비 <b id="expectedCount" class="text-on-surface">2명</b> · 확인 안 됨 <b id="unconfirmedCount" class="text-on-surface">1명</b></p>
+<p class="font-body-md text-body-md text-on-surface-variant flex-1">예상 준비 <b id="expectedCount" class="text-on-surface">2명</b> · 확인 안 됨 <b id="unconfirmedCount" class="text-on-surface">1명</b></p>
+<button type="button" id="speakRosterBtn" class="w-8 h-8 flex items-center justify-center rounded-full text-on-surface-variant shrink-0 active:scale-95 transition-transform" aria-label="응답 현황 읽어주기">
+<span class="material-symbols-outlined text-[18px]">volume_up</span>
+</button>
 </div>
 
 <div id="groupsContainer" class="flex flex-col gap-4 mb-6"></div>
@@ -112,6 +115,22 @@
     var mealId = null;
     var meal = { title: '오늘의 식탁, 확정할까요?', menu: '', attending: [], late: [], pending: [] };
     var count = 0;
+
+    // TTS(수업21일차_알람에서 이식, 원래 3-1 카드 안에 있던 기능) — 02_my_table.png 참고 이미지에
+    // 맞춰 3-1 카드에선 뺐고, 실제 로스터 상세가 있는 이 화면(응답 현황 보기의 목적지)으로 옮김.
+    function speakRosterStatus() {
+        if (!('speechSynthesis' in window)) { showToast('이 브라우저는 음성 읽기를 지원하지 않아요'); return; }
+        var parts = [];
+        meal.attending.forEach(function (p) { parts.push(p.name + '님 먹어요'); });
+        meal.late.forEach(function (p) { parts.push(p.name + '님 늦게 와요'); });
+        meal.pending.forEach(function (p) { parts.push(p.name + '님 확인 전'); });
+        var text = (meal.menu || '메뉴 미정') + ' 응답 현황. ' + (parts.length ? parts.join(', ') + '.' : '아직 아무도 응답 안 했어요.');
+        var utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'ko-KR';
+        speechSynthesis.cancel();
+        speechSynthesis.speak(utterance);
+    }
+    document.getElementById('speakRosterBtn').onclick = speakRosterStatus;
 
     function buildGroupsFromRoster(rosterRows) {
         var attending = [], late = [], pending = [];

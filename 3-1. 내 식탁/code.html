@@ -456,20 +456,8 @@
         return foodPlaceholderHtml(repName, 'w-full h-full');
     }
 
-    // TTS(수업21일차_알람에서 이식) — 네이티브 Web Speech API, 외부 서비스 없음.
-    // 알람 앱에선 뉴스 브리핑을 읽어줬는데, 여기선 가족의 응답 여부를 읽어줌(사용자 요청).
-    function speakRosterStatus(meal, roster) {
-        if (!('speechSynthesis' in window)) { showToast('이 브라우저는 음성 읽기를 지원하지 않아요'); return; }
-        var menuLine = (meal.menu && meal.menu.length) ? meal.menu.join(', ') : '메뉴 미정';
-        var parts = roster.map(function (r) {
-            return r.name + '님 ' + (r.status === 'attending' ? '먹어요' : '확인 전');
-        });
-        var text = menuLine + ' 응답 현황. ' + parts.join(', ') + '.';
-        var utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = 'ko-KR';
-        speechSynthesis.cancel(); // 여러 카드 연달아 눌러도 안 겹치게, 이전 읽기는 취소하고 새로 시작
-        speechSynthesis.speak(utterance);
-    }
+    // TTS(수업21일차_알람에서 이식)는 02_my_table.png 리디자인으로 카드 밖(3-4)으로 옮김 — 여기 있던
+    // speakRosterStatus 정의는 삭제(3-4. 확정 전 요약/code.html에 동일 기능 있음).
 
     function goToSummary(meal) {
         window.location.href = '../3-4. 확정 전 요약/code.html?meal=' + meal.id;
@@ -562,31 +550,9 @@
         if (bucket === 'confirmed') {
             // 참고 이미지처럼 확정된 식사는 버튼 없이 상태줄에서 끝남.
         } else if (bucket === 'hosted') {
-            // 인원 요약/전체 로스터/TTS(사용자가 예전에 요청해서 만든 기능) — 그대로 유지, 위치만 이동.
-            var summaryEl = document.createElement('div');
-            summaryEl.className = 'flex items-center gap-2 bg-surface-container rounded-lg px-3 py-2.5 mb-3';
-            summaryEl.innerHTML = '<span class="material-symbols-outlined text-on-surface-variant text-[18px]">groups</span>' +
-                '<p class="font-label-sm text-label-sm text-on-surface-variant flex-1">예상 준비 <b class="text-on-surface">' + attending + '명</b> · 확인 안 됨 <b class="text-on-surface">' + pending + '명</b></p>' +
-                '<button type="button" class="speak-roster-btn w-8 h-8 flex items-center justify-center rounded-full text-on-surface-variant shrink-0 active:scale-95 transition-transform" aria-label="응답 현황 읽어주기"><span class="material-symbols-outlined text-[18px]">volume_up</span></button>';
-            summaryEl.querySelector('.speak-roster-btn').onclick = function () { speakRosterStatus(meal, roster); };
-            actions.appendChild(summaryEl);
-
-            var rosterEl = document.createElement('div');
-            rosterEl.className = 'flex flex-col gap-2 mb-4';
-            roster.forEach(function (r) {
-                var row = document.createElement('div');
-                row.className = 'flex items-center gap-2.5';
-                var isMe = r.memberId === myMember.id;
-                var statusIcon = r.status === 'attending' ? '<span class="material-symbols-outlined text-[16px]" style="color:#6b7f5c;">check_circle</span>' : '<span class="material-symbols-outlined text-[16px] text-outline">help</span>';
-                var statusText = r.status === 'attending' ? ('먹어요' + (r.note ? ' · ' + r.note : '')) : ('확인 전' + (r.note ? ' · ' + r.note : ''));
-                row.innerHTML = '<span class="w-7 h-7 rounded-full flex items-center justify-center text-on-primary font-label-sm text-label-sm shrink-0" style="background-color:' + (r.color || '#8a9a7b') + ';">' + (r.name || '?').charAt(0) + '</span>' +
-                    '<span class="font-body-md text-body-md ' + (r.status === 'attending' ? 'text-on-surface' : 'text-on-surface-variant') + ' flex-1">' + r.name + (isMe ? ' (나)' : '') + '</span>' +
-                    statusIcon +
-                    '<span class="font-label-sm text-label-sm ' + (r.status === 'attending' ? 'text-on-surface-variant' : 'text-outline') + '">' + statusText + '</span>';
-                rosterEl.appendChild(row);
-            });
-            actions.appendChild(rosterEl);
-
+            // 인원 요약/전체 로스터/TTS는 02_my_table.png엔 없어서 카드 밖으로 뺌 — "응답 현황 보기"가
+            // 가는 3-4(확정 전 요약)에 이미 같은 로스터 상세 화면이 있어서 거기에 TTS 버튼을 옮겨 달았음
+            // (결정 완료, 2026-08-19 — DECISIONS.md 참고).
             var detailBtn = document.createElement('button');
             detailBtn.className = 'w-full text-center font-label-sm text-label-sm text-primary border-2 border-primary rounded-full py-2.5';
             detailBtn.textContent = '응답 현황 보기 →';
