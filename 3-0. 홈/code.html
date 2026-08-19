@@ -175,9 +175,10 @@
 <a id="myTableLink" class="block bg-surface-container-lowest rounded-2xl p-card-padding shadow-[0px_4px_12px_rgba(120,119,119,0.08)] mb-2" href="../3-1. 내 식탁/code.html">
 <div class="flex gap-4">
 <div class="flex-1 min-w-0 flex flex-col justify-center">
-<p class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wide mb-1">오늘의 식탁</p>
-<p id="tableHeroMenu" class="font-headline-lg text-headline-lg text-on-surface font-semibold mb-1">-</p>
-<p id="householdSubtitle" class="font-label-sm text-label-sm text-on-surface-variant mb-3">-</p>
+<p class="font-headline-lg text-headline-lg text-on-surface font-bold mb-1">오늘의 식탁</p>
+<p id="tableHeroWhen" class="hidden font-label-sm text-label-sm text-on-surface-variant mb-1">-</p>
+<p id="tableHeroMenu" class="font-headline-lg text-headline-lg text-on-surface font-bold mb-1">-</p>
+<p id="householdSubtitle" class="font-body-md text-body-md text-on-surface-variant mb-3">-</p>
 <span class="inline-flex items-center justify-center gap-1 bg-primary text-on-primary rounded-full py-2.5 px-4 font-label-sm text-label-sm font-semibold">응답 현황 보기<span class="material-symbols-outlined" style="font-size:16px;">chevron_right</span></span>
 </div>
 <div class="w-36 shrink-0 flex flex-col items-center justify-center gap-1.5">
@@ -722,8 +723,9 @@
         });
     }
 
-    // 헤더 바로 아래 부제 = 이 앱을 왜 쓰는지 한 줄 요약(오늘 몇 명 먹는지 · 몇 명 아직 확인 안 됐는지).
-    // 밀키트 광고판이 아니라 "매번 안 물어봐도 되는" 실제 가치를 첫 줄에서 보여주기 위함.
+    // 오늘의 식탁 카드의 인원 현황 줄 = 이 앱을 왜 쓰는지 한 줄 요약(오늘 몇 명 먹는지 · 몇 명 아직 확인 안 됐는지).
+    // "오늘 저녁 ·" 같은 때 정보는 별도로 tableHeroWhen에서 보여주므로 여기선 인원 현황만.
+    // 참고 이미지처럼 확정 인원은 강조색, 대기 인원은 주의색으로 눈에 띄게.
     function computeSubtitle(rows) {
         if (!rows.length) { return '아직 오늘 식사가 없어요<br>매번 묻지 않아도, 여기서 한눈에 확인해요'; }
         var attending = 0, pending = 0;
@@ -731,8 +733,17 @@
             if (r.status === 'attending') attending++;
             else if (r.status === 'pending') pending++;
         });
-        if (pending === 0) return '오늘 저녁 ' + attending + '명 먹어요 · 다 확인됐어요';
-        return '오늘 저녁 ' + attending + '명 먹어요 · ' + pending + '명 아직 확인 안 됨';
+        var attendingPart = '<span class="text-primary font-bold">' + attending + '명</span> 먹어요';
+        if (pending === 0) return attendingPart + ' · 다 확인됐어요';
+        return attendingPart + ' · <span class="text-error font-bold">' + pending + '명</span> 확인 전';
+    }
+
+    // "오늘 저녁 · 19:00" 같은 시간대+시각 표시. 시간 미정이면 아예 숨김(참고 이미지엔 없는 상태라 억지로 안 만듦).
+    function mealTimeOfDayLabel(hhmm) {
+        var h = parseInt(hhmm.slice(0, 2), 10);
+        if (h < 11) return '아침';
+        if (h < 17) return '점심';
+        return '저녁';
     }
 
     // 원형 식탁 둘레에 가족 아바타를 좌석처럼 배치 — 참여(체크 배지)/대기(점선 테두리)/불참(흐리게)을 한 그림으로.
@@ -749,8 +760,10 @@
         confirmedEl.innerHTML = '';
         pendingEl.innerHTML = '';
 
+        var whenEl = document.getElementById('tableHeroWhen');
         if (!todayMeals.length) {
             menuEl.textContent = '아직 식사가 없어요';
+            whenEl.classList.add('hidden');
             photoEl.innerHTML = '<span class="material-symbols-outlined text-on-tertiary-container" style="font-size:28px;">restaurant</span>';
             pendingMembersForRemind = [];
             document.getElementById('remindPendingBtn').classList.add('hidden');
@@ -760,6 +773,13 @@
         var firstMenu = todayMeals[0].menu || [];
         var repName = firstMenu[0];
         menuEl.textContent = firstMenu.length > 1 ? (repName + ' 외 ' + (firstMenu.length - 1) + '개') : (repName || '메뉴 미정');
+
+        if (todayMeals[0].time) {
+            whenEl.textContent = '오늘 ' + mealTimeOfDayLabel(todayMeals[0].time) + ' · ' + todayMeals[0].time.slice(0, 5);
+            whenEl.classList.remove('hidden');
+        } else {
+            whenEl.classList.add('hidden');
+        }
 
         // 식탁 사진 우선순위(8-2/3-1과 동일): 실제 식사 사진 → 메뉴 이름으로 등록된 대표 사진 → 이모지 플레이스홀더.
         var mealPhoto = await API.mealPhotos.getByMeal(todayMeals[0].id);
