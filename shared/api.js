@@ -173,6 +173,14 @@ API.households = {
     return res.data;
   },
 
+  // 다른 사람(다른 계정)이 이미 있는 가구에 실제로 합류 — RLS는 남의 가구에 직접 insert를
+  // 막아서(보안상 정상) SQL 함수(join_household_vc2608, SECURITY DEFINER)를 통해서만 가능.
+  async joinExisting(householdId, name) {
+    var res = await sb.rpc('join_household_vc2608', { p_household_id: householdId, p_name: name });
+    if (res.error) throw res.error;
+    return res.data;
+  },
+
   // 오너만 가능(RLS households_vc2608_delete_owner)
   async remove(householdId) {
     var res = await sb.from('households_vc2608').delete().eq('id', householdId).select();

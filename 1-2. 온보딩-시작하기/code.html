@@ -141,7 +141,17 @@
 </div>
 <!-- Bottom Section: Actions (The One-Hand Zone) -->
 <section class="flex flex-col gap-2 w-full mb-4">
-<button class="w-full py-4 rounded-full bg-primary text-on-primary font-label-sm text-[15px] flex items-center justify-center gap-2 active:scale-95 transition-transform duration-200 shadow-[0px_4px_12px_rgba(120,119,119,0.08)]" onclick="window.location.href='../1-3. 온보딩-가구프로필/code.html'">
+<!-- 가구 참여 링크(5-1에서 공유)로 들어온 경우 — 다른 계정으로 로그인해도 새 가구를 또
+     만드는 대신 그 가구에 바로 합류(사용자 신고 버그 수정, 2026-08-19). -->
+<div id="joinBanner" class="hidden bg-surface-container-lowest rounded-xl px-4 py-3 mb-1 text-center">
+<p id="joinHouseholdName" class="font-body-md text-body-md text-on-surface font-medium"></p>
+<p class="font-label-sm text-label-sm text-on-surface-variant">이 가구에 합류할까요?</p>
+</div>
+<button id="joinBtn" class="hidden w-full py-4 rounded-full bg-primary text-on-primary font-label-sm text-[15px] flex items-center justify-center gap-2 active:scale-95 transition-transform duration-200 shadow-[0px_4px_12px_rgba(120,119,119,0.08)]" onclick="joinHousehold()">
+<span class="material-symbols-outlined">group_add</span>
+                합류하기
+            </button>
+<button id="createNewBtn" class="w-full py-4 rounded-full bg-primary text-on-primary font-label-sm text-[15px] flex items-center justify-center gap-2 active:scale-95 transition-transform duration-200 shadow-[0px_4px_12px_rgba(120,119,119,0.08)]" onclick="window.location.href='../1-3. 온보딩-가구프로필/code.html'">
 <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">add_circle</span>
                 새로운 식당 만들기
             </button>
@@ -153,5 +163,31 @@
         await API.auth.signOut();
         window.location.href = '../2-1.로그인 화면/code.html';
     }
+
+    var joinHouseholdId = new URLSearchParams(window.location.search).get('join');
+
+    async function joinHousehold() {
+        var btn = document.getElementById('joinBtn');
+        btn.disabled = true;
+        try {
+            var session = await getSession();
+            var name = (session.user.user_metadata && session.user.user_metadata.name) || session.user.email.split('@')[0];
+            await API.households.joinExisting(joinHouseholdId, name);
+            window.location.href = '../3-0. 홈/code.html';
+        } catch (err) {
+            btn.disabled = false;
+            alert('합류에 실패했어요: ' + err.message);
+        }
+    }
+
+    (async function initJoinMode() {
+        if (!joinHouseholdId) return;
+        var household = await API.households.get(joinHouseholdId).catch(function () { return null; });
+        if (!household) return; // 잘못된/만료된 링크면 그냥 평소 온보딩 화면으로
+        document.getElementById('joinHouseholdName').textContent = household.name || '우리집';
+        document.getElementById('joinBanner').classList.remove('hidden');
+        document.getElementById('joinBtn').classList.remove('hidden');
+        document.getElementById('createNewBtn').classList.add('hidden');
+    })();
 </script>
 </body></html>

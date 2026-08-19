@@ -64,6 +64,16 @@
 <button type="button" class="px-4 rounded-lg bg-surface-container text-on-surface-variant font-label-sm text-label-sm" onclick="addMember()">+ 구성원 초대</button>
 </div>
 <p class="font-label-sm text-label-sm text-on-surface-variant mb-3 px-1">계정 없이도 추가돼요 · 식사에 초대되면 그 사람만의 링크로 직접 응답할 수 있어요.</p>
+
+<!-- 가족이 자기 계정으로 로그인해서 이 가구에 직접 합류하고 싶을 때 — 링크 하나로.
+     기존엔 이 방법이 없어서 다들 각자 새 가구를 만들게 되는 버그가 있었음(사용자 신고, 2026-08-19). -->
+<div class="bg-surface-container-lowest rounded-xl p-card-padding shadow-[0px_4px_12px_rgba(120,119,119,0.08)]">
+<p class="font-body-md text-body-md text-on-surface font-medium mb-1">가족이 자기 계정으로 합류하기</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant mb-3">이 링크를 보내면, 받은 사람이 회원가입/로그인해서 우리 가구에 바로 합류해요.</p>
+<div class="flex gap-2">
+<button type="button" id="copyJoinLinkBtn" class="flex-1 py-2.5 rounded-lg bg-surface-container text-on-surface-variant font-label-sm text-label-sm" onclick="copyJoinLink()">링크 복사</button>
+</div>
+</div>
 <button type="button" id="deleteHouseholdBtn" class="hidden w-full text-center font-label-sm text-label-sm text-error py-2" onclick="deleteHousehold()">가구 삭제 (오너만 가능)</button>
 </section>
 
@@ -151,6 +161,24 @@
 
     // 1인 가구로 시작했다가 나중에 가족을 추가하고 싶을 때(사용자 신고: 이전엔 안내 토스트만
     // 뜨고 실제로 추가가 안 됐음) — 손님 추가와 같은 무가입 방식, role만 'member'라 이 목록에 남음.
+    function joinLinkUrl() {
+        var base = window.location.origin + encodeURI('/1-2. 온보딩-시작하기/code.html');
+        return base + '?join=' + myMember.household_id;
+    }
+
+    function copyJoinLink() {
+        var btn = document.getElementById('copyJoinLinkBtn');
+        var url = joinLinkUrl();
+        var done = function () {
+            var original = btn.textContent;
+            btn.textContent = '복사됨';
+            setTimeout(function () { btn.textContent = original; }, 1200);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(url).then(done, done);
+        } else { done(); }
+    }
+
     async function addMember() {
         var input = document.getElementById('newMemberInput');
         var name = input.value.trim();
