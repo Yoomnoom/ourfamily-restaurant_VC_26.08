@@ -186,9 +186,9 @@ API.households = {
   async getMyPendingRequest() {
     var session = await getSession();
     if (!session) return null;
+    // 아직 승인 전이라 households_vc2608을 조인해서 이름을 가져올 권한이 없음(RLS) — 이름 없이 상태만.
     var res = await sb.from('household_members_vc2608')
-      .select('*, households_vc2608!household_members_vc2608_household_id_fkey(name)')
-      .eq('profile_id', session.user.id).eq('role', 'pending').maybeSingle();
+      .select('*').eq('profile_id', session.user.id).eq('role', 'pending').maybeSingle();
     if (res.error) throw res.error;
     return res.data;
   },

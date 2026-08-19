@@ -146,8 +146,7 @@
      링크만 있으면 누구나 바로 들어올 수 있는 건 위험하다는 사용자 판단으로, 즉시 합류가
      아니라 "요청"만 보내고 오너/공동관리자가 5-1에서 승인해야 실제 구성원이 됨. -->
 <div id="joinBanner" class="hidden bg-surface-container-lowest rounded-xl px-4 py-3 mb-1 text-center">
-<p id="joinHouseholdName" class="font-body-md text-body-md text-on-surface font-medium"></p>
-<p class="font-label-sm text-label-sm text-on-surface-variant">이 가구에 합류를 요청할까요? 가구 관리자가 승인하면 들어가요.</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant">공유받은 가구 참여 링크예요 · 합류를 요청할까요? 가구 관리자가 승인하면 들어가요.</p>
 </div>
 <button id="joinBtn" class="hidden w-full py-4 rounded-full bg-primary text-on-primary font-label-sm text-[15px] flex items-center justify-center gap-2 active:scale-95 transition-transform duration-200 shadow-[0px_4px_12px_rgba(120,119,119,0.08)]" onclick="joinHousehold()">
 <span class="material-symbols-outlined">group_add</span>
@@ -155,7 +154,6 @@
             </button>
 <div id="pendingBanner" class="hidden bg-tertiary-container text-on-tertiary-container rounded-xl px-4 py-4 mb-1 text-center flex flex-col items-center gap-1">
 <span class="material-symbols-outlined">hourglass_top</span>
-<p id="pendingHouseholdName" class="font-body-md text-body-md font-medium"></p>
 <p class="font-label-sm text-label-sm">합류 요청을 보냈어요 · 승인 대기 중이에요</p>
 </div>
 <button id="createNewBtn" class="w-full py-4 rounded-full bg-primary text-on-primary font-label-sm text-[15px] flex items-center justify-center gap-2 active:scale-95 transition-transform duration-200 shadow-[0px_4px_12px_rgba(120,119,119,0.08)]" onclick="window.location.href='../1-3. 온보딩-가구프로필/code.html'">
@@ -187,8 +185,7 @@
         }
     }
 
-    function showPendingBanner(householdName) {
-        document.getElementById('pendingHouseholdName').textContent = householdName || '우리집';
+    function showPendingBanner() {
         document.getElementById('pendingBanner').classList.remove('hidden');
         document.getElementById('joinBanner').classList.add('hidden');
         document.getElementById('joinBtn').classList.add('hidden');
@@ -199,14 +196,12 @@
         // 이미 보낸 합류 요청이 있으면(재방문 포함) 무조건 대기 화면부터 — 온보딩 새로 시작하는 것처럼 보이면 안 됨.
         var pending = await API.households.getMyPendingRequest().catch(function () { return null; });
         if (pending) {
-            showPendingBanner(pending.households_vc2608 && pending.households_vc2608.name);
+            showPendingBanner();
             return;
         }
 
         if (!joinHouseholdId) return;
-        var household = await API.households.get(joinHouseholdId).catch(function () { return null; });
-        if (!household) return; // 잘못된/만료된 링크면 그냥 평소 온보딩 화면으로
-        document.getElementById('joinHouseholdName').textContent = household.name || '우리집';
+        // 합류 전엔 households_vc2608을 읽을 권한이 없어(RLS) 이름 확인 없이 참여 배너만 보여줌.
         document.getElementById('joinBanner').classList.remove('hidden');
         document.getElementById('joinBtn').classList.remove('hidden');
         document.getElementById('createNewBtn').classList.add('hidden');
