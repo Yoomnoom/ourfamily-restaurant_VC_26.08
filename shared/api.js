@@ -127,6 +127,16 @@ API.storage = {
     var pub = sb.storage.from('avatars').getPublicUrl(path);
     return pub.data.publicUrl;
   },
+  // 메뉴 이름별 대표 사진(5-5 관리 화면) — 오브젝트 키는 ASCII만 허용돼서 한글 메뉴 이름 대신
+  // 해시값 사용(menu_name 자체는 DB에 한글 그대로 저장, scripts/sync-menu-images.js와 동일 패턴).
+  async uploadMenuImage(menuName, blob) {
+    var hash = await sha256Hex(menuName + ':' + Date.now());
+    var path = hash.slice(0, 20) + '.jpg';
+    var up = await sb.storage.from('menu-images').upload(path, blob, { contentType: 'image/jpeg', upsert: true });
+    if (up.error) throw up.error;
+    var pub = sb.storage.from('menu-images').getPublicUrl(path);
+    return pub.data.publicUrl;
+  },
   async uploadMealPhoto(householdId, mealId, blob) {
     var path = householdId + '/' + mealId + '.jpg';
     var up = await sb.storage.from('meal-photos').upload(path, blob, { contentType: 'image/jpeg', upsert: true });
@@ -330,6 +340,16 @@ API.menuImages = {
   async save(menuName, imageUrl, source) {
     var res = await sb.from('menu_default_images_vc2608')
       .upsert({ menu_name: menuName, image_url: imageUrl, source: source || 'generated' }, { onConflict: 'menu_name' });
+    if (res.error) throw res.error;
+  },
+  // 등록된 대표 사진 전체 목록(관리 화면용, 5-5).
+  async list() {
+    var res = await sb.from('menu_default_images_vc2608').select('*').order('menu_name');
+    if (res.error) throw res.error;
+    return res.data;
+  },
+  async remove(menuName) {
+    var res = await sb.from('menu_default_images_vc2608').delete().eq('menu_name', menuName);
     if (res.error) throw res.error;
   }
 };
