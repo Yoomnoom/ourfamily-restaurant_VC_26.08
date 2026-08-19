@@ -385,6 +385,21 @@
         return foodPlaceholderHtml(repName, 'w-12 h-12 rounded-lg shrink-0');
     }
 
+    // TTS(수업21일차_알람에서 이식) — 네이티브 Web Speech API, 외부 서비스 없음.
+    // 알람 앱에선 뉴스 브리핑을 읽어줬는데, 여기선 가족의 응답 여부를 읽어줌(사용자 요청).
+    function speakRosterStatus(meal, roster) {
+        if (!('speechSynthesis' in window)) { showToast('이 브라우저는 음성 읽기를 지원하지 않아요'); return; }
+        var menuLine = (meal.menu && meal.menu.length) ? meal.menu.join(', ') : '메뉴 미정';
+        var parts = roster.map(function (r) {
+            return r.name + '님 ' + (r.status === 'attending' ? '먹어요' : '확인 전');
+        });
+        var text = menuLine + ' 응답 현황. ' + parts.join(', ') + '.';
+        var utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'ko-KR';
+        speechSynthesis.cancel(); // 여러 카드 연달아 눌러도 안 겹치게, 이전 읽기는 취소하고 새로 시작
+        speechSynthesis.speak(utterance);
+    }
+
     function goToSummary(meal) {
         window.location.href = '../3-4. 확정 전 요약/code.html?meal=' + meal.id;
     }
@@ -443,7 +458,9 @@
             var summaryEl = document.createElement('div');
             summaryEl.className = 'flex items-center gap-2 bg-surface-container rounded-lg px-3 py-2.5 mb-3';
             summaryEl.innerHTML = '<span class="material-symbols-outlined text-on-surface-variant text-[18px]">groups</span>' +
-                '<p class="font-label-sm text-label-sm text-on-surface-variant">예상 준비 <b class="text-on-surface">' + attending + '명</b> · 확인 안 됨 <b class="text-on-surface">' + pending + '명</b></p>';
+                '<p class="font-label-sm text-label-sm text-on-surface-variant flex-1">예상 준비 <b class="text-on-surface">' + attending + '명</b> · 확인 안 됨 <b class="text-on-surface">' + pending + '명</b></p>' +
+                '<button type="button" class="speak-roster-btn w-8 h-8 flex items-center justify-center rounded-full text-on-surface-variant shrink-0 active:scale-95 transition-transform" aria-label="응답 현황 읽어주기"><span class="material-symbols-outlined text-[18px]">volume_up</span></button>';
+            summaryEl.querySelector('.speak-roster-btn').onclick = function () { speakRosterStatus(meal, roster); };
             card.appendChild(summaryEl);
 
             var rosterEl = document.createElement('div');
