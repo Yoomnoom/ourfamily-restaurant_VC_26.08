@@ -668,19 +668,6 @@ API.milkitOrders = {
   }
 };
 
-API.lastSeen = {
-  async list(householdId) {
-    var res = await sb.from('last_seen_vc2608').select('*').eq('household_id', householdId);
-    if (res.error) throw res.error;
-    return res.data;
-  },
-  async touch(householdId, memberId, dateStr) {
-    var res = await sb.from('last_seen_vc2608')
-      .upsert({ household_id: householdId, member_id: memberId, last_seen_date: dateStr }, { onConflict: 'household_id,member_id' });
-    if (res.error) throw res.error;
-  }
-};
-
 // ---------------------------------------------------------
 // 알림
 // ---------------------------------------------------------

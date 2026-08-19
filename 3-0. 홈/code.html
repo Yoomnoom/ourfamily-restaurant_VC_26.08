@@ -190,8 +190,10 @@
 </div>
 </div>
 
-<!-- 오늘 이 화면을 아직 안 본 사람 — 있을 때만 표시(호스트가 누구한테 더 알려야 할지 바로 앎) -->
-<p id="unseenLine" class="hidden font-label-sm text-label-sm text-on-surface-variant text-center mb-2"></p>
+<!-- 오늘 식사가 2개 이상이면 대표 카드 하나만 보여서 나머지가 묻힐 수 있음 — 있을 때만 표시.
+     예전엔 "이 화면 아직 안 본 사람"을 보여줬는데, 응답 여부(위 로스터에 이미 표시)보다
+     덜 유용한 정보라 사용자 판단으로 교체(2026-08-19). -->
+<button type="button" id="moreMealsLine" class="hidden w-full text-center font-label-sm text-label-sm text-primary mb-2" onclick="window.location.href='../3-1. 내 식탁/code.html'"></button>
 
 <div id="myNoteRow" class="text-center mb-6"></div>
 
@@ -654,17 +656,12 @@
         document.getElementById('removeMyNoteBtn').onclick = function () { removeGuestbookNote(mine.id); };
     }
 
-    // 오늘 이 화면을 아직 안 본 사람(싸이월드 "오늘 방문자" 개념) — 호스트가 누구한테 더 알려야 할지 바로 알게.
-    async function renderUnseenLine(presentMemberIds) {
-        var lastSeenRows = await API.lastSeen.list(householdId);
-        var today = todayKey();
-        var seenIds = lastSeenRows.filter(function (r) { return r.last_seen_date === today; }).map(function (r) { return r.member_id; });
-        var unseenIds = presentMemberIds.filter(function (id) { return id !== myMember.id && seenIds.indexOf(id) === -1; });
-        var names = unseenIds.map(function (id) { var m = memberById(id); return m ? m.name : '?'; });
-        var line = document.getElementById('unseenLine');
-        if (!names.length) { line.classList.add('hidden'); return; }
+    // 대표 카드 하나만 보여서 오늘의 다른 식사가 묻히지 않게 — 있으면 안내.
+    function renderMoreMealsLine(extraCount) {
+        var line = document.getElementById('moreMealsLine');
+        if (!extraCount) { line.classList.add('hidden'); return; }
         line.classList.remove('hidden');
-        line.textContent = '아직 이 화면 못 본 사람: ' + names.join(', ');
+        line.textContent = '오늘 식사가 ' + extraCount + '개 더 있어요 →';
     }
 
     var REQUEST_PREVIEW_COUNT = 3; // 홈은 훑어보는 자리라 몇 개까지만 — 늘어나면 "+N개 더보기"로 펼침(전체 이동 없이)
@@ -805,9 +802,10 @@
             photoEl.innerHTML = '<span class="material-symbols-outlined text-on-tertiary-container" style="font-size:28px;">restaurant</span>';
             pendingMembersForRemind = [];
             document.getElementById('remindPendingBtn').classList.add('hidden');
-            document.getElementById('unseenLine').classList.add('hidden');
+            document.getElementById('moreMealsLine').classList.add('hidden');
             return [];
         }
+        renderMoreMealsLine(todayMeals.length - 1);
         // 대표 메뉴는 3-2에서 정한 순서 그대로 최대 2개까지 이름을 보여줌("외 N개"로 뭉개지 않음).
         var firstMenu = todayMeals[0].menu || [];
         var repName = firstMenu[0];
@@ -860,7 +858,6 @@
         pendingMembersForRemind = rows.filter(function (r) { return r.status === 'pending'; });
         document.getElementById('remindPendingBtn').classList.toggle('hidden', pendingMembersForRemind.length === 0);
 
-        await renderUnseenLine(rows.map(function (r) { return r.memberId; }));
         return rows;
     }
 
@@ -896,7 +893,6 @@
         householdId = myMember.household_id;
 
         membersCache = await API.members.list(householdId);
-        await API.lastSeen.touch(householdId, myMember.id, todayKey());
         await loadGuestbook();
 
         var household = myMember.households_vc2608 || (await API.households.get(householdId));
