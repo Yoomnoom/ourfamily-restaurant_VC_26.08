@@ -515,7 +515,8 @@
         titleRow.innerHTML = (thumbHtml || '');
         var title = document.createElement('h3');
         title.className = 'font-headline-lg text-headline-lg text-on-surface flex-1 min-w-0';
-        title.textContent = meal.menu.length > 1 ? (meal.menu[0] + ' 외 ' + (meal.menu.length - 1) + '개') : meal.menu[0];
+        // 대표 메뉴 최대 2개(3-2에서 정한 순서)를 그대로 보여줌 — "외 N개"로 뭉개지 않음(홈 카드와 동일한 규칙).
+        title.textContent = meal.menu.length ? meal.menu.slice(0, 2).join(', ') : '메뉴 미정';
         titleRow.appendChild(title);
         card.appendChild(titleRow);
         card.appendChild(head);

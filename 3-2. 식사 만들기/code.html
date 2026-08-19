@@ -601,6 +601,7 @@
     function removeMenu(id) { menus = menus.filter(function (m) { return m.id !== id; }); renderMenus(); }
 
     // 드래그 재정렬은 터치 화면에서 잘 안 먹으니, 탭 한 번으로 대표를 바꾸는 버튼을 기본 수단으로 둠.
+    // 대표 메뉴는 최대 2개(맨 앞 두 자리) — 홈 카드 등에서 "뭘 먹는지"를 대표 메뉴 2개까지 그대로 보여줌.
     function makeRepresentative(id) {
         var index = menus.findIndex(function (m) { return m.id === id; });
         if (index <= 0) return;
@@ -635,7 +636,7 @@
             handle.textContent = 'drag_indicator';
             row.appendChild(handle);
 
-            if (index === 0) {
+            if (index < 2) {
                 var badge = document.createElement('span');
                 badge.className = 'font-label-sm text-label-sm bg-tertiary-container text-on-tertiary-container px-2 py-0.5 rounded-full shrink-0';
                 badge.textContent = '대표';
@@ -647,7 +648,7 @@
             nameEl.textContent = menu.name;
             row.appendChild(nameEl);
 
-            if (index !== 0) {
+            if (index >= 2) {
                 var makeRepBtn = document.createElement('button');
                 makeRepBtn.type = 'button';
                 makeRepBtn.className = 'font-label-sm text-label-sm text-primary shrink-0';

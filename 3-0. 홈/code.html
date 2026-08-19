@@ -172,14 +172,15 @@
 <h1 id="householdTitle" class="font-headline-lg text-headline-lg text-on-surface">우리집, 오늘 식탁</h1>
 </div>
 
-<a id="myTableLink" class="block bg-surface-container-lowest rounded-2xl p-card-padding shadow-[0px_4px_12px_rgba(120,119,119,0.08)] mb-2" href="../3-1. 내 식탁/code.html">
+<div class="bg-surface-container-lowest rounded-2xl p-card-padding shadow-[0px_4px_12px_rgba(120,119,119,0.08)] mb-2">
 <div class="flex gap-4">
-<div class="flex-1 min-w-0 flex flex-col justify-center">
+<div class="flex-1 min-w-0 flex flex-col justify-center items-start">
 <p class="font-headline-lg text-headline-lg text-on-surface font-bold mb-1">오늘의 식탁</p>
-<p id="tableHeroWhen" class="hidden font-label-sm text-label-sm text-on-surface-variant mb-1">-</p>
+<p id="tableHeroWhen" class="font-label-sm text-label-sm text-on-surface-variant mb-1">-</p>
 <p id="tableHeroMenu" class="font-headline-lg text-headline-lg text-on-surface font-bold mb-1">-</p>
 <p id="householdSubtitle" class="font-body-md text-body-md text-on-surface-variant mb-3">-</p>
-<span class="inline-flex items-center justify-center gap-1 bg-primary text-on-primary rounded-full py-2.5 px-4 font-label-sm text-label-sm font-semibold">응답 현황 보기<span class="material-symbols-outlined" style="font-size:16px;">chevron_right</span></span>
+<button type="button" class="inline-flex items-center justify-center gap-1 bg-primary text-on-primary rounded-full py-2.5 px-4 font-label-sm text-label-sm font-semibold" onclick="window.location.href='../3-1. 내 식탁/code.html'">응답 현황 보기<span class="material-symbols-outlined" style="font-size:16px;">chevron_right</span></button>
+<button type="button" id="remindPendingBtn" class="hidden font-label-sm text-label-sm text-on-surface-variant underline mt-2" onclick="remindPending()">미응답자에게 다시 보내기</button>
 </div>
 <div class="w-36 shrink-0 flex flex-col items-center justify-center gap-1.5">
 <div id="tableHeroConfirmed" class="flex flex-wrap justify-center gap-1"></div>
@@ -187,8 +188,7 @@
 <div id="tableHeroPending" class="flex flex-wrap justify-center gap-1"></div>
 </div>
 </div>
-</a>
-<button type="button" id="remindPendingBtn" class="hidden font-label-sm text-label-sm text-on-surface-variant underline mb-2 px-1" onclick="remindPending()">미응답자에게 다시 보내기</button>
+</div>
 
 <!-- 오늘 이 화면을 아직 안 본 사람 — 있을 때만 표시(호스트가 누구한테 더 알려야 할지 바로 앎) -->
 <p id="unseenLine" class="hidden font-label-sm text-label-sm text-on-surface-variant text-center mb-2"></p>
@@ -770,16 +770,15 @@
             document.getElementById('unseenLine').classList.add('hidden');
             return [];
         }
+        // 대표 메뉴는 3-2에서 정한 순서 그대로 최대 2개까지 이름을 보여줌("외 N개"로 뭉개지 않음).
         var firstMenu = todayMeals[0].menu || [];
         var repName = firstMenu[0];
-        menuEl.textContent = firstMenu.length > 1 ? (repName + ' 외 ' + (firstMenu.length - 1) + '개') : (repName || '메뉴 미정');
+        menuEl.textContent = firstMenu.length ? firstMenu.slice(0, 2).join(', ') : '메뉴 미정';
 
-        if (todayMeals[0].time) {
-            whenEl.textContent = '오늘 ' + mealTimeOfDayLabel(todayMeals[0].time) + ' · ' + todayMeals[0].time.slice(0, 5);
-            whenEl.classList.remove('hidden');
-        } else {
-            whenEl.classList.add('hidden');
-        }
+        whenEl.textContent = todayMeals[0].time
+            ? ('오늘 ' + mealTimeOfDayLabel(todayMeals[0].time) + ' · ' + todayMeals[0].time.slice(0, 5))
+            : '오늘 · 시간 미정';
+        whenEl.classList.remove('hidden');
 
         // 식탁 사진 우선순위(8-2/3-1과 동일): 실제 식사 사진 → 메뉴 이름으로 등록된 대표 사진 → 이모지 플레이스홀더.
         var mealPhoto = await API.mealPhotos.getByMeal(todayMeals[0].id);
@@ -864,7 +863,6 @@
 
         var household = myMember.households_vc2608 || (await API.households.get(householdId));
         document.getElementById('householdTitle').textContent = (household.name || '우리집') + ', 오늘 식탁';
-        document.getElementById('myTableLink').href = '../3-1. 내 식탁/code.html';
 
         await refreshAll();
 
