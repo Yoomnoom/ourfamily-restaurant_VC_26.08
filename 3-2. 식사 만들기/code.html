@@ -1273,7 +1273,7 @@
         }
 
         var members = await API.members.list(myMember.household_id);
-        members.filter(function (m) { return m.role !== 'guest'; }).forEach(function (m) {
+        members.filter(function (m) { return m.role !== 'guest' && m.role !== 'pending'; }).forEach(function (m) {
             var isMe = m.id === myMember.id;
             // 온보딩(1-4)에서 "평소 안 먹음"으로 설정해둔 사람은 새 식사에서 기본 체크 해제.
             addParticipant(isMe ? (m.name || '나') + ' (나)' : m.name, m.color, m.default_response !== 'absent', false, m.id);

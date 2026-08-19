@@ -173,10 +173,22 @@ API.households = {
     return res.data;
   },
 
-  // 다른 사람(다른 계정)이 이미 있는 가구에 실제로 합류 — RLS는 남의 가구에 직접 insert를
-  // 막아서(보안상 정상) SQL 함수(join_household_vc2608, SECURITY DEFINER)를 통해서만 가능.
-  async joinExisting(householdId, name) {
+  // 다른 사람(다른 계정)이 이미 있는 가구에 합류 요청 — 링크만으로 바로 들어오면 아무나 볼 수
+  // 있어서(사용자 결정, 2026-08-19) role:'pending'으로 넣고 오너/공동관리자 승인을 거침.
+  // RLS는 남의 가구에 직접 insert를 막아서(보안상 정상) SQL 함수(SECURITY DEFINER)를 통해서만 가능.
+  async requestJoin(householdId, name) {
     var res = await sb.rpc('join_household_vc2608', { p_household_id: householdId, p_name: name });
+    if (res.error) throw res.error;
+    return res.data;
+  },
+
+  // 로그인한 내가 지금 승인 대기 중인 합류 요청이 있는지(있으면 온보딩 대신 대기 화면을 보여줘야 함).
+  async getMyPendingRequest() {
+    var session = await getSession();
+    if (!session) return null;
+    var res = await sb.from('household_members_vc2608')
+      .select('*, households_vc2608!household_members_vc2608_household_id_fkey(name)')
+      .eq('profile_id', session.user.id).eq('role', 'pending').maybeSingle();
     if (res.error) throw res.error;
     return res.data;
   },
@@ -250,6 +262,12 @@ API.members = {
 
   async setRole(memberId, role) {
     var res = await sb.from('household_members_vc2608').update({ role: role }).eq('id', memberId);
+    if (res.error) throw res.error;
+  },
+
+  // 합류 요청 거절, 또는 구성원 제거.
+  async remove(memberId) {
+    var res = await sb.from('household_members_vc2608').delete().eq('id', memberId);
     if (res.error) throw res.error;
   },
 

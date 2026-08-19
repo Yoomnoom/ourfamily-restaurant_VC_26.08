@@ -59,6 +59,14 @@
 <h2 class="font-headline-lg text-headline-lg text-on-surface mb-1">① 가구 정보</h2>
 <p class="font-label-sm text-label-sm text-on-surface-variant mb-3">구성원, 공동 관리자, 가구 삭제</p>
 <div id="memberList" class="flex flex-col gap-2 mb-3"></div>
+
+<!-- 가구 참여 링크로 들어온 합류 요청 — 승인 전엔 진짜 구성원이 아님(사용자 결정: 링크만으로
+     즉시 합류는 위험하니 승인제로, 2026-08-19). -->
+<div id="pendingRequestsWrap" class="hidden mb-3">
+<p class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wide mb-2 px-1">합류 요청</p>
+<div id="pendingRequestsList" class="flex flex-col gap-2"></div>
+</div>
+
 <div class="flex gap-2 mb-3">
 <input id="newMemberInput" type="text" placeholder="가족 이름 (예: 아빠, 다람쥐)" class="flex-1 min-w-0 border border-outline-variant rounded-lg px-3 py-2.5 font-body-md text-body-md bg-surface-container-lowest" onkeydown="if(event.key==='Enter'){event.preventDefault();addMember();}">
 <button type="button" class="px-4 rounded-lg bg-surface-container text-on-surface-variant font-label-sm text-label-sm" onclick="addMember()">+ 구성원 초대</button>
@@ -127,8 +135,11 @@
 
     async function renderMembers() {
         var all = await API.members.list(myMember.household_id);
-        // 3-2에서 즉석으로 등록되는 손님(role:'guest')은 가구 구성원 관리 목록엔 안 보여줌
-        var members = all.filter(function (m) { return m.role !== 'guest'; });
+        // 3-2에서 즉석으로 등록되는 손님(role:'guest')과 승인 대기 중인 합류 요청(role:'pending')은
+        // 일반 구성원 목록엔 안 보여줌 — pending은 아래 별도 "합류 요청" 섹션에서 승인/거절.
+        var members = all.filter(function (m) { return m.role !== 'guest' && m.role !== 'pending'; });
+        var pendingRequests = all.filter(function (m) { return m.role === 'pending'; });
+        renderPendingRequests(pendingRequests);
         var list = document.getElementById('memberList');
         list.innerHTML = '';
 
@@ -190,6 +201,52 @@
             await renderMembers();
         } catch (err) {
             showToast('추가에 실패했어요: ' + err.message);
+        }
+    }
+
+    function renderPendingRequests(requests) {
+        var wrap = document.getElementById('pendingRequestsWrap');
+        var list = document.getElementById('pendingRequestsList');
+        list.innerHTML = '';
+        wrap.classList.toggle('hidden', requests.length === 0);
+        requests.forEach(function (r) {
+            var row = document.createElement('div');
+            row.className = 'bg-surface-container-lowest rounded-xl p-card-padding shadow-[0px_4px_12px_rgba(120,119,119,0.08)] flex items-center gap-3';
+            row.innerHTML = '<span class="font-body-md text-body-md text-on-surface flex-1">' + (r.name || '') + '</span>';
+            var approveBtn = document.createElement('button');
+            approveBtn.type = 'button';
+            approveBtn.className = 'font-label-sm text-label-sm text-primary shrink-0';
+            approveBtn.textContent = '승인';
+            approveBtn.onclick = function () { approveRequest(r.id); };
+            row.appendChild(approveBtn);
+            var rejectBtn = document.createElement('button');
+            rejectBtn.type = 'button';
+            rejectBtn.className = 'font-label-sm text-label-sm text-error shrink-0';
+            rejectBtn.textContent = '거절';
+            rejectBtn.onclick = function () { rejectRequest(r.id); };
+            row.appendChild(rejectBtn);
+            list.appendChild(row);
+        });
+    }
+
+    async function approveRequest(memberId) {
+        try {
+            await API.members.setRole(memberId, 'member');
+            showToast('합류를 승인했어요');
+            await renderMembers();
+        } catch (err) {
+            showToast('승인에 실패했어요: ' + err.message);
+        }
+    }
+
+    async function rejectRequest(memberId) {
+        if (!confirm('이 합류 요청을 거절할까요?')) return;
+        try {
+            await API.members.remove(memberId);
+            showToast('요청을 거절했어요');
+            await renderMembers();
+        } catch (err) {
+            showToast('거절에 실패했어요: ' + err.message);
         }
     }
 
