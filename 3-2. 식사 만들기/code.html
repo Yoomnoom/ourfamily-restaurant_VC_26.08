@@ -1020,8 +1020,24 @@
             var memberIds = attending.map(function (p) { return p.memberId; });
 
             if (isEditMode) {
+                // 메뉴가 실제로 바뀐 경우에만, 이미 "먹어요"로 응답한 사람에게 자동 알림(사용자 결정,
+                // 2026-08-19): 그 사람들은 옛 메뉴를 보고 참석을 정한 거라 알 권리가 있지만, 시간만
+                // 바뀌는 등 메뉴가 그대로인 사소한 수정까지 매번 알리면 번거로우니 메뉴 변경 때만.
+                var menuChanged = !arraysEqual(mealFields.menu, editMealOriginalMenu);
+                var rosterBeforeUpdate = menuChanged ? await API.mealParticipants.getRoster(editMealId) : [];
+
                 await API.meals.update(editMealId, mealFields);
                 await API.mealParticipants.syncParticipants(editMealId, memberIds);
+
+                if (menuChanged) {
+                    var newMenuLine = mealFields.menu.length ? mealFields.menu.join(', ') : '메뉴 미정';
+                    // 나(호스트, 수정한 사람)는 이미 알고 있으니 알림 대상에서 제외.
+                    var attendingBefore = rosterBeforeUpdate.filter(function (r) { return r.status === 'attending' && r.memberId !== myMember.id; });
+                    for (var k = 0; k < attendingBefore.length; k++) {
+                        await API.notifications.create(myMember.household_id, attendingBefore[k].memberId, editMealId, '메뉴가 바뀌었어요', newMenuLine + '(으)로 변경됐어요');
+                    }
+                }
+
                 window.location.href = '../3-1. 내 식탁/code.html?edited=1';
                 return;
             }
@@ -1062,7 +1078,15 @@
 
     var isEditMode = false;
     var editMealId = null;
+    var editMealOriginalMenu = null; // 수정 전 메뉴 — 실제로 메뉴가 바뀐 경우에만 응답자에게 알림
     var myMember = null;
+
+    function arraysEqual(a, b) {
+        a = a || []; b = b || [];
+        if (a.length !== b.length) return false;
+        for (var i = 0; i < a.length; i++) { if (a[i] !== b[i]) return false; }
+        return true;
+    }
 
     (async function init() {
         await requireSession();
@@ -1082,6 +1106,7 @@
 
             isEditMode = true;
             editMealId = editMeal.id;
+            editMealOriginalMenu = editMeal.menu || [];
             document.getElementById('pageTitle').textContent = '식사 수정하기';
             document.getElementById('submitBtn').textContent = '수정 완료';
             document.getElementById('editNotice').classList.remove('hidden');
