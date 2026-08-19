@@ -835,6 +835,28 @@
         { name: '크림파스타', group: '퓨전·기타', cookType: '면', tags: ['한 그릇'] }
     ];
 
+    // 새 식사 만들기를 열었을 때 기본으로 채워지던 "김치찌개" 하드코딩 대신, 날씨(우선)·안 되면
+    // 월별 제철 감으로 기본 메뉴를 추천(사용자 요청, 2026-08-19). 제철 표는 API가 따로 없어
+    // 직접 정리한 정적 데이터 — 날씨 API는 shared/api.js의 API.weather(위치 권한 있으면 실제 위치).
+    var SEASONAL_BY_MONTH = {
+        1: '동태찌개', 2: '굴국밥', 3: '주꾸미볶음', 4: '도다리쑥국',
+        5: '냉이된장국', 6: '열무국수', 7: '삼계탕', 8: '콩국수',
+        9: '전어구이', 10: '대하구이', 11: '배추된장국', 12: '동태찌개'
+    };
+    var WEATHER_TO_DISH = {
+        Rain: '김치찌개', Drizzle: '김치찌개', Thunderstorm: '부대찌개', Snow: '매운탕'
+    };
+
+    async function getSuggestedDefaultMenu() {
+        var weather = await API.weather.getCurrent();
+        if (weather && weather.condition) {
+            if (WEATHER_TO_DISH[weather.condition]) return WEATHER_TO_DISH[weather.condition];
+            if (weather.condition === 'Clear' && weather.temp !== null && weather.temp >= 26) return '냉면';
+        }
+        var month = new Date().getMonth() + 1;
+        return SEASONAL_BY_MONTH[month];
+    }
+
     var catState = { group: null, cookType: null, tags: [] };
 
     function chipButton(label, active, onClick) {
@@ -1231,7 +1253,7 @@
         } else if (reuse && reuse.menus && reuse.menus.length) {
             reuse.menus.forEach(function (name) { addMenu(name); });
         } else {
-            addMenu('김치찌개');
+            addMenu(await getSuggestedDefaultMenu());
         }
 
         var members = await API.members.list(myMember.household_id);

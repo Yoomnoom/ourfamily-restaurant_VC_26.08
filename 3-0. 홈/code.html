@@ -348,9 +348,8 @@
 </aside>
 
 <script>
-    // 날씨 배경(수업21일차_알람에서 이식) — 서울 좌표 고정(사용자별 위치 정보 없음, 정직하게
-    // 고정값 사용). API 키는 원본 프로젝트와 동일(OpenWeatherMap 무료 티어, 낮은 위험도).
-    var WEATHER_URL = 'https://api.openweathermap.org/data/2.5/weather?lat=37.5665&lon=126.978&appid=7aeb250b3e494925d6b0217fa62ea065&units=metric';
+    // 날씨 배경(수업21일차_알람에서 이식) — 사용자 위치 권한이 있으면 실제 위치, 없으면
+    // 서울 좌표로 대체(API.weather, shared/api.js). API 키는 원본 프로젝트와 동일(OpenWeatherMap 무료 티어, 낮은 위험도).
     var weatherBg = document.getElementById('weatherBg');
 
     function clearWeatherBg() { weatherBg.className = 'weather-bg'; weatherBg.innerHTML = ''; }
@@ -438,15 +437,9 @@
         }
     }
     async function loadWeather() {
-        try {
-            var res = await fetch(WEATHER_URL);
-            if (!res.ok) throw new Error('weather request failed: ' + res.status);
-            var data = await res.json();
-            var condition = data.weather && data.weather[0] && data.weather[0].main;
-            setWeatherBackground(condition);
-        } catch (err) {
-            console.error(err); // 실패해도 .weather-bg의 기본 그라데이션이 이미 있어 화면은 자연스러움
-        }
+        var weather = await API.weather.getCurrent();
+        if (weather && weather.condition) setWeatherBackground(weather.condition);
+        // 실패해도 .weather-bg의 기본 그라데이션이 이미 있어 화면은 자연스러움
     }
     loadWeather();
 

@@ -4,6 +4,47 @@
 
 var API = {};
 
+// ---------------------------------------------------------
+// 날씨(OpenWeatherMap) — 브라우저 위치 권한이 있으면 실제 위치, 없거나 거부/타임아웃되면
+// 서울 좌표로 대체(3-0 홈 배경, 3-2 메뉴 추천 둘 다 재사용).
+// ---------------------------------------------------------
+API.weather = {
+  SEOUL_COORDS: { lat: 37.5665, lon: 126.978 },
+
+  getCoords: function () {
+    if (!navigator.geolocation) return Promise.resolve(API.weather.SEOUL_COORDS);
+    return new Promise(function (resolve) {
+      var timer = setTimeout(function () { resolve(API.weather.SEOUL_COORDS); }, 4000);
+      navigator.geolocation.getCurrentPosition(
+        function (pos) {
+          clearTimeout(timer);
+          resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude });
+        },
+        function () { clearTimeout(timer); resolve(API.weather.SEOUL_COORDS); },
+        { timeout: 4000 }
+      );
+    });
+  },
+
+  // 실패하면(권한 거부 후 API도 실패 등) null — 호출 쪽에서 계절 기반 등으로 대체.
+  async getCurrent() {
+    try {
+      var coords = await API.weather.getCoords();
+      var url = 'https://api.openweathermap.org/data/2.5/weather?lat=' + coords.lat + '&lon=' + coords.lon +
+        '&appid=7aeb250b3e494925d6b0217fa62ea065&units=metric';
+      var res = await fetch(url);
+      if (!res.ok) throw new Error('weather request failed: ' + res.status);
+      var data = await res.json();
+      return {
+        condition: data.weather && data.weather[0] && data.weather[0].main,
+        temp: data.main && typeof data.main.temp === 'number' ? data.main.temp : null
+      };
+    } catch (err) {
+      return null;
+    }
+  }
+};
+
 // 실제 사진도, 생성된 기본 이미지(API.menuImages, 아직 이미지 생성 API 미연동)도 없을 때 쓰는
 // 마지막 대체 — 메뉴 이름을 해시해 항상 같은 이모지·색을 결정론적으로 골라줌(네트워크 없이 즉시).
 var FOOD_PLACEHOLDER_EMOJI = ['🍲', '🍜', '🍚', '🥘', '🍛', '🍳', '🥗', '🍖', '🍗', '🥙', '🍱', '🍙'];
