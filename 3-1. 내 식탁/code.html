@@ -447,7 +447,7 @@
     // scale-150을 img에 바로 주면 rounded-lg 테두리까지 같이 커져서 옆 텍스트를 침범하길래,
     // 크기 고정 + overflow-hidden인 바깥 틀 안에서만 사진을 확대(사용자 요청: 그림이 작아서
     // 중앙 음식이 잘 안 보임 → 확대해서 꽉 채우기).
-    function thumbImgTag(src) { return '<div class="w-12 h-12 rounded-lg overflow-hidden shrink-0"><img src="' + src + '" class="w-full h-full object-cover scale-150"></div>'; }
+    function thumbImgTag(src) { return '<div class="w-12 h-12 rounded-lg overflow-hidden shrink-0"><img src="' + src + '" class="w-full h-full object-cover scale-[2]"></div>'; }
     async function mealThumbnailHtml(meal) {
         var photo = await API.mealPhotos.getByMeal(meal.id);
         if (photo) return thumbImgTag(photo.photo_url);
