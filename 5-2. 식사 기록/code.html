@@ -53,6 +53,12 @@
 <p class="font-headline-lg text-headline-lg text-on-surface mb-3"><span id="monthTotalCount">-</span><span class="font-body-md text-body-md text-on-surface-variant">회</span></p>
 <div id="monthKindBar" class="w-full h-3 rounded-full overflow-hidden flex bg-surface-container mb-3"></div>
 <div id="monthKindLegend" class="flex flex-wrap gap-x-4 gap-y-1 mb-3"></div>
+<!-- 3-2 카테고리로 메뉴 찾기에서 고른 메뉴에 저장해둔 음식군(menu_categories_vc2608)을
+     재사용 — 카테고리가 없는(직접 입력한) 메뉴는 그냥 집계에서 빠짐(억지로 추측 안 함). -->
+<div id="monthCategorySection" class="hidden">
+<p class="font-label-sm text-label-sm text-on-surface-variant mb-2 pt-3 border-t border-outline-variant">이번 달 많이 먹은 음식군</p>
+<div id="monthCategoryLegend" class="flex flex-wrap gap-x-4 gap-y-1 mb-3"></div>
+</div>
 <button type="button" class="w-full text-center font-label-sm text-label-sm text-primary py-1 border-t border-outline-variant pt-3" onclick="window.location.href='../8-3. 식비 예산/code.html'">이번 달 식비 예산 보기 →</button>
 </div>
 
@@ -125,6 +131,16 @@
         }
     }
 
+    var menuCategoryCache = {}; // 대표 메뉴 이름 -> {food_group, cook_type, detail_tags} | null(카테고리 미등록)
+    var CATEGORY_COLORS = ['#7a6300', '#4a7a63', '#b8621f', '#6b5aa8', '#a83a5a', '#3a7aa8', '#8a8a8a'];
+    async function loadMenuCategories() {
+        var names = Array.from(new Set(RECORDS.map(function (r) { return r.menus && r.menus[0]; }).filter(Boolean)));
+        for (var i = 0; i < names.length; i++) {
+            if (menuCategoryCache[names[i]] !== undefined) continue;
+            menuCategoryCache[names[i]] = await API.menuCategories.get(names[i]);
+        }
+    }
+
     function recordThumbnailHtml(record, photo) {
         if (photo) return '<img src="' + photo.photo_url + '" class="w-14 h-14 rounded-lg object-cover shrink-0">';
         var repName = record.menus && record.menus[0];
@@ -176,6 +192,29 @@
         });
         if (!total) {
             legend.innerHTML = '<p class="font-label-sm text-label-sm text-on-surface-variant">이번 달 기록이 아직 없어요</p>';
+        }
+
+        // 음식군 집계: 대표 메뉴에 카테고리가 등록된 기록만 집계(카테고리 없는 메뉴는 그냥 빠짐).
+        var countByGroup = {};
+        var groupTotal = 0;
+        monthRecords.forEach(function (r) {
+            var repName = r.menus && r.menus[0];
+            var cat = repName ? menuCategoryCache[repName] : null;
+            if (cat && cat.food_group) { countByGroup[cat.food_group] = (countByGroup[cat.food_group] || 0) + 1; groupTotal++; }
+        });
+        var catSection = document.getElementById('monthCategorySection');
+        var catLegend = document.getElementById('monthCategoryLegend');
+        catSection.classList.toggle('hidden', groupTotal === 0);
+        if (groupTotal > 0) {
+            catLegend.innerHTML = '';
+            Object.keys(countByGroup).sort(function (a, b) { return countByGroup[b] - countByGroup[a]; }).forEach(function (group, i) {
+                var color = CATEGORY_COLORS[i % CATEGORY_COLORS.length];
+                var item = document.createElement('div');
+                item.className = 'flex items-center gap-2';
+                item.innerHTML = '<span class="w-2.5 h-2.5 rounded-full inline-block" style="background:' + color + ';"></span>' +
+                    '<span class="font-body-md text-body-md text-on-surface-variant">' + group + ' <b class="text-on-surface">' + countByGroup[group] + '회</b></span>';
+                catLegend.appendChild(item);
+            });
         }
     }
 
@@ -276,6 +315,7 @@
         await loadRecords();
         await loadPhotos();
         await loadMenuImages();
+        await loadMenuCategories();
         renderMonthStats();
         renderRecords();
     })();
