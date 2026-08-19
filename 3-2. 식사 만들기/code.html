@@ -108,6 +108,31 @@
       transition-timing-function: cubic-bezier(0.34, 1.3, 0.64, 1) !important;
       transition-duration: 180ms !important;
     }
+
+    /* 시간 선택 다이얼(수업21일차_알람에서 이식) */
+    .time-picker-overlay { display: none; position: fixed; inset: 0; background: rgba(74,64,56,0.45); align-items: center; justify-content: center; z-index: 80; }
+    .time-picker-overlay.show { display: flex; }
+    .time-picker-box { background: #fbfbf9; padding: 28px 24px; border-radius: 28px; text-align: center; }
+    .time-picker-numbers { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 16px; }
+    .time-picker-numbers input { width: 56px; padding: 8px 0; border: none; border-radius: 12px; outline: none; background: #eef4f8; color: #3d3a36; font-size: 26px; font-weight: bold; text-align: center; }
+    .time-picker-numbers .colon { font-size: 26px; font-weight: bold; color: #3d3a36; }
+    .ampm-toggle { display: flex; flex-direction: column; gap: 4px; margin-left: 6px; }
+    .ampm-btn { padding: 5px 12px; border: none; border-radius: 8px; background: #eef4f8; color: #8a94a0; font-size: 12px; cursor: pointer; }
+    .ampm-btn.selected { background: #8ec3e0; color: #fff; font-weight: bold; }
+    .mode-toggle { display: flex; justify-content: center; gap: 8px; margin-bottom: 16px; }
+    .mode-btn { padding: 6px 20px; border: none; border-radius: 999px; background: #eef4f8; color: #8a94a0; font-size: 13px; cursor: pointer; }
+    .mode-btn.selected { background: #8ec3e0; color: #fff; font-weight: bold; }
+    .analog-clock { position: relative; width: 200px; height: 200px; margin: 0 auto 20px; border-radius: 50%; background: #eef4f8; touch-action: none; user-select: none; }
+    .clock-face { position: absolute; inset: 0; }
+    .tick { position: absolute; top: 50%; left: 50%; width: 24px; height: 24px; margin: -12px; text-align: center; line-height: 24px; font-size: 13px; color: #3d3a36; transform: rotate(calc(30deg * var(--i))) translate(0, -78px) rotate(calc(-30deg * var(--i))); }
+    .clock-hand { position: absolute; left: 50%; bottom: 50%; transform-origin: 50% 100%; border-radius: 3px; pointer-events: none; }
+    .pick-hour-hand { width: 5px; height: 50px; margin-left: -2.5px; background: #3d3a36; }
+    .pick-minute-hand { width: 3px; height: 75px; margin-left: -1.5px; background: #8ec3e0; }
+    .clock-center-dot { position: absolute; left: 50%; top: 50%; width: 10px; height: 10px; margin: -5px; background: #8ec3e0; border-radius: 50%; }
+    .time-picker-actions { display: flex; gap: 10px; justify-content: center; }
+    .picker-cancel, .picker-confirm { padding: 10px 26px; border: none; border-radius: 14px; font-size: 14px; font-weight: bold; cursor: pointer; }
+    .picker-cancel { background: #eef4f8; color: #8a94a0; }
+    .picker-confirm { background: #8ec3e0; color: #fff; }
   </style>
   </head>
 <body class="bg-surface text-on-surface font-body-md antialiased min-h-screen flex flex-col items-center">
@@ -145,7 +170,8 @@
 시간 미정
 </label>
 </div>
-<input id="mealTime" type="time" value="19:00" class="w-full border border-outline-variant rounded-lg px-3 py-2.5 font-body-md text-body-md text-on-surface bg-surface-container-lowest">
+<input type="hidden" id="mealTime" value="19:00">
+<button type="button" id="mealTimeBtn" onclick="openTimePicker()" class="w-full text-left border border-outline-variant rounded-lg px-3 py-2.5 font-body-md text-body-md text-on-surface bg-surface-container-lowest">오후 07:00</button>
 </div>
 </div>
 
@@ -246,7 +272,140 @@
 </div>
 </div>
 
+<!-- 시간 선택 — 수업21일차_알람 프로젝트의 아날로그 시계 다이얼 그대로 이식(사용자 요청).
+     드래그하면 pointer 각도를 시/분으로 환산 — 순수 vanilla JS, 프레임워크 의존 없음. -->
+<div class="time-picker-overlay" id="timePickerOverlay">
+<div class="time-picker-box">
+<div class="time-picker-numbers">
+<input type="number" id="pickerHourInput" min="1" max="12">
+<span class="colon">:</span>
+<input type="number" id="pickerMinuteInput" min="0" max="59">
+<div class="ampm-toggle" id="pickerAmpmToggle">
+<button type="button" class="ampm-btn" data-ampm="AM">오전</button>
+<button type="button" class="ampm-btn" data-ampm="PM">오후</button>
+</div>
+</div>
+<div class="mode-toggle" id="pickerModeToggle">
+<button type="button" class="mode-btn" data-mode="hour">시</button>
+<button type="button" class="mode-btn" data-mode="minute">분</button>
+</div>
+<div class="analog-clock" id="analogClock">
+<div class="clock-face">
+<span class="tick" style="--i:0">12</span><span class="tick" style="--i:1">1</span>
+<span class="tick" style="--i:2">2</span><span class="tick" style="--i:3">3</span>
+<span class="tick" style="--i:4">4</span><span class="tick" style="--i:5">5</span>
+<span class="tick" style="--i:6">6</span><span class="tick" style="--i:7">7</span>
+<span class="tick" style="--i:8">8</span><span class="tick" style="--i:9">9</span>
+<span class="tick" style="--i:10">10</span><span class="tick" style="--i:11">11</span>
+</div>
+<div class="clock-hand pick-hour-hand" id="pickHourHand"></div>
+<div class="clock-hand pick-minute-hand" id="pickMinuteHand"></div>
+<div class="clock-center-dot"></div>
+</div>
+<div class="time-picker-actions">
+<button type="button" id="timePickerCancel" class="picker-cancel">취소</button>
+<button type="button" id="timePickerConfirm" class="picker-confirm">확인</button>
+</div>
+</div>
+</div>
+
 <script>
+    // 시간 선택 다이얼(수업21일차_알람 이식) — #mealTime(hidden input)이 실제 상태(HH:MM),
+    // 이 위젯은 그 값을 보기 좋게 편집하는 UI일 뿐. 기존에 mealTime.value를 읽던 곳(생성/수정)은
+    // 그대로 두고 여기서만 값을 채워 넣음.
+    var pickHour = 7, pickMinute = 0, pickAmPm = 'PM', activeMode = 'hour', draggingClock = false;
+    var timePickerOverlay = document.getElementById('timePickerOverlay');
+    var pickerHourInput = document.getElementById('pickerHourInput');
+    var pickerMinuteInput = document.getElementById('pickerMinuteInput');
+    var pickerAmpmButtons = document.querySelectorAll('#pickerAmpmToggle .ampm-btn');
+    var pickerModeButtons = document.querySelectorAll('#pickerModeToggle .mode-btn');
+    var analogClock = document.getElementById('analogClock');
+    var pickHourHand = document.getElementById('pickHourHand');
+    var pickMinuteHand = document.getElementById('pickMinuteHand');
+
+    function formatTimeDisplay(hhmm) {
+        var parts = hhmm.split(':'); var h = Number(parts[0]), m = Number(parts[1]);
+        var ampmText = h < 12 ? '오전' : '오후';
+        var h12 = h % 12; if (h12 === 0) h12 = 12;
+        return ampmText + ' ' + String(h12).padStart(2, '0') + ':' + String(m).padStart(2, '0');
+    }
+
+    function updatePickerUI() {
+        pickerHourInput.value = pickHour;
+        pickerMinuteInput.value = String(pickMinute).padStart(2, '0');
+        pickerAmpmButtons.forEach(function (btn) { btn.classList.toggle('selected', btn.dataset.ampm === pickAmPm); });
+        pickerModeButtons.forEach(function (btn) { btn.classList.toggle('selected', btn.dataset.mode === activeMode); });
+        var hourDeg = (pickHour % 12) * 30 + pickMinute * 0.5;
+        var minuteDeg = pickMinute * 6;
+        pickHourHand.style.transform = 'rotate(' + hourDeg + 'deg)';
+        pickMinuteHand.style.transform = 'rotate(' + minuteDeg + 'deg)';
+        pickHourHand.style.opacity = activeMode === 'hour' ? '1' : '0.35';
+        pickMinuteHand.style.opacity = activeMode === 'minute' ? '1' : '0.35';
+    }
+
+    function openTimePicker() {
+        var current = document.getElementById('mealTime').value || '19:00';
+        var parts = current.split(':'); var h = Number(parts[0]), m = Number(parts[1]);
+        pickAmPm = h < 12 ? 'AM' : 'PM';
+        pickHour = h % 12 === 0 ? 12 : h % 12;
+        pickMinute = m;
+        activeMode = 'hour';
+        updatePickerUI();
+        timePickerOverlay.classList.add('show');
+    }
+    function closeTimePicker() { timePickerOverlay.classList.remove('show'); }
+
+    timePickerOverlay.addEventListener('click', function (e) { if (e.target === timePickerOverlay) closeTimePicker(); });
+    document.getElementById('timePickerCancel').addEventListener('click', closeTimePicker);
+    document.getElementById('timePickerConfirm').addEventListener('click', function () {
+        var hour24 = pickHour % 12;
+        if (pickAmPm === 'PM') hour24 += 12;
+        var hhmm = String(hour24).padStart(2, '0') + ':' + String(pickMinute).padStart(2, '0');
+        document.getElementById('mealTime').value = hhmm;
+        document.getElementById('mealTimeBtn').textContent = formatTimeDisplay(hhmm);
+        closeTimePicker();
+    });
+
+    pickerHourInput.addEventListener('focus', function () { activeMode = 'hour'; updatePickerUI(); });
+    pickerHourInput.addEventListener('input', function () {
+        var v = parseInt(pickerHourInput.value, 10);
+        if (isNaN(v)) return;
+        pickHour = Math.min(12, Math.max(1, v));
+        updatePickerUI();
+    });
+    pickerMinuteInput.addEventListener('focus', function () { activeMode = 'minute'; updatePickerUI(); });
+    pickerMinuteInput.addEventListener('input', function () {
+        var v = parseInt(pickerMinuteInput.value, 10);
+        if (isNaN(v)) return;
+        pickMinute = Math.min(59, Math.max(0, v));
+        updatePickerUI();
+    });
+    pickerAmpmButtons.forEach(function (btn) { btn.addEventListener('click', function () { pickAmPm = btn.dataset.ampm; updatePickerUI(); }); });
+    pickerModeButtons.forEach(function (btn) { btn.addEventListener('click', function () { activeMode = btn.dataset.mode; updatePickerUI(); }); });
+
+    function handleClockPointer(e) {
+        var rect = analogClock.getBoundingClientRect();
+        var cx = rect.left + rect.width / 2, cy = rect.top + rect.height / 2;
+        var angle = ((Math.atan2(e.clientY - cy, e.clientX - cx) * 180) / Math.PI + 90 + 360) % 360;
+        if (activeMode === 'minute') {
+            pickMinute = Math.round(angle / 6) % 60;
+        } else {
+            var h = Math.round(angle / 30) % 12;
+            pickHour = h === 0 ? 12 : h;
+        }
+        updatePickerUI();
+    }
+    analogClock.addEventListener('pointerdown', function (e) { draggingClock = true; analogClock.setPointerCapture(e.pointerId); handleClockPointer(e); });
+    analogClock.addEventListener('pointermove', function (e) { if (draggingClock) handleClockPointer(e); });
+    analogClock.addEventListener('pointerup', function () {
+        draggingClock = false;
+        if (activeMode === 'hour') { activeMode = 'minute'; updatePickerUI(); }
+    });
+    analogClock.addEventListener('pointercancel', function () { draggingClock = false; });
+
+    // 초기 표시 텍스트를 hidden input의 기본값(19:00)과 맞춤
+    document.getElementById('mealTimeBtn').textContent = formatTimeDisplay(document.getElementById('mealTime').value || '19:00');
+
     var toastTimer;
     function showToast(msg) {
         var toast = document.getElementById('toast');
@@ -415,9 +574,9 @@
 
     function toggleTimeInput() {
         var undecided = document.getElementById('timeUndecided').checked;
-        var timeInput = document.getElementById('mealTime');
-        timeInput.disabled = undecided;
-        timeInput.classList.toggle('opacity-40', undecided);
+        var timeBtn = document.getElementById('mealTimeBtn');
+        timeBtn.disabled = undecided;
+        timeBtn.classList.toggle('opacity-40', undecided);
     }
 
     function addMenu(name) {
@@ -761,7 +920,10 @@
             document.getElementById('editNotice').classList.remove('hidden');
 
             document.getElementById('mealDate').value = editMeal.date || '';
-            if (editMeal.time) { document.getElementById('mealTime').value = editMeal.time; }
+            if (editMeal.time) {
+                document.getElementById('mealTime').value = editMeal.time;
+                document.getElementById('mealTimeBtn').textContent = formatTimeDisplay(editMeal.time);
+            }
             else { document.getElementById('timeUndecided').checked = true; toggleTimeInput(); }
             selectMealType(KIND_KEYS[editMeal.kind] || 'home');
             (editMeal.menu || []).forEach(function (name) { addMenu(name); });
