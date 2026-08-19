@@ -140,14 +140,15 @@
 
 <div id="toast" class="fixed left-1/2 -translate-x-1/2 bg-on-surface text-surface font-label-sm text-label-sm px-4 py-3 rounded-full shadow-lg opacity-0 pointer-events-none transition-opacity duration-300" style="bottom:calc(100px + env(safe-area-inset-bottom)); z-index:100;"></div>
 
-<main class="w-full max-w-[600px] flex flex-col px-safe-area-inset py-section-margin pb-32 relative">
+<main class="w-full max-w-[600px] flex flex-col px-safe-area-inset py-section-margin pb-28 relative">
 
 <!-- Header -->
 <header class="flex items-center gap-3 mb-6">
 <button class="w-11 h-11 flex items-center justify-center rounded-full bg-surface-container-lowest text-on-surface shadow-[0px_4px_12px_rgba(120,119,119,0.08)] active:scale-95 transition-transform" onclick="window.location.href='../3-1. 내 식탁/code.html'" aria-label="뒤로">
 <span class="material-symbols-outlined">arrow_back</span>
 </button>
-<h1 id="pageTitle" class="font-headline-lg text-headline-lg text-on-surface">새 식사 만들기</h1>
+<h1 id="pageTitle" class="font-headline-lg text-headline-lg text-on-surface flex-1">새 식사 만들기</h1>
+<button id="submitBtn" class="bg-primary text-on-primary font-label-sm text-label-sm px-4 py-2.5 rounded-full shadow-[0px_4px_12px_rgba(120,119,119,0.08)] active:scale-[0.98] transition-transform shrink-0" onclick="createMeal()">식사 만들기</button>
 </header>
 
 <div id="editNotice" class="hidden flex items-center gap-2 bg-tertiary-container text-on-tertiary-container rounded-xl px-4 py-3 mb-6">
@@ -304,12 +305,32 @@
 
 </main>
 
-<!-- Bottom Action -->
-<div class="fixed bottom-0 left-0 right-0 bg-surface/90 backdrop-blur-md border-t border-outline-variant" style="padding-bottom: env(safe-area-inset-bottom);">
-<div class="max-w-[600px] mx-auto px-safe-area-inset py-3">
-<button id="submitBtn" class="w-full bg-primary text-on-primary font-label-sm text-[15px] py-4 rounded-full shadow-[0px_4px_12px_rgba(120,119,119,0.08)] active:scale-[0.98] transition-transform" onclick="createMeal()">식사 만들기</button>
+<!-- Bottom Nav -->
+<nav class="fixed bottom-0 left-0 right-0 z-10 bg-surface-container-lowest/90 backdrop-blur-md border-t border-outline-variant" style="padding-bottom: env(safe-area-inset-bottom);">
+<div class="max-w-[600px] mx-auto flex items-stretch">
+<button class="flex-1 flex flex-col items-center gap-0.5 py-2.5 text-on-surface-variant" onclick="window.location.href='../3-0. 홈/code.html'">
+<span class="material-symbols-outlined">home</span>
+<span class="font-label-sm text-label-sm">홈</span>
+</button>
+<button class="flex-1 flex flex-col items-center gap-0.5 py-2.5 text-on-surface-variant" onclick="window.location.href='../3-1. 내 식탁/code.html'">
+<span class="material-symbols-outlined">table_restaurant</span>
+<span class="font-label-sm text-label-sm">내 식탁</span>
+</button>
+<button class="flex-1 flex flex-col items-center justify-center py-2.5" aria-label="식사 만들기">
+<span class="w-8 h-8 rounded-full bg-primary text-on-primary flex items-center justify-center">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1; font-size:20px;">add</span>
+</span>
+</button>
+<button class="flex-1 flex flex-col items-center gap-0.5 py-2.5 text-on-surface-variant" onclick="window.location.href='../4-1. 홈 달력뷰/code.html'">
+<span class="material-symbols-outlined">calendar_month</span>
+<span class="font-label-sm text-label-sm">달력</span>
+</button>
+<button class="flex-1 flex flex-col items-center gap-0.5 py-2.5 text-on-surface-variant" onclick="window.location.href='../5-2. 식사 기록/code.html'">
+<span class="material-symbols-outlined">history</span>
+<span class="font-label-sm text-label-sm">기록</span>
+</button>
 </div>
-</div>
+</nav>
 
 <script>
     // 시간 선택 다이얼(수업21일차_알람 이식) — #mealTime(hidden input)이 실제 상태(HH:MM),
