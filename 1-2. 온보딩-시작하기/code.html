@@ -197,7 +197,7 @@
 
     (async function initJoinMode() {
         // 이미 보낸 합류 요청이 있으면(재방문 포함) 무조건 대기 화면부터 — 온보딩 새로 시작하는 것처럼 보이면 안 됨.
-        var pending = await API.members.getMyPendingRequest().catch(function () { return null; });
+        var pending = await API.households.getMyPendingRequest().catch(function () { return null; });
         if (pending) {
             showPendingBanner(pending.households_vc2608 && pending.households_vc2608.name);
             return;
