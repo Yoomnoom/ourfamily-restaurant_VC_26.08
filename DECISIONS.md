@@ -816,3 +816,11 @@
 - 수정: tableHeroSeats(각도·반경 계산으로 원형 배치하던 렌더링)를 tableHeroConfirmed/tableHeroPending 두 개의 flex-wrap 줄로 교체. attending은 멤버 색이 채워진 이름표+"확인 완료" 캡션, 나머지(pending/absent)는 점선 테두리 이름표+"응답 대기"/"안 먹어요" 캡션. 사진 컬럼 폭을 w-28→w-36으로 키움. "응답 현황 보기"도 텍스트 링크에서 실제 초록 버튼(pill)으로 변경. 더는 안 쓰는 seat-wander 키프레임/클래스 삭제.
 - **교훈**: 참고 이미지를 "대략 이런 느낌"으로 해석하지 말고, 위/아래/좌/우 배치와 각 요소의 상대적 크기까지 구체적으로 뜯어봐야 함 — 이번에도 "카드를 좌/우로 나눈다"는 큰 방향은 맞았지만 세부 비율·배치 로직을 제 마음대로 채워 넣어서 또 틀렸음(feedback_redesign_one_at_a_time 메모리와 같은 패턴 반복 — 다음부터는 이미지의 구체적 배치를 먼저 서술하고 확인받은 뒤 구현할 것).
 - 전체 35개 code.html JS 문법·링크 재검증 통과. 커밋(26427d4)·푸시 완료.
+
+## 실제 발견된 심각한 버그: meal_responses_vc2608에 고유 제약 누락 (2026-08-19)
+
+- 사용자가 3-2에서 메뉴(매운탕/잡채) 추가 후 "식사 만들기"를 눌렀는데 "저장에 실패했어요: there is no unique or exclusion constraint matching the ON CONFLICT specification" 에러 발생.
+- 원인 확인: API.mealResponses.respondSelf()가 meal_responses_vc2608에 .upsert(..., {onConflict:"meal_id,member_id"})를 호출하는데, 실제 테이블엔 (meal_id, member_id) 조합의 UNIQUE 제약이 애초에 없었음(PK는 id 단독, FK 2개, CHECK 2개뿐). 즉 이 upsert는 처음부터 실패할 수밖에 없었던 구조였음.
+- **영향 범위가 큼**: respondSelf는 3-1(내 식탁의 "먹어요"/"안 먹어요" 응답 버튼), 3-2(오늘 새로 추가한 자동 참석 확정), 3-4(확정 전 요약, 호스트가 대신 응답 조정) 세 곳에서 전부 호출됨 — 즉 로그인한 가족 구성원이 직접 응답하는 핵심 플로우가 전부 이 버그의 영향을 받고 있었음. 오늘 3-2에 새로 추가한 호출이 우연히 이걸 처음으로 눈에 띄게 드러낸 것.
+- 중복 (meal_id, member_id) 행이 없는 걸 SQL로 먼저 확인한 뒤 `alter table meal_responses_vc2608 add constraint meal_responses_vc2608_meal_member_unique unique (meal_id, member_id);` 마이그레이션 적용 완료.
+- 에러 나기 전 meals.create()는 이미 성공해서 매운탕/잡채 식사가 응답 없이 고아 상태로 DB에 남아있었음(3-8로 리다이렉트가 안 돼서 초대 링크도 확인 못 한 상태) — 참여자 0명(cascade 확인)인 채로 정리 삭제함. 사용자는 다시 "식사 만들기"부터 진행하면 됨.
