@@ -294,7 +294,10 @@ API.meals = {
   },
 
   async listByHousehold(householdId) {
-    var res = await sb.from('meals_vc2608').select('*').eq('household_id', householdId).order('date', { ascending: false });
+    // 날짜는 최신이 위로, 같은 날짜 안에서는 시간이 이른(=더 가까운) 순서로 —
+    // 시간 정렬이 없어서 "오늘의 식탁"이 시간상 더 늦은 식사를 대표로 집어가는 문제가 있었음.
+    var res = await sb.from('meals_vc2608').select('*').eq('household_id', householdId)
+      .order('date', { ascending: false }).order('time', { ascending: true, nullsFirst: false });
     if (res.error) throw res.error;
     return res.data;
   }
