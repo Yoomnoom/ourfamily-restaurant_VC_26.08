@@ -812,12 +812,12 @@
             tag.className = 'flex flex-col items-center';
             if (status === 'attending') {
                 tag.innerHTML =
-                    '<span class="min-w-[2.25rem] h-9 px-2 rounded-full flex items-center justify-center text-on-primary font-label-sm font-semibold whitespace-nowrap" style="background-color:' + (r.color || '#8a9a7b') + ';">' + r.name + '</span>' +
-                    '<span class="font-label-sm text-on-surface-variant mt-0.5" style="font-size:10px;">확인 완료</span>';
+                    '<span class="min-w-[1.75rem] h-7 px-1.5 rounded-full flex items-center justify-center text-on-primary font-semibold whitespace-nowrap" style="background-color:' + (r.color || '#8a9a7b') + ';font-size:11px;">' + r.name + '</span>' +
+                    '<span class="text-on-surface-variant mt-0.5" style="font-size:9px;">확인 완료</span>';
             } else {
                 tag.innerHTML =
-                    '<span class="min-w-[2.25rem] h-9 px-2 rounded-full border-2 border-dashed border-outline flex items-center justify-center text-on-surface-variant font-label-sm font-semibold whitespace-nowrap">' + r.name + '</span>' +
-                    '<span class="font-label-sm text-on-surface-variant mt-0.5" style="font-size:10px;">' + (status === 'absent' ? '안 먹어요' : '응답 대기') + '</span>';
+                    '<span class="min-w-[1.75rem] h-7 px-1.5 rounded-full border-2 border-dashed border-outline flex items-center justify-center text-on-surface-variant font-semibold whitespace-nowrap" style="font-size:11px;">' + r.name + '</span>' +
+                    '<span class="text-on-surface-variant mt-0.5" style="font-size:9px;">' + (status === 'absent' ? '안 먹어요' : '응답 대기') + '</span>';
             }
             rosterEl.appendChild(tag);
         });
