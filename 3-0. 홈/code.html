@@ -786,10 +786,10 @@
         // 식탁 사진 우선순위(8-2/3-1과 동일): 실제 식사 사진 → 메뉴 이름으로 등록된 대표 사진 → 이모지 플레이스홀더.
         var mealPhoto = await API.mealPhotos.getByMeal(todayMeals[0].id);
         if (mealPhoto) {
-            photoEl.innerHTML = '<img src="' + mealPhoto.photo_url + '" class="w-full h-full object-cover scale-[2]">';
+            photoEl.innerHTML = '<img src="' + mealPhoto.photo_url + '" class="w-full h-full object-cover scale-150">';
         } else if (repName) {
             var cachedUrl = await API.menuImages.get(repName);
-            photoEl.innerHTML = cachedUrl ? '<img src="' + cachedUrl + '" class="w-full h-full object-cover scale-[2]">' : foodPlaceholderHtml(repName, 'w-full h-full');
+            photoEl.innerHTML = cachedUrl ? '<img src="' + cachedUrl + '" class="w-full h-full object-cover scale-150">' : foodPlaceholderHtml(repName, 'w-full h-full');
         } else {
             photoEl.innerHTML = foodPlaceholderHtml(null, 'w-full h-full');
         }
