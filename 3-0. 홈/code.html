@@ -311,6 +311,15 @@
 <span class="material-symbols-outlined">close</span>
 </button>
 </div>
+<!-- 지역·시간·날씨 정보 박스(사용자 요청, 2026-08-19) — 날씨 배경이 뭘 뜻하는지 텍스트로도 알려줌. -->
+<div id="weatherInfoBox" class="relative z-10 mx-4 mt-3 px-4 py-3 rounded-xl bg-surface-container-lowest/85 backdrop-blur-sm flex items-center gap-3">
+<span id="weatherInfoIcon" class="material-symbols-outlined text-primary" style="font-size:26px;">place</span>
+<div class="flex-1 min-w-0">
+<p id="weatherInfoLocation" class="font-label-sm text-label-sm text-on-surface-variant truncate">위치 확인 중...</p>
+<p id="weatherInfoDetail" class="font-body-md text-body-md text-on-surface"></p>
+</div>
+<p id="weatherInfoTime" class="font-label-sm text-label-sm text-on-surface-variant shrink-0"></p>
+</div>
 <div class="relative z-10 p-4 flex flex-col gap-6">
 <div>
 <p class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wide mb-2 px-1">가족과 가구</p>
@@ -436,12 +445,40 @@
             default: weatherBg.classList.add('clouds'); renderClouds(2);
         }
     }
+    var lastWeather = null;
+    var WEATHER_LABEL = {
+        Clear: ['맑음', 'clear_day'], Clouds: ['흐림', 'cloud'], Rain: ['비', 'rainy'],
+        Drizzle: ['약한 비', 'rainy_light'], Thunderstorm: ['뇌우', 'thunderstorm'],
+        Snow: ['눈', 'weather_snowy'], Mist: ['옅은 안개', 'foggy'], Fog: ['안개', 'foggy'], Haze: ['옅은 안개', 'foggy']
+    };
+
     async function loadWeather() {
         var weather = await API.weather.getCurrent();
+        lastWeather = weather;
         if (weather && weather.condition) setWeatherBackground(weather.condition);
         // 실패해도 .weather-bg의 기본 그라데이션이 이미 있어 화면은 자연스러움
+        renderWeatherInfoBox();
     }
     loadWeather();
+
+    // 전체 메뉴 패널 상단의 지역·시간·날씨 박스 — 날씨는 loadWeather()가 채워둔 캐시를 쓰고,
+    // 시간은 패널을 열 때마다 그 순간으로 다시 계산.
+    function renderWeatherInfoBox() {
+        var now = new Date();
+        document.getElementById('weatherInfoTime').textContent =
+            now.toLocaleTimeString('ko-KR', { hour: 'numeric', minute: '2-digit' });
+
+        if (lastWeather && lastWeather.condition) {
+            var meta = WEATHER_LABEL[lastWeather.condition] || [lastWeather.condition, 'thermostat'];
+            document.getElementById('weatherInfoLocation').textContent = lastWeather.cityName || '현재 위치';
+            var tempText = typeof lastWeather.temp === 'number' ? Math.round(lastWeather.temp) + '°C · ' : '';
+            document.getElementById('weatherInfoDetail').textContent = tempText + meta[0];
+            document.getElementById('weatherInfoIcon').textContent = meta[1];
+        } else {
+            document.getElementById('weatherInfoLocation').textContent = '날씨 정보를 가져올 수 없어요';
+            document.getElementById('weatherInfoDetail').textContent = '';
+        }
+    }
 
     var toastTimer;
     function showToast(msg) {
@@ -544,6 +581,7 @@
         document.getElementById('menuBackdrop').classList.remove('hidden');
         document.getElementById('menuPanel').classList.remove('hidden');
         requestAnimationFrame(function () { document.getElementById('menuPanel').style.transform = 'translateX(0)'; });
+        renderWeatherInfoBox();
     }
 
     function closeMenuPanel() {

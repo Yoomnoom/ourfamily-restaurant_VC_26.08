@@ -37,7 +37,8 @@ API.weather = {
       var data = await res.json();
       return {
         condition: data.weather && data.weather[0] && data.weather[0].main,
-        temp: data.main && typeof data.main.temp === 'number' ? data.main.temp : null
+        temp: data.main && typeof data.main.temp === 'number' ? data.main.temp : null,
+        cityName: data.name || null
       };
     } catch (err) {
       return null;
