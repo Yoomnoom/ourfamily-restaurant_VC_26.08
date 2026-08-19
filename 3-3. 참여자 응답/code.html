@@ -259,12 +259,12 @@
         document.getElementById('inviteName').textContent = participant.member_name;
         document.getElementById('guestName').textContent = participant.member_name;
 
-        var menuLine = (participant.menu && participant.menu.length)
-            ? (participant.menu.length > 1 ? participant.menu[0] + ' 외 ' + (participant.menu.length - 1) + '개' : participant.menu[0])
-            : '메뉴 미정';
+        // 대표 메뉴 최대 2개를 그대로 보여줌 — "외 N개"로 뭉개지 않음(3-0/3-1과 동일한 규칙).
+        var menuLine = (participant.menu && participant.menu.length) ? participant.menu.slice(0, 2).join(', ') : '메뉴 미정';
         document.getElementById('mealMenuLine').textContent = menuLine;
-        document.getElementById('mealTimeLine').textContent =
-            (participant.meal_time || '시간 미정') + (participant.meal_time ? ' 도착 예정' : '');
+        // meal_time도 DB time 컬럼이라 초 단위(19:00:00)까지 올 수 있어 앞 5자리만(3-1 NaN 버그와 동일 원인).
+        var mealTimeHHMM = participant.meal_time ? participant.meal_time.slice(0, 5) : null;
+        document.getElementById('mealTimeLine').textContent = (mealTimeHHMM || '시간 미정') + (mealTimeHHMM ? ' 도착 예정' : '');
 
         // 이미 응답한 적 있으면(1인1링크로 재방문) 이전 선택을 미리 채워둠 — 링크는 확정 전까지 계속 같은 걸 씀.
         if (participant.status === 'attending' || participant.status === 'absent') {
