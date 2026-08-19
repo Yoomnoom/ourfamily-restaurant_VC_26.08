@@ -109,30 +109,31 @@
       transition-duration: 180ms !important;
     }
 
-    /* 시간 선택 다이얼(수업21일차_알람에서 이식) */
-    .time-picker-overlay { display: none; position: fixed; inset: 0; background: rgba(74,64,56,0.45); align-items: center; justify-content: center; z-index: 80; }
-    .time-picker-overlay.show { display: flex; }
-    .time-picker-box { background: #fbfbf9; padding: 28px 24px; border-radius: 28px; text-align: center; }
+    /* 시간 선택 다이얼(수업21일차_알람에서 이식) — 풀스크린 팝업 대신 버튼 바로 아래 드롭다운으로,
+       색감은 원본의 파란 액센트(#8ec3e0) 대신 앱 기본 그레이(primary #5d5e62)로 맞춤(사용자 요청). */
+    .time-picker-dropdown { display: none; position: absolute; top: calc(100% + 8px); left: 0; right: 0; z-index: 30; justify-content: center; }
+    .time-picker-dropdown.show { display: flex; }
+    .time-picker-box { background: #ffffff; padding: 24px 20px; border-radius: 20px; text-align: center; box-shadow: 0px 8px 24px rgba(27,28,28,0.18); border: 1px solid #c6c6ca; }
     .time-picker-numbers { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 16px; }
-    .time-picker-numbers input { width: 56px; padding: 8px 0; border: none; border-radius: 12px; outline: none; background: #eef4f8; color: #3d3a36; font-size: 26px; font-weight: bold; text-align: center; }
-    .time-picker-numbers .colon { font-size: 26px; font-weight: bold; color: #3d3a36; }
+    .time-picker-numbers input { width: 56px; padding: 8px 0; border: none; border-radius: 12px; outline: none; background: #f0eded; color: #1b1c1c; font-size: 26px; font-weight: bold; text-align: center; }
+    .time-picker-numbers .colon { font-size: 26px; font-weight: bold; color: #1b1c1c; }
     .ampm-toggle { display: flex; flex-direction: column; gap: 4px; margin-left: 6px; }
-    .ampm-btn { padding: 5px 12px; border: none; border-radius: 8px; background: #eef4f8; color: #8a94a0; font-size: 12px; cursor: pointer; }
-    .ampm-btn.selected { background: #8ec3e0; color: #fff; font-weight: bold; }
+    .ampm-btn { padding: 5px 12px; border: none; border-radius: 8px; background: #f0eded; color: #45474a; font-size: 12px; cursor: pointer; }
+    .ampm-btn.selected { background: #5d5e62; color: #fff; font-weight: bold; }
     .mode-toggle { display: flex; justify-content: center; gap: 8px; margin-bottom: 16px; }
-    .mode-btn { padding: 6px 20px; border: none; border-radius: 999px; background: #eef4f8; color: #8a94a0; font-size: 13px; cursor: pointer; }
-    .mode-btn.selected { background: #8ec3e0; color: #fff; font-weight: bold; }
-    .analog-clock { position: relative; width: 200px; height: 200px; margin: 0 auto 20px; border-radius: 50%; background: #eef4f8; touch-action: none; user-select: none; }
+    .mode-btn { padding: 6px 20px; border: none; border-radius: 999px; background: #f0eded; color: #45474a; font-size: 13px; cursor: pointer; }
+    .mode-btn.selected { background: #5d5e62; color: #fff; font-weight: bold; }
+    .analog-clock { position: relative; width: 200px; height: 200px; margin: 0 auto 20px; border-radius: 50%; background: #f0eded; touch-action: none; user-select: none; }
     .clock-face { position: absolute; inset: 0; }
-    .tick { position: absolute; top: 50%; left: 50%; width: 24px; height: 24px; margin: -12px; text-align: center; line-height: 24px; font-size: 13px; color: #3d3a36; transform: rotate(calc(30deg * var(--i))) translate(0, -78px) rotate(calc(-30deg * var(--i))); }
+    .tick { position: absolute; top: 50%; left: 50%; width: 24px; height: 24px; margin: -12px; text-align: center; line-height: 24px; font-size: 13px; color: #1b1c1c; transform: rotate(calc(30deg * var(--i))) translate(0, -78px) rotate(calc(-30deg * var(--i))); }
     .clock-hand { position: absolute; left: 50%; bottom: 50%; transform-origin: 50% 100%; border-radius: 3px; pointer-events: none; }
-    .pick-hour-hand { width: 5px; height: 50px; margin-left: -2.5px; background: #3d3a36; }
-    .pick-minute-hand { width: 3px; height: 75px; margin-left: -1.5px; background: #8ec3e0; }
-    .clock-center-dot { position: absolute; left: 50%; top: 50%; width: 10px; height: 10px; margin: -5px; background: #8ec3e0; border-radius: 50%; }
+    .pick-hour-hand { width: 5px; height: 50px; margin-left: -2.5px; background: #1b1c1c; }
+    .pick-minute-hand { width: 3px; height: 75px; margin-left: -1.5px; background: #5d5e62; }
+    .clock-center-dot { position: absolute; left: 50%; top: 50%; width: 10px; height: 10px; margin: -5px; background: #5d5e62; border-radius: 50%; }
     .time-picker-actions { display: flex; gap: 10px; justify-content: center; }
     .picker-cancel, .picker-confirm { padding: 10px 26px; border: none; border-radius: 14px; font-size: 14px; font-weight: bold; cursor: pointer; }
-    .picker-cancel { background: #eef4f8; color: #8a94a0; }
-    .picker-confirm { background: #8ec3e0; color: #fff; }
+    .picker-cancel { background: #f0eded; color: #45474a; }
+    .picker-confirm { background: #5d5e62; color: #fff; }
   </style>
   </head>
 <body class="bg-surface text-on-surface font-body-md antialiased min-h-screen flex flex-col items-center">
@@ -162,7 +163,7 @@
 <label class="font-label-sm text-label-sm text-on-surface-variant mb-1 block">날짜</label>
 <input id="mealDate" type="date" class="w-full border border-outline-variant rounded-lg px-3 py-2.5 font-body-md text-body-md text-on-surface bg-surface-container-lowest" onchange="onDateChanged()">
 </div>
-<div>
+<div class="relative">
 <div class="flex items-center justify-between mb-1">
 <label class="font-label-sm text-label-sm text-on-surface-variant">시간</label>
 <label class="flex items-center gap-1.5 font-label-sm text-label-sm text-on-surface-variant">
@@ -172,6 +173,42 @@
 </div>
 <input type="hidden" id="mealTime" value="19:00">
 <button type="button" id="mealTimeBtn" onclick="openTimePicker()" class="w-full text-left border border-outline-variant rounded-lg px-3 py-2.5 font-body-md text-body-md text-on-surface bg-surface-container-lowest">오후 07:00</button>
+
+<!-- 시간 선택 — 팝업이 아니라 버튼 바로 아래 드롭다운으로(사용자 요청). 색감은 앱 기본 그레이 계열로 맞춤. -->
+<div class="time-picker-dropdown" id="timePickerOverlay">
+<div class="time-picker-box">
+<div class="time-picker-numbers">
+<input type="number" id="pickerHourInput" min="1" max="12">
+<span class="colon">:</span>
+<input type="number" id="pickerMinuteInput" min="0" max="59">
+<div class="ampm-toggle" id="pickerAmpmToggle">
+<button type="button" class="ampm-btn" data-ampm="AM">오전</button>
+<button type="button" class="ampm-btn" data-ampm="PM">오후</button>
+</div>
+</div>
+<div class="mode-toggle" id="pickerModeToggle">
+<button type="button" class="mode-btn" data-mode="hour">시</button>
+<button type="button" class="mode-btn" data-mode="minute">분</button>
+</div>
+<div class="analog-clock" id="analogClock">
+<div class="clock-face">
+<span class="tick" style="--i:0">12</span><span class="tick" style="--i:1">1</span>
+<span class="tick" style="--i:2">2</span><span class="tick" style="--i:3">3</span>
+<span class="tick" style="--i:4">4</span><span class="tick" style="--i:5">5</span>
+<span class="tick" style="--i:6">6</span><span class="tick" style="--i:7">7</span>
+<span class="tick" style="--i:8">8</span><span class="tick" style="--i:9">9</span>
+<span class="tick" style="--i:10">10</span><span class="tick" style="--i:11">11</span>
+</div>
+<div class="clock-hand pick-hour-hand" id="pickHourHand"></div>
+<div class="clock-hand pick-minute-hand" id="pickMinuteHand"></div>
+<div class="clock-center-dot"></div>
+</div>
+<div class="time-picker-actions">
+<button type="button" id="timePickerCancel" class="picker-cancel">취소</button>
+<button type="button" id="timePickerConfirm" class="picker-confirm">확인</button>
+</div>
+</div>
+</div>
 </div>
 </div>
 
@@ -272,43 +309,6 @@
 </div>
 </div>
 
-<!-- 시간 선택 — 수업21일차_알람 프로젝트의 아날로그 시계 다이얼 그대로 이식(사용자 요청).
-     드래그하면 pointer 각도를 시/분으로 환산 — 순수 vanilla JS, 프레임워크 의존 없음. -->
-<div class="time-picker-overlay" id="timePickerOverlay">
-<div class="time-picker-box">
-<div class="time-picker-numbers">
-<input type="number" id="pickerHourInput" min="1" max="12">
-<span class="colon">:</span>
-<input type="number" id="pickerMinuteInput" min="0" max="59">
-<div class="ampm-toggle" id="pickerAmpmToggle">
-<button type="button" class="ampm-btn" data-ampm="AM">오전</button>
-<button type="button" class="ampm-btn" data-ampm="PM">오후</button>
-</div>
-</div>
-<div class="mode-toggle" id="pickerModeToggle">
-<button type="button" class="mode-btn" data-mode="hour">시</button>
-<button type="button" class="mode-btn" data-mode="minute">분</button>
-</div>
-<div class="analog-clock" id="analogClock">
-<div class="clock-face">
-<span class="tick" style="--i:0">12</span><span class="tick" style="--i:1">1</span>
-<span class="tick" style="--i:2">2</span><span class="tick" style="--i:3">3</span>
-<span class="tick" style="--i:4">4</span><span class="tick" style="--i:5">5</span>
-<span class="tick" style="--i:6">6</span><span class="tick" style="--i:7">7</span>
-<span class="tick" style="--i:8">8</span><span class="tick" style="--i:9">9</span>
-<span class="tick" style="--i:10">10</span><span class="tick" style="--i:11">11</span>
-</div>
-<div class="clock-hand pick-hour-hand" id="pickHourHand"></div>
-<div class="clock-hand pick-minute-hand" id="pickMinuteHand"></div>
-<div class="clock-center-dot"></div>
-</div>
-<div class="time-picker-actions">
-<button type="button" id="timePickerCancel" class="picker-cancel">취소</button>
-<button type="button" id="timePickerConfirm" class="picker-confirm">확인</button>
-</div>
-</div>
-</div>
-
 <script>
     // 시간 선택 다이얼(수업21일차_알람 이식) — #mealTime(hidden input)이 실제 상태(HH:MM),
     // 이 위젯은 그 값을 보기 좋게 편집하는 UI일 뿐. 기존에 mealTime.value를 읽던 곳(생성/수정)은
@@ -355,7 +355,12 @@
     }
     function closeTimePicker() { timePickerOverlay.classList.remove('show'); }
 
-    timePickerOverlay.addEventListener('click', function (e) { if (e.target === timePickerOverlay) closeTimePicker(); });
+    // 드롭다운이라 배경 클릭 대신 "바깥 아무 곳이나 클릭하면 닫기"로 처리(버튼 자체 클릭은 토글이라 제외).
+    document.addEventListener('click', function (e) {
+        if (!timePickerOverlay.classList.contains('show')) return;
+        if (timePickerOverlay.contains(e.target) || e.target === document.getElementById('mealTimeBtn')) return;
+        closeTimePicker();
+    });
     document.getElementById('timePickerCancel').addEventListener('click', closeTimePicker);
     document.getElementById('timePickerConfirm').addEventListener('click', function () {
         var hour24 = pickHour % 12;
