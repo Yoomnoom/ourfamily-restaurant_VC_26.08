@@ -514,7 +514,7 @@
             var dayText = rule.days.map(function (d) { return DAY_LABELS[d]; }).join('·');
             var row = document.createElement('div');
             row.className = 'flex items-center gap-2 bg-surface-container rounded-lg px-3 py-2';
-            row.innerHTML = '<span class="font-label-sm text-label-sm text-on-surface flex-1">매주 ' + dayText + '요일 ' + (rule.time || '시간 미정') + ' · ' + (rule.menus.join(' · ') || '메뉴 미정') + '</span>';
+            row.innerHTML = '<span class="font-label-sm text-label-sm text-on-surface flex-1">매주 ' + dayText + '요일 ' + (rule.time ? rule.time.slice(0, 5) : '시간 미정') + ' · ' + (rule.menus.join(' · ') || '메뉴 미정') + '</span>';
             var delBtn = document.createElement('button');
             delBtn.type = 'button';
             delBtn.className = 'font-label-sm text-label-sm text-error';
