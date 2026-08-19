@@ -444,13 +444,17 @@
     // 실제 사진이 있으면 사진, 없으면 메뉴 이름으로 캐시된 대표 이미지, 그것도 없으면
     // 로컬 플레이스홀더(foodPlaceholderHtml, shared/api.js) — 8-2/5-2와 동일한 폴백 순서.
     var menuImageCache = {};
+    // scale-150을 img에 바로 주면 rounded-lg 테두리까지 같이 커져서 옆 텍스트를 침범하길래,
+    // 크기 고정 + overflow-hidden인 바깥 틀 안에서만 사진을 확대(사용자 요청: 그림이 작아서
+    // 중앙 음식이 잘 안 보임 → 확대해서 꽉 채우기).
+    function thumbImgTag(src) { return '<div class="w-12 h-12 rounded-lg overflow-hidden shrink-0"><img src="' + src + '" class="w-full h-full object-cover scale-150"></div>'; }
     async function mealThumbnailHtml(meal) {
         var photo = await API.mealPhotos.getByMeal(meal.id);
-        if (photo) return '<img src="' + photo.photo_url + '" class="w-12 h-12 rounded-lg object-cover shrink-0">';
+        if (photo) return thumbImgTag(photo.photo_url);
         var repName = meal.menu && meal.menu[0];
         if (!repName) return foodPlaceholderHtml(null, 'w-12 h-12 rounded-lg shrink-0');
         if (menuImageCache[repName] === undefined) menuImageCache[repName] = await API.menuImages.get(repName);
-        if (menuImageCache[repName]) return '<img src="' + menuImageCache[repName] + '" class="w-12 h-12 rounded-lg object-cover shrink-0">';
+        if (menuImageCache[repName]) return thumbImgTag(menuImageCache[repName]);
         return foodPlaceholderHtml(repName, 'w-12 h-12 rounded-lg shrink-0');
     }
 
