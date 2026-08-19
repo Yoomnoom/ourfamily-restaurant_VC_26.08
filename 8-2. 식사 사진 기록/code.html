@@ -60,6 +60,13 @@
 <input type="file" id="photoInput" accept="image/*" class="hidden" onchange="handlePhotoChange(event)">
 
 <input id="captionInput" type="text" placeholder="한 줄 메모 (선택, 예: 오랜만에 다같이)" class="w-full border border-outline-variant rounded-lg px-3 py-2.5 font-body-md text-body-md text-on-surface bg-surface-container-lowest mb-2">
+
+<!-- 메뉴 대표 사진(전역 공유)은 보통 처음 올라온 사진이 계속 유지됨 — 바꾸고 싶을 때 명시적으로
+     체크해야만 덮어씀(사용자 요청, 2026-08-19). -->
+<label class="flex items-start gap-2 mb-4 font-label-sm text-label-sm text-on-surface-variant">
+<input id="setAsDefaultCheckbox" type="checkbox" class="rounded mt-0.5">
+<span>이 사진을 메뉴 대표 사진으로 설정(다른 가구에도 보이는 대표 사진이 바뀌어요)</span>
+</label>
 <p id="formError" class="hidden font-label-sm text-label-sm text-error mb-4"></p>
 
 <button id="saveBtn" class="w-full bg-primary text-on-primary font-label-sm text-[15px] py-4 rounded-full shadow-[0px_4px_12px_rgba(120,119,119,0.08)] active:scale-[0.98] transition-transform mb-2" onclick="savePhoto()">저장하기</button>
@@ -142,9 +149,15 @@
 
             // 이 메뉴로 등록된 대표 사진이 아직 없으면, 사용자가 지금 올린 실제 사진을 그 메뉴의
             // 기본 이미지로 캐시(household 무관, 전역 공유) — 누구든 그 메뉴로 식사를 처음 사진 찍어
-            // 올리면 자동으로 채워짐. 이미 있으면 덮어쓰지 않음(먼저 올라온 사진 우선).
+            // 올리면 자동으로 채워짐. 이미 있으면 덮어쓰지 않음(먼저 올라온 사진 우선) — 단,
+            // "대표 사진으로 설정" 체크박스를 켰으면 사용자가 의도적으로 바꾸는 거라 항상 덮어씀.
+            var forceSetDefault = document.getElementById('setAsDefaultCheckbox').checked;
             if (isNewPhoto && meal.menu && meal.menu.length) {
                 meal.menu.forEach(function (name) {
+                    if (forceSetDefault) {
+                        API.menuImages.save(name, photoUrl, 'user_photo').catch(function () {});
+                        return;
+                    }
                     API.menuImages.get(name).then(function (existing) {
                         if (!existing) return API.menuImages.save(name, photoUrl, 'user_photo');
                     }).catch(function () {}); // 실패해도 사진 저장 자체는 이미 끝났으니 조용히 무시
