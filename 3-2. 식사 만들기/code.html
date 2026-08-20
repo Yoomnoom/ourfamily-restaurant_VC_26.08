@@ -1256,6 +1256,8 @@
 
         var todayStr = new Date().toISOString().slice(0, 10);
         document.getElementById('mealDate').value = todayStr;
+        document.getElementById('timeUndecided').checked = true;
+        toggleTimeInput();
         repeatDays = [new Date().getDay()];
 
         var reuse = null;
