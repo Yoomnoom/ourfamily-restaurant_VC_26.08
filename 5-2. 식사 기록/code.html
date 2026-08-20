@@ -48,10 +48,31 @@
 <h1 class="font-headline-lg text-headline-lg text-on-surface">식사 기록</h1>
 </header>
 
+<!-- 04_records.png 기준: 제목 밑 부제, "N월 한눈에 보기" 3분할 아이콘 통계(함께 먹은 식사/평균
+     참여/가장 자주 먹은 메뉴)로 교체. 기존 종류별 막대+음식군 통계는 지우지 않고 구분선 아래
+     보조 정보로 유지(참고 이미지엔 없지만 최근에 만든 기능이라 남겨둠). -->
+<p class="font-label-sm text-label-sm text-on-surface-variant -mt-4 mb-4">지난 결정은 다시 써요</p>
+
 <div class="bg-surface-container-lowest rounded-xl p-card-padding shadow-[0px_4px_12px_rgba(120,119,119,0.08)] mb-4">
-<p class="font-label-sm text-label-sm text-on-surface-variant mb-1">이번 달 총 식사</p>
-<p class="font-headline-lg text-headline-lg text-on-surface mb-3"><span id="monthTotalCount">-</span><span class="font-body-md text-body-md text-on-surface-variant">회</span></p>
-<div id="monthKindBar" class="w-full h-3 rounded-full overflow-hidden flex bg-surface-container mb-3"></div>
+<p id="monthOverviewTitle" class="font-body-md text-body-md text-on-surface font-medium mb-3">이번 달 한눈에 보기</p>
+<div class="grid grid-cols-3 divide-x divide-outline-variant mb-3">
+<div class="flex flex-col items-center px-1">
+<span class="w-11 h-11 rounded-full bg-surface-container flex items-center justify-center text-primary mb-1.5"><span class="material-symbols-outlined">groups</span></span>
+<span class="font-label-sm text-label-sm text-on-surface-variant text-center mb-1">함께 먹은 식사</span>
+<p class="font-headline-lg text-headline-lg text-primary"><span id="statTotalCount">-</span><span class="font-label-sm text-label-sm">번</span></p>
+</div>
+<div class="flex flex-col items-center px-1">
+<span class="w-11 h-11 rounded-full bg-surface-container flex items-center justify-center text-primary mb-1.5"><span class="material-symbols-outlined">person</span></span>
+<span class="font-label-sm text-label-sm text-on-surface-variant text-center mb-1">평균 참여</span>
+<p class="font-headline-lg text-headline-lg text-primary"><span id="statAvgCount">-</span><span class="font-label-sm text-label-sm">명</span></p>
+</div>
+<div class="flex flex-col items-center px-1">
+<span class="w-11 h-11 rounded-full bg-surface-container flex items-center justify-center text-primary mb-1.5"><span class="material-symbols-outlined">soup_kitchen</span></span>
+<span class="font-label-sm text-label-sm text-on-surface-variant text-center mb-1">가장 자주 먹은 메뉴</span>
+<p id="statTopMenu" class="font-headline-lg text-headline-lg text-primary text-center">-</p>
+</div>
+</div>
+<div id="monthKindBar" class="w-full h-3 rounded-full overflow-hidden flex bg-surface-container mb-3 mt-3"></div>
 <div id="monthKindLegend" class="flex flex-wrap gap-x-4 gap-y-1 mb-3"></div>
 <!-- 3-2 카테고리로 메뉴 찾기에서 고른 메뉴에 저장해둔 음식군(menu_categories_vc2608)을
      재사용 — 카테고리가 없는(직접 입력한) 메뉴는 그냥 집계에서 빠짐(억지로 추측 안 함). -->
@@ -141,12 +162,17 @@
         }
     }
 
-    function recordThumbnailHtml(record, photo) {
-        if (photo) return '<img src="' + photo.photo_url + '" class="w-14 h-14 rounded-lg object-cover shrink-0">';
-        var repName = record.menus && record.menus[0];
-        var cachedUrl = repName ? menuImageCache[repName] : null;
-        if (cachedUrl) return '<img src="' + cachedUrl + '" class="w-14 h-14 rounded-lg object-cover shrink-0">';
-        return foodPlaceholderHtml(repName, 'w-14 h-14 rounded-lg shrink-0');
+    // 04_records.png 기준: 목록 사진을 훨씬 크게(w-28) — sizeClass로 다른 곳에서도 재사용 가능하게.
+    // scale로 확대할 땐 반드시 overflow-hidden 틀로 감싸야 함(3-1에서 안 그래서 옆/아래로 번지던 버그 있었음).
+    function recordThumbnailHtml(record, photo, sizeClass) {
+        sizeClass = sizeClass || 'w-14 h-14';
+        var src = photo ? photo.photo_url : null;
+        if (!src) {
+            var repName = record.menus && record.menus[0];
+            src = repName ? menuImageCache[repName] : null;
+        }
+        if (src) return '<div class="' + sizeClass + ' rounded-lg overflow-hidden shrink-0"><img src="' + src + '" class="w-full h-full object-cover scale-125"></div>';
+        return foodPlaceholderHtml(record.menus && record.menus[0], sizeClass + ' rounded-lg shrink-0');
     }
 
     async function loadRecords() {
@@ -155,10 +181,11 @@
         for (var i = 0; i < meals.length; i++) {
             var m = meals[i];
             var roster = await API.mealParticipants.getRoster(m.id);
-            var attending = roster.filter(function (r) { return r.status === 'attending'; }).length;
+            var attendingRows = roster.filter(function (r) { return r.status === 'attending'; });
             RECORDS.push({
                 mealId: m.id, dateKey: m.date, date: formatRecordDate(m.date),
-                menus: m.menu || [], kind: m.kind, count: attending
+                menus: m.menu || [], kind: m.kind, count: attendingRows.length,
+                names: attendingRows.map(function (r) { return r.name; })
             });
         }
     }
@@ -166,7 +193,15 @@
     function renderMonthStats() {
         var thisMonth = todayKey().slice(0, 7); // YYYY-MM
         var monthRecords = RECORDS.filter(function (r) { return r.dateKey.slice(0, 7) === thisMonth; });
-        document.getElementById('monthTotalCount').textContent = monthRecords.length;
+
+        document.getElementById('monthOverviewTitle').textContent = (parseInt(thisMonth.slice(5, 7), 10)) + '월 한눈에 보기';
+        document.getElementById('statTotalCount').textContent = monthRecords.length;
+        var avg = monthRecords.length ? (monthRecords.reduce(function (sum, r) { return sum + r.count; }, 0) / monthRecords.length) : 0;
+        document.getElementById('statAvgCount').textContent = avg.toFixed(1);
+        var menuCounts = {};
+        monthRecords.forEach(function (r) { var rep = r.menus && r.menus[0]; if (rep) menuCounts[rep] = (menuCounts[rep] || 0) + 1; });
+        var topMenu = Object.keys(menuCounts).sort(function (a, b) { return menuCounts[b] - menuCounts[a]; })[0];
+        document.getElementById('statTopMenu').textContent = topMenu || '-';
 
         var countByKind = {};
         monthRecords.forEach(function (r) { countByKind[r.kind] = (countByKind[r.kind] || 0) + 1; });
@@ -255,33 +290,48 @@
         });
         var visible = recordsExpanded ? matching : matching.slice(0, RECORD_PREVIEW_COUNT);
 
+        // 04_records.png 기준: 달력 아이콘+날짜 헤더, 큰 사진(좌)+메뉴/인원/참여자 이름(우),
+        // "같은 구성으로 만들기" 버튼. 비용 입력/정산/사진 남기기는 참고 이미지엔 없지만 실제
+        // 기능이라 지우지 않고 펼치기(토글) 뒤로 옮김 — 기본은 참고 이미지처럼 깔끔하게.
         visible.forEach(function (index) {
             var record = RECORDS[index];
             var photo = photosCache.find(function (p) { return p.meal_id === record.mealId; });
             var cost = costs[record.dateKey];
-            var row = document.createElement('div');
-            row.className = 'bg-surface-container-lowest rounded-xl p-card-padding shadow-[0px_4px_12px_rgba(120,119,119,0.08)] flex gap-3';
+            var row = document.createElement('article');
+            row.className = 'bg-surface-container-lowest rounded-xl p-card-padding shadow-[0px_4px_12px_rgba(120,119,119,0.08)]';
+            var menuLine = record.menus.length ? record.menus.slice(0, 2).join(', ') : '메뉴 미정';
+            var namesLine = record.names && record.names.length ? record.names.join('  ') : '';
             row.innerHTML =
-                recordThumbnailHtml(record, photo) +
-                '<div class="flex-1 min-w-0">' +
-                '<div class="flex items-center justify-between mb-1">' +
-                '<span class="font-body-md text-body-md text-on-surface font-medium">' + record.date + '</span>' +
-                '<span class="font-label-sm text-label-sm text-on-surface-variant">참여 ' + record.count + '명</span>' +
+                '<div class="flex items-center justify-between mb-3">' +
+                    '<span class="flex items-center gap-1.5 font-body-md text-body-md text-on-surface font-medium"><span class="material-symbols-outlined text-primary text-[18px]">calendar_today</span>' + record.date + '</span>' +
+                    '<button type="button" class="toggle-actions-btn w-8 h-8 flex items-center justify-center text-on-surface-variant" aria-label="더보기"><span class="material-symbols-outlined">expand_more</span></button>' +
                 '</div>' +
-                '<p class="font-label-sm text-label-sm text-on-surface-variant mb-1">' + record.menus.join(' · ') + '</p>' +
-                (photo && photo.caption ? '<p class="font-label-sm text-label-sm text-on-surface-variant italic mb-2">"' + photo.caption + '"</p>' : '') +
-                '<div class="flex items-center gap-3 mb-1">' +
-                '<button type="button" class="cost-btn font-label-sm text-label-sm text-primary py-1">' + (cost ? cost.toLocaleString() + '원 · 수정' : '+ 비용 입력') + '</button>' +
-                (cost ? '<button type="button" class="settle-btn font-label-sm text-label-sm text-primary py-1">정산하기 →</button>' : '') +
-                '<button type="button" class="photo-btn font-label-sm text-label-sm text-primary py-1">' + (photo ? '사진 수정' : '+ 사진 남기기') + '</button>' +
+                '<div class="flex gap-3 mb-3">' +
+                    recordThumbnailHtml(record, photo, 'w-28 h-28') +
+                    '<div class="flex-1 min-w-0 flex flex-col justify-center">' +
+                        '<h3 class="font-headline-lg text-headline-lg text-on-surface font-bold mb-1 truncate">' + menuLine + '</h3>' +
+                        '<p class="font-body-md text-body-md text-primary font-semibold mb-1">' + record.count + '명</p>' +
+                        (namesLine ? '<p class="font-label-sm text-label-sm text-on-surface-variant" style="word-break:keep-all;">' + namesLine + '</p>' : '') +
+                        (photo && photo.caption ? '<p class="font-label-sm text-label-sm text-on-surface-variant italic mt-1">"' + photo.caption + '"</p>' : '') +
+                    '</div>' +
                 '</div>' +
-                '<button type="button" class="w-full py-2 rounded-full border border-outline-variant text-on-surface-variant font-label-sm text-label-sm mt-2">이 구성으로 새 식사 만들기</button>' +
+                '<button type="button" class="reuse-btn w-full py-2.5 rounded-full border-2 border-primary text-primary font-label-sm text-label-sm">같은 구성으로 만들기</button>' +
+                '<div class="extra-actions hidden mt-3 pt-3 border-t border-outline-variant flex items-center gap-3">' +
+                    '<button type="button" class="cost-btn font-label-sm text-label-sm text-primary py-1">' + (cost ? cost.toLocaleString() + '원 · 수정' : '+ 비용 입력') + '</button>' +
+                    (cost ? '<button type="button" class="settle-btn font-label-sm text-label-sm text-primary py-1">정산하기 →</button>' : '') +
+                    '<button type="button" class="photo-btn font-label-sm text-label-sm text-primary py-1">' + (photo ? '사진 수정' : '+ 사진 남기기') + '</button>' +
                 '</div>';
+            row.querySelector('.toggle-actions-btn').onclick = function () {
+                var extra = row.querySelector('.extra-actions');
+                var icon = row.querySelector('.toggle-actions-btn .material-symbols-outlined');
+                var open = extra.classList.toggle('hidden');
+                icon.textContent = open ? 'expand_more' : 'expand_less';
+            };
             row.querySelector('.cost-btn').addEventListener('click', function () { editCost(record.dateKey); });
             var settleBtn = row.querySelector('.settle-btn');
             if (settleBtn) { settleBtn.addEventListener('click', function () { window.location.href = '../8-4. 정산/code.html?date=' + record.dateKey; }); }
             row.querySelector('.photo-btn').addEventListener('click', function () { window.location.href = '../8-2. 식사 사진 기록/code.html?meal=' + record.mealId; });
-            row.querySelector('.w-full.py-2.rounded-full').addEventListener('click', function () { reuse(index); });
+            row.querySelector('.reuse-btn').addEventListener('click', function () { reuse(index); });
             list.appendChild(row);
         });
 
