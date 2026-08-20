@@ -148,6 +148,13 @@
 <span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1; font-size: 26px;">restaurant</span>
 <span class="font-display-serif text-display-serif text-on-surface">우리집식당</span>
 </div>
+<!-- 07_household_selector.png 기준: 가구 이름 알약 — 참고 이미지 분석 당시 "장식만, 실제 전환
+     기능 아님(다중 가구 지원은 스킵)"으로 확인했었는데 실제로 안 넣었었음. 진짜 전환 기능은
+     없으니 눌러도 없는 척하지 않고 "준비 중"이라고 정직하게 알림(가짜 기능 금지 원칙). -->
+<button type="button" id="householdSelectorBtn" class="flex items-center gap-1 px-3 py-1.5 rounded-full border border-outline-variant bg-surface-container-lowest font-label-sm text-label-sm text-on-surface active:scale-95 transition-transform" onclick="showToast('다른 가구로 전환하는 기능은 준비 중이에요')">
+<span id="householdSelectorLabel">우리집</span>
+<span class="material-symbols-outlined text-[16px]">expand_more</span>
+</button>
 <div class="flex items-center gap-2">
 <button class="relative w-11 h-11 rounded-full bg-surface-container-lowest shadow-[0px_4px_12px_rgba(120,119,119,0.08)] flex items-center justify-center active:scale-95 transition-transform" onclick="openNotiPanel()" aria-label="알림">
 <span class="material-symbols-outlined text-on-surface">notifications</span>
@@ -931,6 +938,7 @@
 
         var household = myMember.households_vc2608 || (await API.households.get(householdId));
         document.getElementById('householdTitle').textContent = (household.name || '우리집') + ', 오늘 식탁';
+        document.getElementById('householdSelectorLabel').textContent = household.name || '우리집';
 
         await refreshAll();
 
