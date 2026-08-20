@@ -8,18 +8,19 @@
 <script src="../shared/api.js"></script>
 <link href="https://fonts.googleapis.com" rel="preconnect">
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif:wght@400;700&amp;family=Plus+Jakarta+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
 <script id="tailwind-config">
         tailwind.config = { darkMode: "class", theme: { extend: {
               "colors": {
                       "surface": "#fbf9f8", "surface-container-lowest": "#ffffff", "surface-container": "#f0eded",
                       "on-surface": "#1b1c1c", "on-surface-variant": "#45474a", "outline-variant": "#c6c6ca",
-                      "primary": "#5d5e62", "on-primary": "#ffffff"
+                      "primary": "#5d5e62", "on-primary": "#ffffff", "error": "#ba1a1a"
               },
               "spacing": { "section-margin": "2rem", "card-padding": "1.25rem", "safe-area-inset": "1rem", "stack-gap": "1rem" },
-              "fontFamily": { "headline-lg": ["Plus Jakarta Sans"], "body-md": ["Plus Jakarta Sans"], "label-sm": ["Plus Jakarta Sans"] },
+              "fontFamily": { "display-serif": ["Noto Serif"], "headline-lg": ["Plus Jakarta Sans"], "body-md": ["Plus Jakarta Sans"], "label-sm": ["Plus Jakarta Sans"] },
               "fontSize": {
+                      "display-serif": ["24px", { "lineHeight": "32px", "fontWeight": "700" }],
                       "headline-lg": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
                       "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
                       "label-sm": ["13px", { "lineHeight": "18px", "letterSpacing": "0.02em", "fontWeight": "500" }]
@@ -41,12 +42,112 @@
 <body class="bg-surface text-on-surface font-body-md antialiased min-h-screen flex flex-col items-center">
 <main class="w-full max-w-[600px] flex flex-col px-safe-area-inset pt-section-margin pb-28">
 
-<header class="flex items-center gap-3 mb-6">
-<button class="w-11 h-11 flex items-center justify-center rounded-full bg-surface-container-lowest text-on-surface shadow-[0px_4px_12px_rgba(120,119,119,0.08)] active:scale-95 transition-transform" onclick="window.location.href='../3-0. 홈/code.html'" aria-label="뒤로">
-<span class="material-symbols-outlined">arrow_back</span>
+<header class="flex items-center justify-between mb-6">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1; font-size: 26px;">restaurant</span>
+<span class="text-headline-lg font-headline-lg text-on-surface">우리집식당</span>
+</div>
+<!-- 07_household_selector.png 기준: 다른 화면들과 동일하게 가구 이름 알약 추가. 진짜 전환
+     기능은 없어서(다중 가구 미지원) 눌러도 없는 척하지 않고 "준비 중" 안내. -->
+<button type="button" id="householdSelectorBtn" class="flex items-center gap-1 px-3 py-1.5 rounded-full border border-outline-variant bg-surface-container-lowest font-label-sm text-label-sm text-on-surface active:scale-95 transition-transform" onclick="showToast('다른 가구로 전환하는 기능은 준비 중이에요')">
+<span id="householdSelectorLabel">우리집</span>
+<span class="material-symbols-outlined text-[16px]">expand_more</span>
 </button>
-<h1 class="font-headline-lg text-headline-lg text-on-surface">식사 기록</h1>
+<div class="flex items-center gap-2">
+<button class="relative w-11 h-11 rounded-full bg-surface-container-lowest shadow-[0px_4px_12px_rgba(120,119,119,0.08)] flex items-center justify-center active:scale-95 transition-transform" onclick="openNotiPanel()" aria-label="알림">
+<span class="material-symbols-outlined text-on-surface">notifications</span>
+<span id="notiDot" class="hidden absolute top-2 right-2 w-2 h-2 rounded-full bg-primary"></span>
+</button>
+<button class="w-11 h-11 rounded-full bg-surface-container-lowest shadow-[0px_4px_12px_rgba(120,119,119,0.08)] flex items-center justify-center active:scale-95 transition-transform" onclick="openMenuPanel()" aria-label="전체 메뉴">
+<span class="material-symbols-outlined text-on-surface">menu</span>
+</button>
+</div>
 </header>
+
+<div id="toast" class="fixed left-1/2 -translate-x-1/2 bg-on-surface text-surface font-label-sm text-label-sm px-4 py-3 rounded-full shadow-lg opacity-0 pointer-events-none transition-opacity duration-300 z-[80]" style="bottom:calc(84px + env(safe-area-inset-bottom));"></div>
+
+<!-- 알림 패널 (3-0/3-1/4-1과 동일) -->
+<div id="notiBackdrop" class="hidden fixed inset-0 bg-on-surface/30 z-[60]" onclick="closeNotiPanel()"></div>
+<aside id="notiPanel" class="hidden fixed top-0 right-0 h-full w-[88%] max-w-[360px] bg-surface z-[70] shadow-2xl overflow-y-auto" style="transform: translateX(100%); transition: transform .25s ease;">
+<div class="flex items-center justify-between px-5 py-4 border-b border-outline-variant">
+<h2 class="font-headline-lg text-headline-lg text-on-surface">알림</h2>
+<button class="w-11 h-11 flex items-center justify-center rounded-full active:bg-surface-container transition-colors" onclick="closeNotiPanel()" aria-label="알림 닫기">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<div id="notiList" class="flex flex-col gap-2 p-4"></div>
+</aside>
+
+<!-- 전체 메뉴(3-0 홈과 동일한 내용, 날씨 배경 제외) -->
+<div id="menuBackdrop" class="hidden fixed inset-0 bg-on-surface/30 z-[60]" onclick="closeMenuPanel()"></div>
+<aside id="menuPanel" class="hidden fixed top-0 right-0 h-full w-[88%] max-w-[360px] bg-surface z-[70] shadow-2xl overflow-y-auto" style="transform: translateX(100%); transition: transform .25s ease;">
+<div class="flex items-center justify-between px-5 py-4 border-b border-outline-variant">
+<h2 class="font-headline-lg text-headline-lg text-on-surface">전체 메뉴</h2>
+<button class="w-11 h-11 flex items-center justify-center rounded-full active:bg-surface-container transition-colors" onclick="closeMenuPanel()" aria-label="메뉴 닫기">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<div class="p-4 flex flex-col gap-6">
+<div>
+<p class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wide mb-2 px-1">가족과 가구</p>
+<button class="w-full flex items-center gap-3 px-3 py-3 rounded-xl active:bg-surface-container" onclick="window.location.href='../5-1. 가구 설정/code.html'">
+<span class="material-symbols-outlined text-primary">group</span>
+<span class="font-body-md text-body-md text-on-surface">가족 구성원</span>
+</button>
+<button class="w-full flex items-center gap-3 px-3 py-3 rounded-xl active:bg-surface-container" onclick="window.location.href='../5-1. 가구 설정/code.html'">
+<span class="material-symbols-outlined text-primary">shield_person</span>
+<span class="font-body-md text-body-md text-on-surface">공동 관리자</span>
+</button>
+<button class="w-full flex items-center gap-3 px-3 py-3 rounded-xl active:bg-surface-container" onclick="window.location.href='../5-1. 가구 설정/code.html'">
+<span class="material-symbols-outlined text-primary">person_add</span>
+<span class="font-body-md text-body-md text-on-surface">손님 관리</span>
+</button>
+<button class="w-full flex items-center gap-3 px-3 py-3 rounded-xl active:bg-surface-container" onclick="window.location.href='../5-1. 가구 설정/code.html'">
+<span class="material-symbols-outlined text-primary">mail</span>
+<span class="font-body-md text-body-md text-on-surface">가구 초대</span>
+</button>
+</div>
+<div>
+<p class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wide mb-2 px-1">반복 설정</p>
+<button class="w-full flex items-center gap-3 px-3 py-3 rounded-xl active:bg-surface-container" onclick="window.location.href='../5-4. 요일별 기본 응답/code.html'">
+<span class="material-symbols-outlined text-primary">event_repeat</span>
+<span class="font-body-md text-body-md text-on-surface">요일별 기본 응답</span>
+</button>
+<button class="w-full flex items-center gap-3 px-3 py-3 rounded-xl active:bg-surface-container" onclick="window.location.href='../5-3. 설정/code.html'">
+<span class="material-symbols-outlined text-primary">notifications</span>
+<span class="font-body-md text-body-md text-on-surface">알림 설정</span>
+</button>
+</div>
+<div>
+<p class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wide mb-2 px-1">살림과 제안</p>
+<button class="w-full flex items-center gap-3 px-3 py-3 rounded-xl active:bg-surface-container" onclick="window.location.href='../7-1. 우리집 냉장고/code.html'">
+<span class="material-symbols-outlined text-primary">kitchen</span>
+<span class="font-body-md text-body-md text-on-surface">우리집 냉장고</span>
+</button>
+<button class="w-full flex items-center gap-3 px-3 py-3 rounded-xl active:bg-surface-container" onclick="window.location.href='../8-1. 밀키트 주문/code.html'">
+<span class="material-symbols-outlined text-primary">local_shipping</span>
+<span class="font-body-md text-body-md text-on-surface">밀키트 둘러보기</span>
+</button>
+<button class="w-full flex items-center gap-3 px-3 py-3 rounded-xl active:bg-surface-container" onclick="window.location.href='../5-5. 메뉴 대표 사진/code.html'">
+<span class="material-symbols-outlined text-primary">photo_library</span>
+<span class="font-body-md text-body-md text-on-surface">메뉴 대표 사진</span>
+</button>
+</div>
+<div>
+<p class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wide mb-2 px-1">서비스</p>
+<button class="w-full flex items-center gap-3 px-3 py-3 rounded-xl active:bg-surface-container" onclick="window.location.href='../5-3. 설정/code.html'">
+<span class="material-symbols-outlined text-primary">settings</span>
+<span class="font-body-md text-body-md text-on-surface">계정 설정</span>
+</button>
+<button type="button" class="w-full flex items-center gap-3 px-3 py-3 rounded-xl active:bg-surface-container" onclick="logoutFromMenu()">
+<span class="material-symbols-outlined text-error">logout</span>
+<span class="font-body-md text-body-md text-error">로그아웃</span>
+</button>
+</div>
+</div>
+</aside>
+
+<h1 class="font-headline-lg text-headline-lg text-on-surface mb-4">식사 기록</h1>
 
 <!-- 04_records.png 기준: 제목 밑 부제, "N월 한눈에 보기" 3분할 아이콘 통계(함께 먹은 식사/평균
      참여/가장 자주 먹은 메뉴)로 교체. 기존 종류별 막대+음식군 통계는 지우지 않고 구분선 아래
@@ -120,6 +221,116 @@
 </nav>
 
 <script>
+    // 3-0/3-1/4-1과 동일한 알림·전체 메뉴 패널 (그동안 이 화면엔 뒤로가기+제목만 있었음).
+    var toastTimer;
+    function showToast(msg) {
+        var toast = document.getElementById('toast');
+        toast.textContent = msg;
+        toast.classList.remove('opacity-0');
+        toast.classList.add('opacity-100');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(function () { toast.classList.remove('opacity-100'); toast.classList.add('opacity-0'); }, 2600);
+    }
+
+    var NOTI_PREVIEW_COUNT = 5;
+    var notiExpanded = false;
+    var notisCache = [];
+
+    async function loadNotis() { notisCache = await API.notifications.listForMember(myMember.id); }
+
+    function updateNotiDot() {
+        var hasUnread = notisCache.some(function (n) { return !n.read; });
+        var dot = document.getElementById('notiDot');
+        if (dot) dot.classList.toggle('hidden', !hasUnread);
+    }
+
+    function renderNotiPanel() {
+        var visibleNotis = notiExpanded ? notisCache : notisCache.slice(0, NOTI_PREVIEW_COUNT);
+        var list = document.getElementById('notiList');
+        list.innerHTML = '';
+        if (!notisCache.length) {
+            var empty = document.createElement('p');
+            empty.className = 'font-label-sm text-label-sm text-on-surface-variant text-center py-6';
+            empty.textContent = '아직 알림이 없어요';
+            list.appendChild(empty);
+            return;
+        }
+        visibleNotis.forEach(function (n) {
+            var row = document.createElement('button');
+            row.className = 'text-left w-full bg-surface-container-lowest rounded-xl p-4 shadow-[0px_2px_8px_rgba(120,119,119,0.06)] flex items-start gap-3';
+            row.onclick = function () { showNotiDetail(n); };
+            row.innerHTML =
+                '<span class="w-9 h-9 rounded-full flex items-center justify-center shrink-0 bg-surface-container text-primary"><span class="material-symbols-outlined text-[20px]">notifications</span></span>' +
+                '<div class="flex-1 min-w-0">' +
+                '<div class="flex items-center gap-2">' +
+                '<p class="font-body-md text-body-md text-on-surface font-medium">' + n.text + '</p>' +
+                (!n.read ? '<span class="w-2 h-2 rounded-full bg-primary shrink-0"></span>' : '') +
+                '</div>' +
+                (n.detail ? '<p class="font-label-sm text-label-sm text-on-surface-variant">' + n.detail + '</p>' : '') +
+                '<p class="font-label-sm text-label-sm text-on-surface-variant mt-0.5">' + new Date(n.created_at).toLocaleString('ko-KR') + '</p>' +
+                '</div>';
+            list.appendChild(row);
+        });
+        if (!notiExpanded && notisCache.length > NOTI_PREVIEW_COUNT) {
+            var moreBtn = document.createElement('button');
+            moreBtn.type = 'button';
+            moreBtn.className = 'w-full text-center font-label-sm text-label-sm text-primary py-2';
+            moreBtn.textContent = '+ ' + (notisCache.length - NOTI_PREVIEW_COUNT) + '개 더보기';
+            moreBtn.onclick = function () { notiExpanded = true; renderNotiPanel(); };
+            list.appendChild(moreBtn);
+        }
+    }
+
+    async function showNotiDetail(n) {
+        if (!n.read) { await API.notifications.markRead(n.id); n.read = true; updateNotiDot(); }
+        var list = document.getElementById('notiList');
+        var back = '<button id="notiBackBtn" class="flex items-center gap-1 font-label-sm text-label-sm text-on-surface-variant mb-1"><span class="material-symbols-outlined text-[18px]">arrow_back</span>목록으로</button>';
+        var body = '<div class="bg-surface-container-lowest rounded-xl p-4 shadow-[0px_2px_8px_rgba(120,119,119,0.06)]">' +
+            '<p class="font-body-md text-body-md text-on-surface mb-1">' + n.text + '</p>' +
+            (n.detail ? '<p class="font-label-sm text-label-sm text-on-surface-variant">' + n.detail + '</p>' : '') +
+            '</div>';
+        var actions = '<div class="flex gap-2 mt-3">' +
+            '<button id="notiAckBtn" class="flex-1 py-2.5 rounded-full bg-surface-container text-on-surface font-label-sm text-label-sm">확인했어요</button>' +
+            (n.meal_id ? '<a href="../3-1. 내 식탁/code.html" class="flex-1 py-2.5 rounded-full bg-primary text-on-primary font-label-sm text-label-sm text-center">내 식탁에서 보기</a>' : '') +
+            '</div>';
+        list.innerHTML = back + body + actions;
+        document.getElementById('notiBackBtn').onclick = renderNotiPanel;
+        var ackBtn = document.getElementById('notiAckBtn');
+        if (ackBtn) ackBtn.onclick = renderNotiPanel;
+    }
+
+    async function openNotiPanel() {
+        await loadNotis();
+        renderNotiPanel();
+        document.getElementById('notiBackdrop').classList.remove('hidden');
+        document.getElementById('notiPanel').classList.remove('hidden');
+        requestAnimationFrame(function () { document.getElementById('notiPanel').style.transform = 'translateX(0)'; });
+    }
+
+    function closeNotiPanel() {
+        document.getElementById('notiPanel').style.transform = 'translateX(100%)';
+        document.getElementById('notiBackdrop').classList.add('hidden');
+        setTimeout(function () { document.getElementById('notiPanel').classList.add('hidden'); }, 250);
+    }
+
+    function openMenuPanel() {
+        document.getElementById('menuBackdrop').classList.remove('hidden');
+        document.getElementById('menuPanel').classList.remove('hidden');
+        requestAnimationFrame(function () { document.getElementById('menuPanel').style.transform = 'translateX(0)'; });
+    }
+
+    function closeMenuPanel() {
+        document.getElementById('menuPanel').style.transform = 'translateX(100%)';
+        document.getElementById('menuBackdrop').classList.add('hidden');
+        setTimeout(function () { document.getElementById('menuPanel').classList.add('hidden'); }, 250);
+    }
+
+    async function logoutFromMenu() {
+        if (!confirm('로그아웃 할까요?')) return;
+        await API.auth.signOut();
+        window.location.href = '../2-1.로그인 화면/code.html';
+    }
+
     var householdId = null;
     var myMember = null;
     var RECORDS = []; // meals_vc2608 + 계산된 표시용 필드(date, dateKey, menus, count)
@@ -362,12 +573,17 @@
         if (!myMember) { window.location.href = '../1-2. 온보딩-시작하기/code.html'; return; }
         householdId = myMember.household_id;
 
+        var household = myMember.households_vc2608 || (await API.households.get(householdId));
+        document.getElementById('householdSelectorLabel').textContent = household.name || '우리집';
+
         await loadRecords();
         await loadPhotos();
         await loadMenuImages();
         await loadMenuCategories();
         renderMonthStats();
         renderRecords();
+        await loadNotis();
+        updateNotiDot();
     })();
 </script>
 </body></html>
