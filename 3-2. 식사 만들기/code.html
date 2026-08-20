@@ -231,13 +231,14 @@
 </details>
 </section>
 
-<!-- 종류 -->
+<!-- 종류: 08_create_meal.png 기준으로 낱개 알약 대신 하나의 테두리 상자를 내부 구분선으로
+     3분할한 세그먼트 컨트롤로, 아이콘도 추가(색은 참고 이미지의 초록 대신 앱 기본 그레이 유지). -->
 <section class="mb-6">
 <h2 class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wide mb-3 px-1">종류</h2>
-<div id="mealTypeChips" class="flex gap-2">
-<button type="button" class="meal-type-chip flex-1 py-2.5 rounded-full font-label-sm text-label-sm transition-colors" data-type="home" onclick="selectMealType('home')">집밥</button>
-<button type="button" class="meal-type-chip flex-1 py-2.5 rounded-full font-label-sm text-label-sm transition-colors" data-type="eatout" onclick="selectMealType('eatout')">외식</button>
-<button type="button" class="meal-type-chip flex-1 py-2.5 rounded-full font-label-sm text-label-sm transition-colors" data-type="delivery" onclick="selectMealType('delivery')">배달</button>
+<div id="mealTypeChips" class="flex rounded-xl border border-outline-variant overflow-hidden bg-surface-container-lowest">
+<button type="button" class="meal-type-chip flex-1 py-3 flex flex-col items-center gap-1 font-label-sm text-label-sm transition-colors border-r border-outline-variant" data-type="home" onclick="selectMealType('home')"><span class="material-symbols-outlined text-[20px]">soup_kitchen</span>집밥</button>
+<button type="button" class="meal-type-chip flex-1 py-3 flex flex-col items-center gap-1 font-label-sm text-label-sm transition-colors border-r border-outline-variant" data-type="eatout" onclick="selectMealType('eatout')"><span class="material-symbols-outlined text-[20px]">restaurant</span>외식</button>
+<button type="button" class="meal-type-chip flex-1 py-3 flex flex-col items-center gap-1 font-label-sm text-label-sm transition-colors" data-type="delivery" onclick="selectMealType('delivery')"><span class="material-symbols-outlined text-[20px]">moped</span>배달</button>
 </div>
 <p class="font-label-sm text-label-sm text-on-surface-variant mt-2 px-1">종류는 달력에는 표시되지 않고, 기록·통계에서만 쓰여요.</p>
 </section>
@@ -957,11 +958,10 @@
         mealType = type;
         document.querySelectorAll('.meal-type-chip').forEach(function (chip) {
             var active = chip.getAttribute('data-type') === type;
-            chip.classList.toggle('bg-primary', active);
-            chip.classList.toggle('text-on-primary', active);
-            chip.classList.toggle('bg-surface-container-lowest', !active);
+            chip.classList.toggle('bg-surface-container', active);
+            chip.classList.toggle('text-primary', active);
+            chip.classList.toggle('font-semibold', active);
             chip.classList.toggle('text-on-surface-variant', !active);
-            chip.classList.toggle('shadow-[0px_4px_12px_rgba(120,119,119,0.08)]', true);
         });
 
         document.getElementById('homeOnlyMenuTools').classList.toggle('hidden', type !== 'home');
