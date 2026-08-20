@@ -51,6 +51,15 @@
 <h1 class="font-headline-lg text-headline-lg text-on-surface">밀키트로 채워볼까요</h1>
 </header>
 
+<!-- 배송 일정 확인 — 사용자 요청: "밀키트 특성상 배송 오는 시간을 생각해야해. 원하는 일정에
+     배송받을 수 있어야해." 실제 제휴사 연동 전이라 정확한 리드타임은 알 수 없어서, 업계 평균
+     수준의 예상치임을 명확히 밝히고("예상") 가짜 마감 카운트다운은 넣지 않음. -->
+<div class="bg-surface-container-lowest rounded-xl p-card-padding shadow-[0px_4px_12px_rgba(120,119,119,0.08)] mb-4">
+<p class="font-label-sm text-label-sm text-on-surface-variant mb-1.5">언제 받고 싶으세요?</p>
+<input id="desiredDate" type="date" class="w-full border border-outline-variant rounded-lg px-3 py-2.5 font-body-md text-body-md text-on-surface bg-surface-container-lowest mb-2" onchange="renderDeliveryEstimate()">
+<p id="deliveryEstimate" class="font-label-sm text-label-sm"></p>
+</div>
+
 <div class="bg-surface-container-lowest rounded-xl p-card-padding shadow-[0px_4px_12px_rgba(120,119,119,0.08)] mb-4">
 <div class="flex items-center gap-3 mb-3">
 <span class="text-3xl">🥘</span>
@@ -89,11 +98,46 @@
     var householdId = null;
     var currentOrderId = null;
 
+    // 실제 제휴사 연동 전이라 정확한 리드타임은 모름 — 업계 평균 수준의 "예상"치.
+    // 오후 2시 이전 주문이면 다음날 도착, 그 이후면 이틀 뒤 도착으로 가정.
+    var ORDER_CUTOFF_HOUR = 14;
+    function pad(n) { return n < 10 ? '0' + n : '' + n; }
+    function toDateInputValue(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+    function earliestArrivalDate() {
+        var now = new Date();
+        var leadDays = now.getHours() < ORDER_CUTOFF_HOUR ? 1 : 2;
+        var arrival = new Date(now.getFullYear(), now.getMonth(), now.getDate() + leadDays);
+        return arrival;
+    }
+    function renderDeliveryEstimate() {
+        var input = document.getElementById('desiredDate');
+        var desired = new Date(input.value + 'T00:00:00');
+        var earliest = earliestArrivalDate();
+        var msgEl = document.getElementById('deliveryEstimate');
+        var earliestLabel = (earliest.getMonth() + 1) + '월 ' + earliest.getDate() + '일';
+        if (desired >= earliest) {
+            msgEl.textContent = '이 날짜엔 받아볼 수 있을 것 같아요 (예상 도착: 늦어도 ' + earliestLabel + ')';
+            msgEl.className = 'font-label-sm text-label-sm text-primary';
+        } else {
+            msgEl.textContent = '이 날짜까지는 어려울 수 있어요 · 가장 빠른 예상 도착일은 ' + earliestLabel + '이에요';
+            msgEl.className = 'font-label-sm text-label-sm text-error';
+        }
+    }
+
     (async function init() {
         await requireSession();
         var myMember = await getMyMember();
         if (!myMember) { window.location.href = '../1-2. 온보딩-시작하기/code.html'; return; }
         householdId = myMember.household_id;
+
+        // 받고 싶은 날짜 기본값: 오늘 이후 가장 가까운 예정된 식사 날짜(있으면), 없으면 최소 도착 예상일.
+        var upcomingMeals = await API.meals.listByHousehold(householdId);
+        var todayStr = toDateInputValue(new Date());
+        var nextMeal = upcomingMeals.filter(function (m) { return m.date >= todayStr; })
+            .sort(function (a, b) { return a.date < b.date ? -1 : 1; })[0];
+        var desiredDateInput = document.getElementById('desiredDate');
+        desiredDateInput.value = nextMeal ? nextMeal.date : toDateInputValue(earliestArrivalDate());
+        renderDeliveryEstimate();
 
         var order = null;
         try { order = JSON.parse(localStorage.getItem('milkit_order') || 'null'); } catch (err) {}
