@@ -324,10 +324,25 @@
 </div>
 <div class="relative z-10 p-4 flex flex-col gap-6">
 <div>
+<!-- 05_hamburger_menu.png 기준: "가족과 가구"에 4항목이 있었는데, 확인해보니 5-1(가구 설정)
+     하나가 구성원/공동 관리자 지정/손님 관리/구성원 초대를 전부 이미 다루고 있어서(①②③ 섹션),
+     가짜 링크가 아니라 같은 화면으로 가는 4개의 진입점으로 늘림. -->
 <p class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wide mb-2 px-1">가족과 가구</p>
 <button class="w-full flex items-center gap-3 px-3 py-3 rounded-xl active:bg-surface-container" onclick="window.location.href='../5-1. 가구 설정/code.html'">
 <span class="material-symbols-outlined text-primary">group</span>
-<span class="font-body-md text-body-md text-on-surface">가구 설정</span>
+<span class="font-body-md text-body-md text-on-surface">가족 구성원</span>
+</button>
+<button class="w-full flex items-center gap-3 px-3 py-3 rounded-xl active:bg-surface-container" onclick="window.location.href='../5-1. 가구 설정/code.html'">
+<span class="material-symbols-outlined text-primary">shield_person</span>
+<span class="font-body-md text-body-md text-on-surface">공동 관리자</span>
+</button>
+<button class="w-full flex items-center gap-3 px-3 py-3 rounded-xl active:bg-surface-container" onclick="window.location.href='../5-1. 가구 설정/code.html'">
+<span class="material-symbols-outlined text-primary">person_add</span>
+<span class="font-body-md text-body-md text-on-surface">손님 관리</span>
+</button>
+<button class="w-full flex items-center gap-3 px-3 py-3 rounded-xl active:bg-surface-container" onclick="window.location.href='../5-1. 가구 설정/code.html'">
+<span class="material-symbols-outlined text-primary">mail</span>
+<span class="font-body-md text-body-md text-on-surface">가구 초대</span>
 </button>
 </div>
 <div>
@@ -335,6 +350,12 @@
 <button class="w-full flex items-center gap-3 px-3 py-3 rounded-xl active:bg-surface-container" onclick="window.location.href='../5-4. 요일별 기본 응답/code.html'">
 <span class="material-symbols-outlined text-primary">event_repeat</span>
 <span class="font-body-md text-body-md text-on-surface">요일별 기본 응답</span>
+</button>
+<!-- "반복 식사 관리"/"자주 가는 곳"은 참고 이미지엔 있지만 실제로 3-2 안에서만 관리되고
+     별도 화면이 없어서(가짜 링크 금지 원칙) 계속 뺌. "알림 설정"은 5-3에 실제 토글이 있어서 추가. -->
+<button class="w-full flex items-center gap-3 px-3 py-3 rounded-xl active:bg-surface-container" onclick="window.location.href='../5-3. 설정/code.html'">
+<span class="material-symbols-outlined text-primary">notifications</span>
+<span class="font-body-md text-body-md text-on-surface">알림 설정</span>
 </button>
 </div>
 <div>
@@ -357,6 +378,12 @@
 <button class="w-full flex items-center gap-3 px-3 py-3 rounded-xl active:bg-surface-container" onclick="window.location.href='../5-3. 설정/code.html'">
 <span class="material-symbols-outlined text-primary">settings</span>
 <span class="font-body-md text-body-md text-on-surface">계정 설정</span>
+</button>
+<!-- "도움말"/"개인정보 및 데이터"는 참고 이미지엔 있지만 실제 화면이 없어서 계속 뺌.
+     "로그아웃"은 화면이 아니라 실제 동작이라 5-3과 동일한 로직으로 여기서도 바로 실행. -->
+<button type="button" class="w-full flex items-center gap-3 px-3 py-3 rounded-xl active:bg-surface-container" onclick="logoutFromMenu()">
+<span class="material-symbols-outlined text-error">logout</span>
+<span class="font-body-md text-body-md text-error">로그아웃</span>
 </button>
 </div>
 </div>
@@ -594,6 +621,13 @@
         document.getElementById('menuPanel').style.transform = 'translateX(100%)';
         document.getElementById('menuBackdrop').classList.add('hidden');
         setTimeout(function () { document.getElementById('menuPanel').classList.add('hidden'); }, 250);
+    }
+
+    // 05_hamburger_menu.png의 "로그아웃"은 화면이 아니라 실제 동작 — 5-3. 설정과 동일한 로직.
+    async function logoutFromMenu() {
+        if (!confirm('로그아웃 할까요?')) return;
+        await API.auth.signOut();
+        window.location.href = '../2-1.로그인 화면/code.html';
     }
 
     var householdId = null;
