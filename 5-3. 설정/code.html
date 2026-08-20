@@ -46,6 +46,9 @@
   </style>
   </head>
 <body class="bg-surface text-on-surface font-body-md antialiased min-h-screen flex flex-col items-center">
+
+<div id="toast" class="fixed left-1/2 -translate-x-1/2 bg-on-surface text-surface font-label-sm text-label-sm px-4 py-3 rounded-full shadow-lg opacity-0 pointer-events-none transition-opacity duration-300 z-[80]" style="bottom:24px;"></div>
+
 <main class="w-full max-w-[600px] flex flex-col px-safe-area-inset py-section-margin">
 
 <header class="flex items-center gap-3 mb-6">
@@ -80,6 +83,40 @@
 <span class="font-body-md text-body-md text-on-surface">휴대폰 번호</span>
 <span id="phoneNumber" class="font-label-sm text-label-sm text-on-surface-variant">010-1234-5678</span>
 </div>
+</div>
+
+<!-- 식성 정보 — 회원가입 때 넣은 알레르기/못 먹는 것/잘 먹는 것을 여기서도 추가·수정 가능. -->
+<div class="bg-surface-container-lowest rounded-xl shadow-[0px_4px_12px_rgba(120,119,119,0.08)] mb-6 p-card-padding flex flex-col gap-4">
+<p class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wide">식성 정보</p>
+
+<div class="flex flex-col gap-1.5">
+<label class="font-label-sm text-label-sm text-on-surface-variant">알레르기</label>
+<div id="allergies-chips" class="flex flex-wrap gap-2"></div>
+<div class="flex gap-2">
+<input id="allergies-input" type="text" placeholder="예: 새우, 땅콩" autocomplete="off" class="flex-1 min-w-0 border border-outline-variant rounded-lg px-3 py-2 font-body-md text-body-md text-on-surface bg-surface-container-lowest" onkeydown="if(event.key==='Enter'){event.preventDefault();addDietaryTag('allergies');}">
+<button type="button" class="px-3 rounded-lg bg-surface-container text-on-surface-variant font-label-sm text-label-sm shrink-0" onclick="addDietaryTag('allergies')">추가</button>
+</div>
+</div>
+
+<div class="flex flex-col gap-1.5">
+<label class="font-label-sm text-label-sm text-on-surface-variant">못 먹는 것</label>
+<div id="dislikes-chips" class="flex flex-wrap gap-2"></div>
+<div class="flex gap-2">
+<input id="dislikes-input" type="text" placeholder="예: 오이, 가지" autocomplete="off" class="flex-1 min-w-0 border border-outline-variant rounded-lg px-3 py-2 font-body-md text-body-md text-on-surface bg-surface-container-lowest" onkeydown="if(event.key==='Enter'){event.preventDefault();addDietaryTag('dislikes');}">
+<button type="button" class="px-3 rounded-lg bg-surface-container text-on-surface-variant font-label-sm text-label-sm shrink-0" onclick="addDietaryTag('dislikes')">추가</button>
+</div>
+</div>
+
+<div class="flex flex-col gap-1.5">
+<label class="font-label-sm text-label-sm text-on-surface-variant">잘 먹는 것</label>
+<div id="likes-chips" class="flex flex-wrap gap-2"></div>
+<div class="flex gap-2">
+<input id="likes-input" type="text" placeholder="예: 매운 음식, 고기" autocomplete="off" class="flex-1 min-w-0 border border-outline-variant rounded-lg px-3 py-2 font-body-md text-body-md text-on-surface bg-surface-container-lowest" onkeydown="if(event.key==='Enter'){event.preventDefault();addDietaryTag('likes');}">
+<button type="button" class="px-3 rounded-lg bg-surface-container text-on-surface-variant font-label-sm text-label-sm shrink-0" onclick="addDietaryTag('likes')">추가</button>
+</div>
+</div>
+
+<button type="button" id="saveDietaryBtn" class="w-full py-2.5 rounded-full bg-primary text-on-primary font-label-sm text-label-sm" onclick="saveDietaryInfo()">저장</button>
 </div>
 
 <!-- 6가지 예정 작업 중 4번: 가이드 설명을 온보딩뿐 아니라 설정에서도 다시 볼 수 있게 -->
@@ -147,6 +184,54 @@
         document.getElementById('guidePanel').classList.add('hidden');
     }
 
+    var toastTimer;
+    function showToast(msg) {
+        var toast = document.getElementById('toast');
+        toast.textContent = msg;
+        toast.classList.remove('opacity-0');
+        toast.classList.add('opacity-100');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(function () { toast.classList.remove('opacity-100'); toast.classList.add('opacity-0'); }, 2200);
+    }
+
+    // 식성 정보(알레르기/못 먹는 것/잘 먹는 것) — 1-1 회원가입과 동일한 태그 입력 패턴.
+    var dietaryTags = { allergies: [], dislikes: [], likes: [] };
+    function renderDietaryChips(field) {
+        var wrap = document.getElementById(field + '-chips');
+        wrap.innerHTML = '';
+        dietaryTags[field].forEach(function (tag, i) {
+            var chip = document.createElement('span');
+            chip.className = 'inline-flex items-center gap-1.5 bg-surface-container text-on-surface rounded-full pl-3 pr-2 py-1.5 font-label-sm text-label-sm';
+            var label = document.createElement('span');
+            label.textContent = tag;
+            var removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.setAttribute('aria-label', tag + ' 삭제');
+            removeBtn.className = 'w-5 h-5 flex items-center justify-center rounded-full active:bg-surface-container-high';
+            removeBtn.innerHTML = '<span class="material-symbols-outlined" style="font-size:14px;">close</span>';
+            removeBtn.onclick = function () { dietaryTags[field].splice(i, 1); renderDietaryChips(field); };
+            chip.appendChild(label);
+            chip.appendChild(removeBtn);
+            wrap.appendChild(chip);
+        });
+    }
+    function addDietaryTag(field) {
+        var input = document.getElementById(field + '-input');
+        var v = input.value.trim();
+        if (!v || dietaryTags[field].indexOf(v) !== -1) { input.value = ''; return; }
+        dietaryTags[field].push(v);
+        input.value = '';
+        renderDietaryChips(field);
+    }
+    async function saveDietaryInfo() {
+        await API.auth.updateMyProfile({
+            allergies: dietaryTags.allergies,
+            dislikes: dietaryTags.dislikes,
+            likes: dietaryTags.likes
+        });
+        showToast('식성 정보를 저장했어요');
+    }
+
     function toggleSwitch(el) {
         el.classList.toggle('on');
         el.classList.toggle('off');
@@ -167,12 +252,19 @@
         var photo = member && member.avatar_url;
         var email = session.user.email || '';
 
-        var profileRes = await sb.from('profiles_vc2608').select('phone').eq('id', session.user.id).maybeSingle();
+        var profileRes = await sb.from('profiles_vc2608').select('phone, allergies, dislikes, likes').eq('id', session.user.id).maybeSingle();
         var phone = profileRes.data && profileRes.data.phone;
 
         document.getElementById('profileName').textContent = nickname;
         document.getElementById('profileEmail').textContent = email;
         document.getElementById('phoneNumber').textContent = phone || '등록 안 됨';
+
+        dietaryTags.allergies = (profileRes.data && profileRes.data.allergies) || [];
+        dietaryTags.dislikes = (profileRes.data && profileRes.data.dislikes) || [];
+        dietaryTags.likes = (profileRes.data && profileRes.data.likes) || [];
+        renderDietaryChips('allergies');
+        renderDietaryChips('dislikes');
+        renderDietaryChips('likes');
 
         var avatar = document.getElementById('profileAvatar');
         if (photo) { avatar.innerHTML = '<img src="' + photo + '" class="w-full h-full object-cover">'; }
