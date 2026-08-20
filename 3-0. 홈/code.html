@@ -880,18 +880,29 @@
         document.getElementById('tableHeroEmpty').classList.add('hidden');
         document.getElementById('tableHeroPopulated').classList.remove('hidden');
         renderMoreMealsLine(todayMeals.length - 1);
+
+        // 시간이 지난 식사 대신 다음(아직 안 지난) 식사를 보여줌 — "시간이 지났으면 홈에서는
+        // 그다음 음식으로 넘어가야함" 사용자 요청. 시간 미정은 하루 종일 유효하다고 취급.
+        // 오늘 남은 게 하나도 없으면(전부 지남) 마지막 식사를 그대로 보여줌(빈 카드보다 나음).
+        var now = new Date();
+        var upcomingToday = todayMeals.filter(function (m) {
+            if (!m.time) return true;
+            return new Date(m.date + 'T' + m.time) >= now;
+        });
+        var activeMeal = upcomingToday.length ? upcomingToday[0] : todayMeals[todayMeals.length - 1];
+
         // 대표 메뉴는 3-2에서 정한 순서 그대로 최대 2개까지 이름을 보여줌("외 N개"로 뭉개지 않음).
-        var firstMenu = todayMeals[0].menu || [];
+        var firstMenu = activeMeal.menu || [];
         var repName = firstMenu[0];
         menuEl.textContent = firstMenu.length ? firstMenu.slice(0, 2).join(', ') : '메뉴 미정';
 
-        whenEl.textContent = todayMeals[0].time
-            ? ('오늘 ' + mealTimeOfDayLabel(todayMeals[0].time) + ' · ' + todayMeals[0].time.slice(0, 5))
+        whenEl.textContent = activeMeal.time
+            ? ('오늘 ' + mealTimeOfDayLabel(activeMeal.time) + ' · ' + activeMeal.time.slice(0, 5))
             : '오늘 · 시간 미정';
         whenEl.classList.remove('hidden');
 
         // 식탁 사진 우선순위(8-2/3-1과 동일): 실제 식사 사진 → 메뉴 이름으로 등록된 대표 사진 → 이모지 플레이스홀더.
-        var mealPhoto = await API.mealPhotos.getByMeal(todayMeals[0].id);
+        var mealPhoto = await API.mealPhotos.getByMeal(activeMeal.id);
         if (mealPhoto) {
             photoEl.innerHTML = '<img src="' + mealPhoto.photo_url + '" class="w-full h-full object-cover scale-150">';
         } else if (repName) {
