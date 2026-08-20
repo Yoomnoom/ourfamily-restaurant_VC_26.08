@@ -31,6 +31,10 @@
     body { min-height: max(884px, 100dvh); -webkit-tap-highlight-color: transparent; }
     .day-cell { aspect-ratio: 1 / 1.05; overflow: hidden; }
     .day-cell .cell-menu, .week-cell .cell-menu { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+    /* 미리 답해두기 캐러셀 — 손가락/마우스로는 그대로 넘길 수 있게 두되, 데스크톱에서
+       두꺼운 회색 스크롤바가 그대로 보여서 어색하다는 지적(2026-08-21)이 있어 숨김. */
+    #advanceCarousel { scrollbar-width: none; -ms-overflow-style: none; }
+    #advanceCarousel::-webkit-scrollbar { display: none; }
   
     /* 애플 디자인 원칙: 눌림 피드백은 즉시, 정지는 스프링형(임계감쇠)으로 — WWDC "Designing Fluid Interfaces" */
     .active\:scale-95:active, .active\:scale-\[0\.98\]:active, .active\:scale-\[0\.95\]:active {
