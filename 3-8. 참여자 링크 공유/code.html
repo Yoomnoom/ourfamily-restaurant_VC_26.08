@@ -6,6 +6,9 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="../shared/supabase-client.js"></script>
 <script src="../shared/api.js"></script>
+<!-- 카카오톡 공유(Kakao.Share) — 카카오 디벨로퍼스 "ourfamily-restaurant" 앱의 JavaScript 키.
+     Web 플랫폼에 실제 배포 도메인이 등록돼 있어야 정상 동작(2026-08-20). -->
+<script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js"></script>
 <link href="https://fonts.googleapis.com" rel="preconnect">
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
@@ -79,6 +82,32 @@
         } else { fallback(); }
     }
 
+    // 카카오 디벨로퍼스 "ourfamily-restaurant" 앱(ID 1548806)의 JavaScript 키(REST API 키와 다름 — 로그인엔 그 키를 씀).
+    var KAKAO_JS_KEY = 'bdf4f418a17543823d93e62700a4b787';
+    function ensureKakaoInit() {
+        if (window.Kakao && !Kakao.isInitialized()) Kakao.init(KAKAO_JS_KEY);
+    }
+
+    function mealShareText(meal) {
+        if (!meal) return '우리집식당에서 초대가 왔어요';
+        var menuText = (meal.menu && meal.menu.length) ? meal.menu.slice(0, 2).join(', ') : '메뉴 미정';
+        var d = new Date(meal.date + 'T00:00:00');
+        var dateLabel = (d.getMonth() + 1) + '월 ' + d.getDate() + '일';
+        var timeLabel = meal.time ? meal.time.slice(0, 5) : '시간 미정';
+        return menuText + ' · ' + dateLabel + ' ' + timeLabel;
+    }
+
+    function shareKakao(url, meal) {
+        if (!window.Kakao) { showToast('카카오 SDK를 불러오지 못했어요'); return; }
+        ensureKakaoInit();
+        Kakao.Share.sendDefault({
+            objectType: 'text',
+            text: '우리집식당 · ' + mealShareText(meal) + '\n참여 여부를 알려주세요!',
+            link: { mobileWebUrl: url, webUrl: url },
+            buttonTitle: '응답하러 가기'
+        });
+    }
+
     function linkUrlFor(token) {
         // 실제 도메인이 아직 없어서(정적 파일 배포) 지금 열려있는 origin 기준 상대 경로로 링크를 만듦.
         // 폴더명에 한글·공백이 있어서 encodeURI로 감싸야 카톡 등에 붙여넣었을 때 안 깨짐.
@@ -86,7 +115,7 @@
         return encodeURI(base) + '?token=' + token;
     }
 
-    function renderRow(r, freshToken) {
+    function renderRow(r, freshToken, meal) {
         var row = document.createElement('div');
         row.className = 'bg-surface-container-lowest rounded-xl p-card-padding shadow-[0px_4px_12px_rgba(120,119,119,0.08)]';
 
@@ -112,7 +141,7 @@
             regenBtn.onclick = async function () {
                 regenBtn.disabled = true;
                 var token = await API.mealParticipants.regenerateToken(r.participantId);
-                row.replaceWith(renderRow(r, token));
+                row.replaceWith(renderRow(r, token, meal));
             };
             row.appendChild(regenBtn);
             return row;
@@ -139,7 +168,7 @@
         shareBtn.type = 'button';
         shareBtn.className = 'flex-1 py-2.5 rounded-full bg-surface-container text-on-surface-variant font-label-sm text-label-sm whitespace-nowrap';
         shareBtn.textContent = '카카오톡';
-        shareBtn.onclick = function () { showToast('카카오톡 공유는 실제 서비스에서 연동돼요.'); };
+        shareBtn.onclick = function () { shareKakao(url, meal); };
         topRow.appendChild(shareBtn);
         actions.appendChild(topRow);
 
@@ -160,6 +189,9 @@
         var mealId = params.get('meal');
         if (!mealId) { showToast('식사 정보를 찾을 수 없어요'); return; }
 
+        var meal = await API.meals.get(mealId);
+        ensureKakaoInit();
+
         var roster = await API.mealParticipants.getRoster(mealId);
         var freshLinks = {};
         try { freshLinks = {}; (JSON.parse(localStorage.getItem('fresh_links_' + mealId) || '[]')).forEach(function (x) { freshLinks[x.memberId] = x.token; }); } catch (err) {}
@@ -167,7 +199,7 @@
         var list = document.getElementById('linkList');
         list.innerHTML = '';
         roster.forEach(function (r) {
-            list.appendChild(renderRow(r, freshLinks[r.memberId]));
+            list.appendChild(renderRow(r, freshLinks[r.memberId], meal));
         });
 
         // 한 번 보여줬으면 이 임시 저장은 정리 — 새로고침해도 다시 안 보이는 게 맞음(원본은 해시로만 저장되므로).
