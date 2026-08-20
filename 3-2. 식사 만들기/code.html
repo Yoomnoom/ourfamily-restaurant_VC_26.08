@@ -140,15 +140,16 @@
 
 <div id="toast" class="fixed left-1/2 -translate-x-1/2 bg-on-surface text-surface font-label-sm text-label-sm px-4 py-3 rounded-full shadow-lg opacity-0 pointer-events-none transition-opacity duration-300" style="bottom:calc(100px + env(safe-area-inset-bottom)); z-index:100;"></div>
 
-<main class="w-full max-w-[600px] flex flex-col px-safe-area-inset py-section-margin pb-28 relative">
+<main class="w-full max-w-[600px] flex flex-col px-safe-area-inset py-section-margin pb-40 relative">
 
-<!-- Header -->
+<!-- Header — 08_create_meal.png 기준: 뒤로가기 화살표 대신 닫기(X), 제출 버튼은 하단 고정바로
+     이동(아래 #bottomSubmitBar). 실제 "1/2 단계+링크 만들기"까지는 맞추지 않음 — 이 화면은
+     생성이 끝나면 바로 완료되는 단일 단계라 가짜 2단계 표시는 넣지 않기로 함(가짜 기능 금지 원칙). -->
 <header class="flex items-center gap-3 mb-6">
-<button class="w-11 h-11 flex items-center justify-center rounded-full bg-surface-container-lowest text-on-surface shadow-[0px_4px_12px_rgba(120,119,119,0.08)] active:scale-95 transition-transform" onclick="window.location.href='../3-1. 내 식탁/code.html'" aria-label="뒤로">
-<span class="material-symbols-outlined">arrow_back</span>
+<button class="w-11 h-11 flex items-center justify-center rounded-full bg-surface-container-lowest text-on-surface shadow-[0px_4px_12px_rgba(120,119,119,0.08)] active:scale-95 transition-transform" onclick="window.location.href='../3-1. 내 식탁/code.html'" aria-label="닫기">
+<span class="material-symbols-outlined">close</span>
 </button>
 <h1 id="pageTitle" class="font-headline-lg text-headline-lg text-on-surface flex-1">새 식사 만들기</h1>
-<button id="submitBtn" class="bg-primary text-on-primary font-label-sm text-label-sm px-4 py-2.5 rounded-full shadow-[0px_4px_12px_rgba(120,119,119,0.08)] active:scale-[0.98] transition-transform shrink-0" onclick="createMeal()">식사 만들기</button>
 </header>
 
 <div id="editNotice" class="hidden flex items-center gap-2 bg-tertiary-container text-on-tertiary-container rounded-xl px-4 py-3 mb-6">
@@ -318,6 +319,13 @@
 </section>
 
 </main>
+
+<!-- 08_create_meal.png 기준: 제출 버튼을 하단 고정바로. 바로 아래 하단 탭 위에 뜸. -->
+<div class="fixed left-0 right-0 z-20 bg-surface border-t border-outline-variant px-safe-area-inset py-3" style="bottom: calc(64px + env(safe-area-inset-bottom));">
+<div class="max-w-[600px] mx-auto">
+<button id="submitBtn" class="w-full bg-primary text-on-primary font-label-sm text-[15px] py-3.5 rounded-full shadow-[0px_4px_12px_rgba(120,119,119,0.08)] active:scale-[0.98] transition-transform" onclick="createMeal()">식사 만들기</button>
+</div>
+</div>
 
 <!-- Bottom Nav -->
 <nav class="fixed bottom-0 left-0 right-0 z-10 bg-surface-container-lowest/90 backdrop-blur-md border-t border-outline-variant" style="padding-bottom: env(safe-area-inset-bottom);">
