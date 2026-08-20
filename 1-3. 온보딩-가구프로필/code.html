@@ -143,6 +143,16 @@
 <label class="font-label-sm text-label-sm text-on-surface-variant" for="householdName">가구명</label>
 <input class="w-full bg-transparent border-0 border-b border-surface-container-high focus:border-primary focus:ring-0 px-0 py-2 font-body-md text-body-md text-on-surface placeholder:text-outline-variant transition-colors" id="householdName" placeholder="예: 행복한 우리집, OO네 식탁" type="text">
 </div>
+
+<!-- 가족 외 그룹 유형(회사 등)도 지원(6가지 예정 작업 3번) — 나중에 5-1 가구 설정에서 변경 가능. -->
+<div class="flex flex-col gap-1.5">
+<label class="font-label-sm text-label-sm text-on-surface-variant">모임 유형</label>
+<div id="groupTypeChips" class="flex rounded-xl border border-outline-variant overflow-hidden">
+<button type="button" class="group-type-chip flex-1 py-2.5 flex flex-col items-center gap-1 font-label-sm text-label-sm transition-colors border-r border-outline-variant" data-type="family" onclick="selectGroupType('family')"><span class="material-symbols-outlined text-[18px]">home</span>가족</button>
+<button type="button" class="group-type-chip flex-1 py-2.5 flex flex-col items-center gap-1 font-label-sm text-label-sm transition-colors border-r border-outline-variant" data-type="company" onclick="selectGroupType('company')"><span class="material-symbols-outlined text-[18px]">apartment</span>회사</button>
+<button type="button" class="group-type-chip flex-1 py-2.5 flex flex-col items-center gap-1 font-label-sm text-label-sm transition-colors" data-type="other" onclick="selectGroupType('other')"><span class="material-symbols-outlined text-[18px]">groups</span>기타 모임</button>
+</div>
+</div>
 </div>
 
 <!-- Section: 내 프로필 설정 -->
@@ -201,6 +211,20 @@
 </div>
 
 <script>
+    // 가족 외 그룹 유형(회사 등) — 기본 '가족' 선택 상태로 시작.
+    var selectedGroupType = 'family';
+    function selectGroupType(type) {
+        selectedGroupType = type;
+        document.querySelectorAll('.group-type-chip').forEach(function (chip) {
+            var active = chip.getAttribute('data-type') === type;
+            chip.classList.toggle('bg-surface-container', active);
+            chip.classList.toggle('text-primary', active);
+            chip.classList.toggle('font-semibold', active);
+            chip.classList.toggle('text-on-surface-variant', !active);
+        });
+    }
+    selectGroupType('family');
+
     var profilePhotoInput = document.getElementById('profilePhotoInput');
     var profilePhotoPreview = document.getElementById('profilePhotoPreview');
     var profilePhotoPlaceholder = document.getElementById('profilePhotoPlaceholder');
@@ -354,7 +378,7 @@
         nextStepBtn.disabled = true;
         try {
             // household는 여기서 실제로 생성. 구성원(1-4)은 이 id를 이어받아 등록됨.
-            var household = await API.households.create(householdName);
+            var household = await API.households.create(householdName, selectedGroupType);
             localStorage.setItem('onboarding_household_id', household.id);
             localStorage.setItem('onboarding_household_name', householdName);
             localStorage.setItem('onboarding_nickname', nickname);

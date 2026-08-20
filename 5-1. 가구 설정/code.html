@@ -58,6 +58,17 @@
 <section class="mb-6">
 <h2 class="font-headline-lg text-headline-lg text-on-surface mb-1">① 가구 정보</h2>
 <p class="font-label-sm text-label-sm text-on-surface-variant mb-3">구성원, 공동 관리자, 가구 삭제</p>
+
+<!-- 모임 유형(6가지 예정 작업 3번) — 가족 외 회사 등도 지원, 관리자만 변경 가능. -->
+<div class="mb-4">
+<label class="font-label-sm text-label-sm text-on-surface-variant mb-1.5 block">모임 유형</label>
+<div id="groupTypeChips" class="flex rounded-xl border border-outline-variant overflow-hidden">
+<button type="button" class="group-type-chip flex-1 py-2.5 flex flex-col items-center gap-1 font-label-sm text-label-sm transition-colors border-r border-outline-variant" data-type="family" onclick="selectGroupType('family')"><span class="material-symbols-outlined text-[18px]">home</span>가족</button>
+<button type="button" class="group-type-chip flex-1 py-2.5 flex flex-col items-center gap-1 font-label-sm text-label-sm transition-colors border-r border-outline-variant" data-type="company" onclick="selectGroupType('company')"><span class="material-symbols-outlined text-[18px]">apartment</span>회사</button>
+<button type="button" class="group-type-chip flex-1 py-2.5 flex flex-col items-center gap-1 font-label-sm text-label-sm transition-colors" data-type="other" onclick="selectGroupType('other')"><span class="material-symbols-outlined text-[18px]">groups</span>기타 모임</button>
+</div>
+</div>
+
 <div id="memberList" class="flex flex-col gap-2 mb-3"></div>
 
 <!-- 가구 참여 링크로 들어온 합류 요청 — 승인 전엔 진짜 구성원이 아님(사용자 결정: 링크만으로
@@ -132,6 +143,25 @@
     }
 
     var myMember = null; // requireSession 뒤 init에서 채움
+
+    // 모임 유형(6가지 예정 작업 3번) — 오너만 변경 가능(다른 관리 항목과 동일한 권한 기준).
+    function renderGroupTypeChips(currentType, editable) {
+        document.querySelectorAll('.group-type-chip').forEach(function (chip) {
+            var active = chip.getAttribute('data-type') === currentType;
+            chip.classList.toggle('bg-surface-container', active);
+            chip.classList.toggle('text-primary', active);
+            chip.classList.toggle('font-semibold', active);
+            chip.classList.toggle('text-on-surface-variant', !active);
+            chip.disabled = !editable;
+            chip.classList.toggle('opacity-50', !editable);
+        });
+    }
+    async function selectGroupType(type) {
+        if (myMember.role !== 'owner') { showToast('모임 유형은 오너만 바꿀 수 있어요'); return; }
+        await API.households.updateGroupType(myMember.household_id, type);
+        renderGroupTypeChips(type, true);
+        showToast('모임 유형을 바꿨어요');
+    }
 
     async function renderMembers() {
         var all = await API.members.list(myMember.household_id);
@@ -301,6 +331,8 @@
         await requireSession();
         myMember = await getMyMember();
         if (!myMember) { window.location.href = '../1-2. 온보딩-시작하기/code.html'; return; }
+        var household = myMember.households_vc2608 || (await API.households.get(myMember.household_id));
+        renderGroupTypeChips(household.group_type || 'family', myMember.role === 'owner');
         renderMembers();
         renderGuests();
     })();

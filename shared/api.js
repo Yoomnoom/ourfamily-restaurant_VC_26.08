@@ -161,7 +161,7 @@ API.storage = {
 // 가구 / 멤버 (household_members_vc2608 — 무가입 멤버는 profile_id null)
 // ---------------------------------------------------------
 API.households = {
-  async create(name) {
+  async create(name, groupType) {
     // 회원가입 트리거 이전에 만들어진 계정(예: 다른 프로젝트에서 넘어온 테스트 계정)은
     // profiles_vc2608 행이 없을 수 있음 — households_vc2608.owner_id가 profiles_vc2608을
     // 참조하므로, 없으면 여기서 만들어 자연스럽게 복구.
@@ -173,7 +173,8 @@ API.households = {
       if (upsert.error) throw upsert.error;
     }
 
-    var res = await sb.rpc('create_household_vc2608', { household_name: name });
+    // group_type: 'family'(기본)|'company'|'other' — 가족 외 그룹(회사 등)도 지원.
+    var res = await sb.rpc('create_household_vc2608', { household_name: name, group_type: groupType || 'family' });
     if (res.error) throw res.error;
     return res.data;
   },
@@ -202,6 +203,12 @@ API.households = {
       .select('*').eq('profile_id', session.user.id).eq('role', 'pending').maybeSingle();
     if (res.error) throw res.error;
     return res.data;
+  },
+
+  // 관리자(오너/공동관리자)만 가능(RLS households_vc2608_update_admin) — 가족 외 그룹 유형 지원.
+  async updateGroupType(householdId, groupType) {
+    var res = await sb.from('households_vc2608').update({ group_type: groupType }).eq('id', householdId);
+    if (res.error) throw res.error;
   },
 
   // 오너만 가능(RLS households_vc2608_delete_owner)
