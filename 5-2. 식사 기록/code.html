@@ -54,11 +54,11 @@
 <span class="material-symbols-outlined text-[16px]">expand_more</span>
 </button>
 <div class="flex items-center gap-2">
-<button class="relative w-11 h-11 rounded-full bg-surface-container-lowest shadow-[0px_4px_12px_rgba(120,119,119,0.08)] flex items-center justify-center active:scale-95 transition-transform" onclick="openNotiPanel()" aria-label="알림">
+<button class="relative w-12 h-12 rounded-full bg-surface-container-lowest shadow-[0px_4px_12px_rgba(120,119,119,0.08)] flex items-center justify-center active:scale-95 transition-transform" onclick="openNotiPanel()" aria-label="알림">
 <span class="material-symbols-outlined text-on-surface">notifications</span>
 <span id="notiDot" class="hidden absolute top-2 right-2 w-2 h-2 rounded-full bg-primary"></span>
 </button>
-<button class="w-11 h-11 rounded-full bg-surface-container-lowest shadow-[0px_4px_12px_rgba(120,119,119,0.08)] flex items-center justify-center active:scale-95 transition-transform" onclick="openMenuPanel()" aria-label="전체 메뉴">
+<button class="w-12 h-12 rounded-full bg-surface-container-lowest shadow-[0px_4px_12px_rgba(120,119,119,0.08)] flex items-center justify-center active:scale-95 transition-transform" onclick="openMenuPanel()" aria-label="전체 메뉴">
 <span class="material-symbols-outlined text-on-surface">menu</span>
 </button>
 </div>
@@ -73,7 +73,7 @@
 <h2 class="font-headline-lg text-headline-lg text-on-surface">알림</h2>
 <div class="flex items-center gap-1">
 <button type="button" id="markAllReadBtn" class="font-label-sm text-label-sm text-primary px-2" onclick="markAllNotisRead()">모두 읽음</button>
-<button class="w-11 h-11 flex items-center justify-center rounded-full active:bg-surface-container transition-colors" onclick="closeNotiPanel()" aria-label="알림 닫기">
+<button class="w-12 h-12 flex items-center justify-center rounded-full active:bg-surface-container transition-colors" onclick="closeNotiPanel()" aria-label="알림 닫기">
 <span class="material-symbols-outlined">close</span>
 </button>
 </div>
@@ -86,7 +86,7 @@
 <aside id="menuPanel" class="hidden fixed top-0 right-0 h-full w-[88%] max-w-[360px] bg-surface z-[70] shadow-2xl overflow-y-auto" style="transform: translateX(100%); transition: transform .25s ease;">
 <div class="flex items-center justify-between px-5 py-4 border-b border-outline-variant">
 <h2 class="font-headline-lg text-headline-lg text-on-surface">전체 메뉴</h2>
-<button class="w-11 h-11 flex items-center justify-center rounded-full active:bg-surface-container transition-colors" onclick="closeMenuPanel()" aria-label="메뉴 닫기">
+<button class="w-12 h-12 flex items-center justify-center rounded-full active:bg-surface-container transition-colors" onclick="closeMenuPanel()" aria-label="메뉴 닫기">
 <span class="material-symbols-outlined">close</span>
 </button>
 </div>
@@ -161,17 +161,17 @@
 <p id="monthOverviewTitle" class="font-body-md text-body-md text-on-surface font-medium mb-3">이번 달 한눈에 보기</p>
 <div class="grid grid-cols-3 divide-x divide-outline-variant mb-3">
 <div class="flex flex-col items-center px-1">
-<span class="w-11 h-11 rounded-full bg-surface-container flex items-center justify-center text-primary mb-1.5"><span class="material-symbols-outlined">groups</span></span>
+<span class="w-12 h-12 rounded-full bg-surface-container flex items-center justify-center text-primary mb-1.5"><span class="material-symbols-outlined">groups</span></span>
 <span class="font-label-sm text-label-sm text-on-surface-variant text-center mb-1">함께 먹은 식사</span>
 <p class="font-headline-lg text-headline-lg text-primary"><span id="statTotalCount">-</span><span class="font-label-sm text-label-sm">번</span></p>
 </div>
 <div class="flex flex-col items-center px-1">
-<span class="w-11 h-11 rounded-full bg-surface-container flex items-center justify-center text-primary mb-1.5"><span class="material-symbols-outlined">person</span></span>
+<span class="w-12 h-12 rounded-full bg-surface-container flex items-center justify-center text-primary mb-1.5"><span class="material-symbols-outlined">person</span></span>
 <span class="font-label-sm text-label-sm text-on-surface-variant text-center mb-1">평균 참여</span>
 <p class="font-headline-lg text-headline-lg text-primary"><span id="statAvgCount">-</span><span class="font-label-sm text-label-sm">명</span></p>
 </div>
 <div class="flex flex-col items-center px-1">
-<span class="w-11 h-11 rounded-full bg-surface-container flex items-center justify-center text-primary mb-1.5"><span class="material-symbols-outlined">soup_kitchen</span></span>
+<span class="w-12 h-12 rounded-full bg-surface-container flex items-center justify-center text-primary mb-1.5"><span class="material-symbols-outlined">soup_kitchen</span></span>
 <span class="font-label-sm text-label-sm text-on-surface-variant text-center mb-1">가장 자주 먹은 메뉴</span>
 <p id="statTopMenu" class="font-headline-lg text-headline-lg text-primary text-center">-</p>
 </div>
