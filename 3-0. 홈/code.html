@@ -234,9 +234,16 @@
 <div id="requestList" class="flex flex-col gap-2"></div>
 </section>
 
-<!-- 구분선: 여기부터는 자주 안 쓰는 부수 기능(살림·기록·설정 지름길) -->
-<div class="border-t border-outline-variant mb-6"></div>
+<!-- 접근성 패스 3단계(구조 단순화): 아래 4개(밀키트/식비예산/가구설정/요일별응답)는 매일 쓰는
+     기능이 아니고, "식사 기록"은 하단 탭에도 이미 있어 중복 — 전부 지우지 않고 "더 보기" 뒤로
+     접어서 고령층 사용자가 기본 화면에서 봐야 할 선택지 수를 줄임(기능 삭제 아님, 한 번 더
+     누르면 그대로 다 있음). -->
+<button type="button" id="moreToggleBtn" class="w-full flex items-center justify-between px-1 py-3 mb-3 border-t border-outline-variant" onclick="toggleMoreSection()">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wide">더 보기</span>
+<span class="material-symbols-outlined text-on-surface-variant" id="moreToggleIcon">expand_more</span>
+</button>
 
+<div id="moreSection" class="hidden">
 <!-- 큰 타일 2개: 하단 탭에 없는 것 중 가장 중요한 것(달력·냉장고는 이미 하단 탭에 있어서 여기 안 넣음 — 중복) -->
 <section class="mb-3">
 <div class="grid grid-cols-2 gap-3">
@@ -276,6 +283,7 @@
 </button>
 </div>
 </section>
+</div>
 
 </main>
 
@@ -535,6 +543,14 @@
             document.getElementById('weatherInfoLocation').textContent = '날씨 정보를 가져올 수 없어요';
             document.getElementById('weatherInfoDetail').textContent = '';
         }
+    }
+
+    // 접근성 패스 3단계: 밀키트/식비예산/가구설정/요일별응답/기록바로가기를 "더 보기" 뒤로 접음.
+    function toggleMoreSection() {
+        var section = document.getElementById('moreSection');
+        var icon = document.getElementById('moreToggleIcon');
+        var open = section.classList.toggle('hidden') === false;
+        icon.textContent = open ? 'expand_less' : 'expand_more';
     }
 
     var toastTimer;
