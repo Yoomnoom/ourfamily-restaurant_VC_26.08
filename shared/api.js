@@ -723,6 +723,10 @@ API.notifications = {
   async markRead(id) {
     var res = await sb.from('notifications_vc2608').update({ read: true }).eq('id', id);
     if (res.error) throw res.error;
+  },
+  async markAllRead(memberId) {
+    var res = await sb.from('notifications_vc2608').update({ read: true }).eq('member_id', memberId).eq('read', false);
+    if (res.error) throw res.error;
   }
 };
 

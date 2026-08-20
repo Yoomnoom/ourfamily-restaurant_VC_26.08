@@ -75,9 +75,12 @@
 <aside id="notiPanel" class="hidden fixed top-0 right-0 h-full w-[88%] max-w-[360px] bg-surface z-[70] shadow-2xl overflow-y-auto" style="transform: translateX(100%); transition: transform .25s ease;">
 <div class="flex items-center justify-between px-5 py-4 border-b border-outline-variant">
 <h2 class="font-headline-lg text-headline-lg text-on-surface">알림</h2>
+<div class="flex items-center gap-1">
+<button type="button" id="markAllReadBtn" class="font-label-sm text-label-sm text-primary px-2" onclick="markAllNotisRead()">모두 읽음</button>
 <button class="w-11 h-11 flex items-center justify-center rounded-full active:bg-surface-container transition-colors" onclick="closeNotiPanel()" aria-label="알림 닫기">
 <span class="material-symbols-outlined">close</span>
 </button>
+</div>
 </div>
 <div id="notiList" class="flex flex-col gap-2 p-4"></div>
 </aside>
@@ -701,6 +704,14 @@
         var hasUnread = notisCache.some(function (n) { return !n.read; });
         var dot = document.getElementById('notiDot');
         if (dot) dot.classList.toggle('hidden', !hasUnread);
+    }
+
+    // 06_notifications.png 기준: "모두 읽음" 일괄 처리.
+    async function markAllNotisRead() {
+        await API.notifications.markAllRead(myMember.id);
+        notisCache.forEach(function (n) { n.read = true; });
+        renderNotiPanel();
+        updateNotiDot();
     }
 
     function renderNotiPanel() {
