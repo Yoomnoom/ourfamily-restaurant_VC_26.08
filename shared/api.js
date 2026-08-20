@@ -103,6 +103,17 @@ API.auth = {
     return res.data;
   },
 
+  async signInGoogle() {
+    var res = await sb.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: window.location.origin + encodeURI('/2-1.로그인 화면/code.html')
+      }
+    });
+    if (res.error) throw res.error;
+    return res.data;
+  },
+
   async signOut() {
     await sb.auth.signOut();
   },
