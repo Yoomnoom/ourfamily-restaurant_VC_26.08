@@ -9,6 +9,7 @@
 - **4-1(달력) 캐러셀 스크롤바 숨김**: "미리 답해두기" 5일 캐러셀에 두꺼운 회색 스크롤바가 그대로 노출되던 문제 → `#advanceCarousel`에만 `scrollbar-width:none`/`::-webkit-scrollbar{display:none}` 적용, 터치/드래그 스크롤 자체는 유지(da58fae). 5-4의 데이터 테이블은 스크롤 가능함을 알려주는 용도라 판단해 그대로 둠(스크롤바 숨김 미적용).
 - **라이브 검증(Playwright, 3건 전부)**: 새 테스트 계정으로 가구 생성 → 3-0/3-1/3-2/4-1/5-2 전체에서 남은 FAB 0개 확인, 네비 중앙 버튼 클릭 시 정상 이동 확인, 3-1에 가짜 문구("18번"/"정기배송") 완전히 사라짐 확인, 4-1 캐러셀은 `scrollbarWidth:none`이면서 `scrollWidth(592)>clientWidth(568)`로 여전히 스크롤 가능함(scrollLeft 조작 시 실제로 이동)까지 확인 — 콘솔 에러 0건. 테스트 계정 2개 전부 Supabase SQL로 정리 완료(household_members→households→profiles→auth.users 순).
 - **부가 발견 + 즉시 수정 — 실제 프로덕션 버그**: `handle_new_user_vc2608` 트리거가 신규 가입자 `avatar_url`을 한 번도 저장한 적이 없었음(name만 저장). 실제 카카오 로그인 사용자 3명(사용자 본인 포함)의 raw_user_meta_data엔 카카오 프로필 사진이 이미 있었는데 DB엔 전부 null이었던 실사용자 영향 버그 — 트리거에 `coalesce(avatar_url, picture)` 추가 + 기존 3명 즉시 백필 완료. 신규 카카오/구글 로그인부터는 자동으로 프로필 사진이 채워짐.
+- **보안 어드바이저 재점검**: `join_household_vc2608`/`is_my_member_vc2608`도 이전 2개 함수와 같은 패턴(내부 안전, 권한만 과다)이라 authenticated 전용으로 tightening. 두 계정으로 실제 가구 생성→합류 요청 라이브 검증 완료, 에러 0건.
 - **다음**: 접근성 3단계(구조 단순화)는 3-0만 완료된 상태 그대로, 나머지 화면은 필요시 계속.
 
 ## 방금(2026-08-20, 커밋 063ce5a까지) — 접근성 패스 3단계(구조 단순화) 시작
