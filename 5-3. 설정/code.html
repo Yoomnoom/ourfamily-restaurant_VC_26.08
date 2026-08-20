@@ -253,8 +253,8 @@
         currentNotifChannel = channel;
         renderNotifChannelChips();
         await API.members.updateNotificationChannel(householdId, channel);
-        var labels = { kakao: '카카오톡', slack: '슬랙', sms: '문자' };
-        showToast(labels[channel] + '로 설정했어요');
+        var labels = { kakao: '카카오톡으로', slack: '슬랙으로', sms: '문자로' };
+        showToast(labels[channel] + ' 설정했어요');
     }
 
     async function saveDietaryInfo() {
