@@ -257,6 +257,13 @@ API.members = {
     return res.data;
   },
 
+  // 알림 채널 선택(카카오/슬랙/문자, 기본 카카오) — 일반 멤버는 자기 행을 직접 UPDATE할 권한이
+  // 없어서(관리자만 가능, RLS) 이 한 컬럼만 안전하게 바꾸는 SECURITY DEFINER 함수를 통해 호출.
+  async updateNotificationChannel(householdId, channel) {
+    var res = await sb.rpc('update_my_notification_channel_vc2608', { p_household_id: householdId, p_channel: channel });
+    if (res.error) throw res.error;
+  },
+
   async addGuestMember(householdId, name) {
     var res = await sb.from('household_members_vc2608').insert({
       household_id: householdId, profile_id: null, name: name, role: 'guest', default_response: 'attending'

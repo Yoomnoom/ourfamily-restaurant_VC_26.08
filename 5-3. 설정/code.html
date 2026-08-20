@@ -85,6 +85,17 @@
 </div>
 </div>
 
+<!-- 알림 채널 선택(6가지 예정 작업 1번): 카카오/슬랙/문자, 기본 카카오. -->
+<div class="bg-surface-container-lowest rounded-xl shadow-[0px_4px_12px_rgba(120,119,119,0.08)] mb-6 p-card-padding flex flex-col gap-3">
+<p class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wide">알림 받는 방법</p>
+<div class="flex rounded-xl border border-outline-variant overflow-hidden bg-surface-container-lowest">
+<button type="button" class="notif-channel-chip flex-1 py-3 flex flex-col items-center gap-1 font-label-sm text-label-sm transition-colors border-r border-outline-variant" data-channel="kakao" onclick="selectNotifChannel('kakao')"><span class="material-symbols-outlined text-[18px]">chat_bubble</span>카카오톡</button>
+<button type="button" class="notif-channel-chip flex-1 py-3 flex flex-col items-center gap-1 font-label-sm text-label-sm transition-colors border-r border-outline-variant" data-channel="slack" onclick="selectNotifChannel('slack')"><span class="material-symbols-outlined text-[18px]">tag</span>슬랙</button>
+<button type="button" class="notif-channel-chip flex-1 py-3 flex flex-col items-center gap-1 font-label-sm text-label-sm transition-colors" data-channel="sms" onclick="selectNotifChannel('sms')"><span class="material-symbols-outlined text-[18px]">sms</span>문자</button>
+</div>
+<p class="font-label-sm text-label-sm text-on-surface-variant">지금은 어떤 걸 고르든 알림은 앱 안(🔔)에서 확인돼요. 슬랙·문자로 실제 발송하는 기능은 아직 준비 중이에요.</p>
+</div>
+
 <!-- 식성 정보 — 회원가입 때 넣은 알레르기/못 먹는 것/잘 먹는 것을 여기서도 추가·수정 가능. -->
 <div class="bg-surface-container-lowest rounded-xl shadow-[0px_4px_12px_rgba(120,119,119,0.08)] mb-6 p-card-padding flex flex-col gap-4">
 <p class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wide">식성 정보</p>
@@ -175,6 +186,8 @@
 </div>
 
 <script>
+    var householdId = null;
+
     function openGuide() {
         document.getElementById('guideBackdrop').classList.remove('hidden');
         document.getElementById('guidePanel').classList.remove('hidden');
@@ -223,6 +236,27 @@
         input.value = '';
         renderDietaryChips(field);
     }
+    // 알림 채널 선택(6가지 예정 작업 1번) — 카카오/슬랙/문자 중 선택, 기본 카카오.
+    // 지금은 슬랙·문자 실제 발송 연동 전이라(사용자 확인: "지금은 카카오만") 어떤 걸 골라도
+    // 실제 알림은 여전히 앱 안(알림 벨)에서만 뜸 — 선택지만 미리 만들어두고 정직하게 안내.
+    var currentNotifChannel = 'kakao';
+    function renderNotifChannelChips() {
+        document.querySelectorAll('.notif-channel-chip').forEach(function (chip) {
+            var active = chip.getAttribute('data-channel') === currentNotifChannel;
+            chip.classList.toggle('bg-surface-container', active);
+            chip.classList.toggle('text-primary', active);
+            chip.classList.toggle('font-semibold', active);
+            chip.classList.toggle('text-on-surface-variant', !active);
+        });
+    }
+    async function selectNotifChannel(channel) {
+        currentNotifChannel = channel;
+        renderNotifChannelChips();
+        await API.members.updateNotificationChannel(householdId, channel);
+        var labels = { kakao: '카카오톡', slack: '슬랙', sms: '문자' };
+        showToast(labels[channel] + '로 설정했어요');
+    }
+
     async function saveDietaryInfo() {
         await API.auth.updateMyProfile({
             allergies: dietaryTags.allergies,
@@ -251,6 +285,10 @@
         var nickname = (member && member.name) || '이름 없음';
         var photo = member && member.avatar_url;
         var email = session.user.email || '';
+
+        householdId = member && member.household_id;
+        currentNotifChannel = (member && member.notification_channel) || 'kakao';
+        renderNotifChannelChips();
 
         var profileRes = await sb.from('profiles_vc2608').select('phone, allergies, dislikes, likes').eq('id', session.user.id).maybeSingle();
         var phone = profileRes.data && profileRes.data.phone;
