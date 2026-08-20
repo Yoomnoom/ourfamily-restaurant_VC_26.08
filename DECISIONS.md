@@ -1046,3 +1046,9 @@
 5. **그룹 유형**: households_vc2608.group_type(family/company/other) 추가. create_household_vc2608 RPC에 파라미터 추가(기존 호출 호환). 1-3 온보딩에서 선택, 5-1 가구 설정에서 오너가 나중에 변경 가능. 커밋 a83adf5. Playwright로 생성 시 company 선택→5-1에서 other로 변경→새로고침 후 유지까지 검증(1차 시도 때 클릭 타임아웃 있었으나 재시도 시 정상 — 일회성 flake로 판단, 재현 안 됨).
 
 이번 라운드에 만든 테스트 계정/가구 전부 정리 완료. 6가지 예정 작업 중 이제 진짜 남은 건 구글 로그인의 외부 설정뿐.
+
+## 보안 점검: 신규 함수 실행 권한 강화 (2026-08-20)
+
+- 오늘 밤 새로 만든 두 함수(`create_household_vc2608`, `update_my_notification_channel_vc2608`)가 Supabase 보안 어드바이저에서 "anon(비로그인) 역할도 실행 가능"으로 경고됨 — Postgres가 새 함수 생성 시 기본으로 PUBLIC에 EXECUTE 권한을 주기 때문(흔한 함정, 직접 REVOKE 안 하면 항상 발생).
+- **실제 악용 가능성 점검**: 둘 다 내부에서 `auth.uid() is null`이면 예외를 던지거나(`create_household_vc2608`), `profile_id = auth.uid()`가 NULL 비교라 절대 매치 안 되는 구조(`update_my_notification_channel_vc2608`)라 실제로는 비로그인 호출이 아무것도 못 함 — 데이터 유출·변조 위험은 없었음. 그래도 "필요 이상으로 열어두지 않는다" 원칙상 정리.
+- `revoke execute ... from public` + `grant execute ... to authenticated`로 정리. 수정 후 실제 로그인 사용자 플로우(가구 생성, 알림 채널 변경) 둘 다 Playwright로 재검증 — 정상 동작, 에러 0건.
