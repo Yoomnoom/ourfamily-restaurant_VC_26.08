@@ -82,6 +82,13 @@
 </div>
 </div>
 
+<!-- 6가지 예정 작업 중 4번: 가이드 설명을 온보딩뿐 아니라 설정에서도 다시 볼 수 있게 -->
+<button type="button" class="w-full flex items-center gap-2 bg-surface-container-lowest rounded-xl shadow-[0px_4px_12px_rgba(120,119,119,0.08)] px-4 py-3.5 mb-4 text-left" onclick="openGuide()">
+<span class="material-symbols-outlined text-[18px] text-primary">help</span>
+<span class="font-body-md text-body-md text-on-surface flex-1">사용법 다시 보기</span>
+<span class="material-symbols-outlined text-on-surface-variant text-[18px]">chevron_right</span>
+</button>
+
 <details class="bg-surface-container-lowest rounded-xl shadow-[0px_4px_12px_rgba(120,119,119,0.08)] px-4 py-3.5 mb-6">
 <summary class="font-body-md text-body-md text-on-surface cursor-pointer flex items-center gap-2">
 <span class="material-symbols-outlined text-[18px] text-primary">payments</span>
@@ -99,7 +106,47 @@
 
 </main>
 
+<!-- 사용법 가이드 — 온보딩(1-2)과 내용 동일, 여기서도 다시 볼 수 있게(6가지 예정 작업 4번).
+     항목 상자는 점선 테두리(사용자 요청). -->
+<div id="guideBackdrop" class="hidden fixed inset-0 bg-on-surface/40 z-[80]" onclick="closeGuide()"></div>
+<div id="guidePanel" class="hidden fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-[500px] mx-auto bg-surface rounded-2xl z-[90] p-6 max-h-[80vh] overflow-y-auto shadow-2xl">
+<div class="flex items-center justify-between mb-4">
+<h2 class="font-headline-lg text-headline-lg text-on-surface">우리집식당 사용법</h2>
+<button type="button" onclick="closeGuide()" aria-label="닫기" class="w-9 h-9 flex items-center justify-center rounded-full active:bg-surface-container">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<div class="flex flex-col gap-3">
+<div class="border border-dashed border-outline-variant rounded-xl p-4 flex items-start gap-3">
+<span class="material-symbols-outlined text-primary">restaurant</span>
+<div><p class="font-body-md text-body-md text-on-surface font-medium mb-1">식사 만들기</p><p class="font-label-sm text-label-sm text-on-surface-variant">언제, 무엇을, 누구와 먹을지 정하고 가족에게 물어보세요.</p></div>
+</div>
+<div class="border border-dashed border-outline-variant rounded-xl p-4 flex items-start gap-3">
+<span class="material-symbols-outlined text-primary">check_circle</span>
+<div><p class="font-body-md text-body-md text-on-surface font-medium mb-1">응답하기</p><p class="font-label-sm text-label-sm text-on-surface-variant">알림이나 링크를 받으면 먹을지 안 먹을지만 눌러서 알려주세요.</p></div>
+</div>
+<div class="border border-dashed border-outline-variant rounded-xl p-4 flex items-start gap-3">
+<span class="material-symbols-outlined text-primary">calendar_month</span>
+<div><p class="font-body-md text-body-md text-on-surface font-medium mb-1">달력으로 한눈에</p><p class="font-label-sm text-label-sm text-on-surface-variant">이번 달 식사를 달력에서 모아보고, 미리 답해둘 수도 있어요.</p></div>
+</div>
+<div class="border border-dashed border-outline-variant rounded-xl p-4 flex items-start gap-3">
+<span class="material-symbols-outlined text-primary">group_add</span>
+<div><p class="font-body-md text-body-md text-on-surface font-medium mb-1">가족 초대</p><p class="font-label-sm text-label-sm text-on-surface-variant">가구 설정에서 가족을 초대하면 함께 식사를 조율할 수 있어요.</p></div>
+</div>
+</div>
+<button type="button" class="w-full mt-5 py-3 rounded-full bg-primary text-on-primary font-label-sm text-label-sm" onclick="closeGuide()">확인했어요</button>
+</div>
+
 <script>
+    function openGuide() {
+        document.getElementById('guideBackdrop').classList.remove('hidden');
+        document.getElementById('guidePanel').classList.remove('hidden');
+    }
+    function closeGuide() {
+        document.getElementById('guideBackdrop').classList.add('hidden');
+        document.getElementById('guidePanel').classList.add('hidden');
+    }
+
     function toggleSwitch(el) {
         el.classList.toggle('on');
         el.classList.toggle('off');
