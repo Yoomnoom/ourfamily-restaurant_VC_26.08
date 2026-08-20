@@ -111,6 +111,15 @@
 <div id="dayDetailBody" class="flex flex-col gap-3"></div>
 </div>
 
+<!-- 03_calendar.png 기준 복원(2026-08-19): 5일치 미리 답해두기 캐러셀. 예전에 이 정확한 형태를
+     "협박같다"는 지적으로 뺐다가, 사용자가 참고 이미지 보고 다시 요청해서 복원 — 요일별 기본
+     응답 예외 확인 같은 복잡한 분기 없이 참고 이미지처럼 단순하게(그 날짜에 바로 upsert). -->
+<section class="mt-6">
+<h2 class="font-headline-lg text-headline-lg text-on-surface mb-1">미리 답해두기</h2>
+<p class="font-label-sm text-label-sm text-on-surface-variant mb-3">앞으로 5일간의 식사에 미리 답해두세요.</p>
+<div id="advanceCarousel" class="flex gap-2 overflow-x-auto pb-1"></div>
+</section>
+
 </main>
 
 <nav class="fixed bottom-0 left-0 right-0 z-10 bg-surface-container-lowest/90 backdrop-blur-md border-t border-outline-variant" style="padding-bottom: env(safe-area-inset-bottom);">
@@ -350,6 +359,40 @@
         await API.advanceAnswers.upsert(householdId, myMember.id, dateKey(selectedDate), status);
         await loadAdvanceAnswers();
         renderDayDetail();
+        renderAdvanceCarousel();
+    }
+
+    // 03_calendar.png 기준 복원 — 앞으로 5일치를 한 줄로 보여주고 바로 답할 수 있게(단순하게,
+    // 요일별 기본 응답 예외 확인 같은 분기 없이 그 날짜에 바로 upsert).
+    async function setAdvanceAnswerFor(dKey, status) {
+        await API.advanceAnswers.upsert(householdId, myMember.id, dKey, status);
+        await loadAdvanceAnswers();
+        renderAdvanceCarousel();
+        if (dateKey(selectedDate) === dKey) renderDayDetail();
+    }
+
+    function renderAdvanceCarousel() {
+        var container = document.getElementById('advanceCarousel');
+        if (!container) return;
+        container.innerHTML = '';
+        for (var i = 1; i <= 5; i++) {
+            (function (dKey, d) {
+                var dayMeals = mealsByDate[dKey];
+                var menuLabel = (dayMeals && dayMeals.length && dayMeals[0].menu && dayMeals[0].menu.length) ? dayMeals[0].menu[0] : '(미정)';
+                var existing = advanceAnswersCache.find(function (a) { return a.member_id === myMember.id && a.date === dKey; });
+                var card = document.createElement('div');
+                card.className = 'shrink-0 w-28 bg-surface-container-lowest rounded-xl p-3 shadow-[0px_2px_8px_rgba(120,119,119,0.06)] flex flex-col items-center';
+                card.innerHTML =
+                    '<p class="font-label-sm text-label-sm text-on-surface-variant mb-2">' + (d.getMonth() + 1) + '/' + d.getDate() + ' ' + WEEKDAY_NAMES[d.getDay()] + '</p>' +
+                    '<span class="w-12 h-12 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant mb-2"><span class="material-symbols-outlined">soup_kitchen</span></span>' +
+                    '<p class="font-body-md text-body-md text-on-surface font-medium mb-2 text-center truncate" style="max-width:100%;">' + menuLabel + '</p>' +
+                    '<button type="button" class="yes-btn w-full py-1.5 rounded-full border-2 font-label-sm text-label-sm mb-1 ' + (existing && existing.status === 'attending' ? 'bg-primary text-on-primary border-primary' : 'border-primary text-primary') + '">먹어요</button>' +
+                    '<button type="button" class="no-btn w-full py-1.5 rounded-full font-label-sm text-label-sm ' + (existing && existing.status === 'absent' ? 'bg-surface-container-high text-on-surface' : 'text-on-surface-variant') + '">안 먹어요</button>';
+                card.querySelector('.yes-btn').onclick = function () { setAdvanceAnswerFor(dKey, 'attending'); };
+                card.querySelector('.no-btn').onclick = function () { setAdvanceAnswerFor(dKey, 'absent'); };
+                container.appendChild(card);
+            })(dateKey(new Date(today.getFullYear(), today.getMonth(), today.getDate() + i)), new Date(today.getFullYear(), today.getMonth(), today.getDate() + i));
+        }
     }
 
     function renderAdvancePrompt() {
@@ -532,6 +575,7 @@
         else placeDayDetail(document.getElementById('dayDetailAnchor'));
         renderDayDetail();
         document.getElementById('dayDetail').classList.toggle('hidden', !dayDetailOpen);
+        renderAdvanceCarousel();
     }
 
     var realtimeChannel = null;
