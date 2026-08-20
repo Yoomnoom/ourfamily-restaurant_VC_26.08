@@ -164,34 +164,26 @@
 
 <p id="noMealsMsg" class="hidden font-label-sm text-label-sm text-on-surface-variant text-center py-6">오늘·내일 아직 만든 식사가 없어요</p>
 
-<!-- 오늘 당장 알아야 할 것(위 오늘/내일 카드)보다는 뒤에: 참고용 요약 -->
-<button class="w-full bg-surface-container-lowest rounded-xl px-4 py-3 mb-3 shadow-[0px_2px_8px_rgba(120,119,119,0.06)] flex items-center gap-3 text-left" onclick="window.location.href='../5-2. 식사 기록/code.html'">
+<!-- 오늘 당장 알아야 할 것(위 오늘/내일 카드)보다는 뒤에: 참고용 요약.
+     이전엔 "이번 달 18번 함께 먹었어요 / 직접 조리 14 · 주문 4"에 진짜 데이터가 아니라
+     하드코딩된 숫자가 박혀 있었고, 그 아래엔 "정기배송"이라는 있지도 않은 기능을 가리키는
+     가짜 홍보 버튼이 있었음(사용자 발견, 2026-08-21) — 실제 이번 달 횟수로 교체하고,
+     가짜 버튼은 삭제(밀키트는 이미 다른 진짜 경로로 갈 수 있어서 중복이기도 함). -->
+<button id="monthSummaryBtn" class="hidden w-full bg-surface-container-lowest rounded-xl px-4 py-3 mb-3 shadow-[0px_2px_8px_rgba(120,119,119,0.06)] flex items-center gap-3 text-left" onclick="window.location.href='../5-2. 식사 기록/code.html'">
 <span class="material-symbols-outlined text-primary">bar_chart</span>
 <span class="flex-1">
-<span class="block font-body-md text-body-md text-on-surface font-medium">이번 달 18번 함께 먹었어요</span>
-<span class="block font-label-sm text-label-sm text-on-surface-variant">직접 조리 14 · 주문 4</span>
+<span id="monthSummaryText" class="block font-body-md text-body-md text-on-surface font-medium">-</span>
+<span class="block font-label-sm text-label-sm text-on-surface-variant">기록에서 자세히 보기</span>
 </span>
 <span class="material-symbols-outlined text-on-surface-variant">chevron_right</span>
 </button>
 
-<!-- 밀키트 제휴 (패턴 기반 제안, §16 로드맵 미리보기) -->
-<button class="w-full bg-tertiary-container text-on-tertiary-container rounded-xl px-4 py-3 flex items-center gap-3 text-left" onclick="window.location.href='../8-1. 밀키트 주문/code.html'">
-<span class="material-symbols-outlined">local_shipping</span>
-<span class="flex-1">
-<span class="block font-body-md text-body-md">이번 주 집밥이 벌써 3번째예요</span>
-<span class="block font-label-sm text-label-sm opacity-80">밀키트 정기배송으로 장보기를 줄여보세요 · 준비 중</span>
-</span>
-</button>
-
 </main>
 
-<!-- Floating Action Button -->
-<button class="fixed right-5 z-20 w-14 h-14 rounded-full bg-primary text-on-primary shadow-[0px_6px_16px_rgba(27,28,28,0.25)] flex items-center justify-center active:scale-95 transition-transform" style="bottom: calc(84px + env(safe-area-inset-bottom));" onclick="window.location.href='../3-2. 식사 만들기/code.html'" aria-label="식사 만들기">
-<span class="material-symbols-outlined" style="font-size:28px;">add</span>
-</button>
-
-<!-- Bottom Tab Nav — 홈/내식탁/달력/기록. 냉장고·설정은 햄버거 메뉴로 이동(§리디자인 2026-08-19).
-     식사 만들기는 오른쪽 아래 FAB로 분리(2026-08-20). -->
+<!-- Bottom Tab Nav — 홈/내식탁/+(식사 만들기)/달력/기록. 냉장고·설정은 햄버거 메뉴로 이동
+     (§리디자인 2026-08-19). 식사 만들기는 사용자 요청으로 다시 중앙 버튼으로 복귀
+     (2026-08-21 — 오른쪽 아래 FAB였다가 되돌림. 참고로 여기 예전엔 FAB가 중복으로
+     2개 있던 잔여 버그도 이번에 같이 정리함). -->
 <nav class="fixed bottom-0 left-0 right-0 z-10 bg-surface-container-lowest/90 backdrop-blur-md border-t border-outline-variant" style="padding-bottom: env(safe-area-inset-bottom);">
 <div class="max-w-[600px] mx-auto flex items-stretch">
 <button class="flex-1 flex flex-col items-center gap-0.5 py-2.5 text-on-surface-variant" onclick="window.location.href='../3-0. 홈/code.html'">
@@ -201,6 +193,11 @@
 <button class="flex-1 flex flex-col items-center gap-0.5 py-2.5 text-primary">
 <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">table_restaurant</span>
 <span class="font-label-sm text-label-sm">내 식탁</span>
+</button>
+<button class="flex-1 flex flex-col items-center justify-center py-2.5" onclick="window.location.href='../3-2. 식사 만들기/code.html'" aria-label="식사 만들기">
+<span class="w-8 h-8 rounded-full bg-primary text-on-primary flex items-center justify-center">
+<span class="material-symbols-outlined" style="font-size:20px;">add</span>
+</span>
 </button>
 <button class="flex-1 flex flex-col items-center gap-0.5 py-2.5 text-on-surface-variant" onclick="window.location.href='../4-1. 홈 달력뷰/code.html'">
 <span class="material-symbols-outlined">calendar_month</span>
@@ -212,11 +209,6 @@
 </button>
 </div>
 </nav>
-
-<!-- 식사 만들기: 하단 네비 중앙 -> 오른쪽 아래 FAB로 이동(사용자 요청, 2026-08-20). -->
-<button class="fixed z-20 w-14 h-14 rounded-full bg-primary text-on-primary shadow-lg flex items-center justify-center active:scale-95 transition-transform" style="right: calc(1rem + env(safe-area-inset-right)); bottom: calc(80px + env(safe-area-inset-bottom));" onclick="window.location.href='../3-2. 식사 만들기/code.html'" aria-label="식사 만들기">
-<span class="material-symbols-outlined" style="font-size:26px;">add</span>
-</button>
 
 <!-- 알림 패널 (슬라이드인, 전체 이동 없이 확인·닫기) -->
 <div id="notiBackdrop" class="hidden fixed inset-0 bg-on-surface/30 z-[60]" onclick="closeNotiPanel()"></div>
@@ -530,6 +522,17 @@
         var meals = await API.meals.listByHousehold(householdId);
         var today = todayKey(), tomorrow = tomorrowKey();
         var relevant = meals.filter(function (m) { return m.date === today || m.date === tomorrow; });
+
+        // 이번 달 실제 식사 횟수(진짜 데이터) — 예전엔 하드코딩된 가짜 숫자였음.
+        var thisMonthKey = today.slice(0, 7);
+        var monthCount = meals.filter(function (m) { return m.date.slice(0, 7) === thisMonthKey; }).length;
+        var summaryBtn = document.getElementById('monthSummaryBtn');
+        if (monthCount > 0) {
+            document.getElementById('monthSummaryText').textContent = '이번 달 ' + monthCount + '번 함께 먹었어요';
+            summaryBtn.classList.remove('hidden');
+        } else {
+            summaryBtn.classList.add('hidden');
+        }
 
         for (var i = 0; i < relevant.length; i++) {
             var meal = relevant[i];
