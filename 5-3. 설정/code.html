@@ -291,11 +291,12 @@
         renderNotifChannelChips();
 
         var profileRes = await sb.from('profiles_vc2608').select('phone, allergies, dislikes, likes').eq('id', session.user.id).maybeSingle();
+        if (profileRes.error) showToast('내 정보를 불러오지 못했어요, 새로고침 해주세요');
         var phone = profileRes.data && profileRes.data.phone;
 
         document.getElementById('profileName').textContent = nickname;
         document.getElementById('profileEmail').textContent = email;
-        document.getElementById('phoneNumber').textContent = phone || '등록 안 됨';
+        document.getElementById('phoneNumber').textContent = profileRes.error ? '불러오기 실패' : (phone || '등록 안 됨');
 
         dietaryTags.allergies = (profileRes.data && profileRes.data.allergies) || [];
         dietaryTags.dislikes = (profileRes.data && profileRes.data.dislikes) || [];

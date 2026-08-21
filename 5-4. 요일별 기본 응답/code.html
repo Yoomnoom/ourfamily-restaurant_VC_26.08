@@ -136,12 +136,17 @@
             saveBtn.textContent = '저장';
             saveBtn.onclick = async function () {
                 saveBtn.disabled = true;
-                await Promise.all(defaults.map(function (state, di) {
-                    return state ? API.weekdayDefaults.upsert(householdId, member.id, di, state) : API.weekdayDefaults.remove(member.id, di);
-                }));
-                saveBtn.disabled = false;
-                saveBtn.textContent = '저장됨';
-                setTimeout(function () { saveBtn.textContent = '저장'; }, 1200);
+                try {
+                    await Promise.all(defaults.map(function (state, di) {
+                        return state ? API.weekdayDefaults.upsert(householdId, member.id, di, state) : API.weekdayDefaults.remove(member.id, di);
+                    }));
+                    saveBtn.textContent = '저장됨';
+                } catch (err) {
+                    saveBtn.textContent = '저장 실패 · 다시';
+                } finally {
+                    saveBtn.disabled = false;
+                    setTimeout(function () { saveBtn.textContent = '저장'; }, 1200);
+                }
             };
             saveCell.appendChild(saveBtn);
             tr.appendChild(saveCell);

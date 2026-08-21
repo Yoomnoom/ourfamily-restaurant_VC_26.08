@@ -214,7 +214,12 @@
     }
 
     async function submitProxy(card, person, status) {
-        await API.mealResponses.respondSelf(mealId, person.memberId, status);
+        try {
+            await API.mealResponses.respondSelf(mealId, person.memberId, status);
+        } catch (err) {
+            showToast('저장에 실패했어요, 다시 눌러주세요');
+            return;
+        }
         card.querySelector('.proxy-form').classList.add('hidden');
         card.querySelector('.pending-actions').classList.add('hidden');
         var result = card.querySelector('.proxy-result');
@@ -229,7 +234,12 @@
     }
 
     async function confirmMeal() {
-        await API.meals.update(mealId, { status: 'confirmed' });
+        try {
+            await API.meals.update(mealId, { status: 'confirmed' });
+        } catch (err) {
+            showToast('확정에 실패했어요, 다시 눌러주세요');
+            return;
+        }
         window.location.href = '../3-5. 오늘의 식탁 완성/code.html?meal=' + mealId;
     }
 

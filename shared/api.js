@@ -640,12 +640,10 @@ API.menuPoll = {
     if (res.error) throw res.error;
     return res.data;
   },
+  // DB 함수로 원자적 병합(jsonb ||) — 클라이언트에서 읽고-고치고-쓰던 예전 방식은 두 사람이
+  // 거의 동시에 투표하면 나중 쓰기가 앞선 표를 통째로 덮어써 한 표가 조용히 사라지는 경합이 있었음.
   async vote(pollId, memberId, option) {
-    var poll = await sb.from('menu_poll_vc2608').select('votes').eq('id', pollId).single();
-    if (poll.error) throw poll.error;
-    var votes = poll.data.votes || {};
-    votes[memberId] = option;
-    var res = await sb.from('menu_poll_vc2608').update({ votes: votes }).eq('id', pollId);
+    var res = await sb.rpc('vote_menu_poll_vc2608', { p_poll_id: pollId, p_member_id: memberId, p_option: option });
     if (res.error) throw res.error;
   },
   async cancel(pollId) {

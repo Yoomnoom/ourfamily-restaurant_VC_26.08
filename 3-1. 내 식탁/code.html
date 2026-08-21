@@ -438,9 +438,13 @@
     // 홈 카드에서 먹어요/안먹어요를 누르면 그 자리에서 바로 결정되게(§5.1 "응답은 짧고, 탭 1~2번") —
     // 3-3(참여자 응답)의 개인 링크로 안 보내고 여기서 즉시 처리.
     async function respondToMeal(mealId, status) {
-        await API.mealResponses.respondSelf(mealId, myMember.id, status);
-        showToast(status === 'attending' ? '먹어요로 답했어요' : '안 먹어요로 답했어요');
-        await renderAllMeals();
+        try {
+            await API.mealResponses.respondSelf(mealId, myMember.id, status);
+            showToast(status === 'attending' ? '먹어요로 답했어요' : '안 먹어요로 답했어요');
+            await renderAllMeals();
+        } catch (err) {
+            showToast('저장에 실패했어요, 다시 눌러주세요');
+        }
     }
 
     // 참고 이미지 기준 버킷 분류: 확정된 식사가 최우선(더 이상 할 일 없음), 그다음 내가
@@ -704,15 +708,34 @@
         var today = todayKey();
         var todayDay = new Date().getDay();
         var firedAny = false;
+        // 오늘치를 자동으로 열 때도 "미리 답해두기"(advance_answers)는 한 번 더 대조해야 함 —
+        // 안 그러면 미리 "안 먹어요"라고 답해둔 사람이 매번 다시 참여자로 뜨고, "먹어요"라고
+        // 답해둔 사람도 매번 응답 대기로 남아 방금 한 약속과 어긋남(3-2 수동 생성 때는 이미 반영됨).
+        var advanceToday = (await API.advanceAnswers.list(householdId)).filter(function (a) { return a.date === today; });
 
         for (var i = 0; i < rules.length; i++) {
             var rule = rules[i];
             if (rule.days.indexOf(todayDay) === -1) continue;
             if (rule.last_fired_date === today) continue;
+            var memberIds = rule.participant_member_ids.filter(function (mid) {
+                var pre = advanceToday.find(function (a) { return a.member_id === mid; });
+                return !pre || pre.status !== 'absent';
+            });
             var meal = await API.meals.create(householdId, {
                 date: today, time: rule.time, kind: rule.kind, menu: rule.menu, status: 'open'
             });
-            await API.mealParticipants.bulkCreateWithTokens(meal.id, rule.participant_member_ids);
+            await API.mealParticipants.bulkCreateWithTokens(meal.id, memberIds);
+            // 반복 규칙을 만든 사람 본인은 매번 다시 응답할 필요 없이 자동 참석(3-2 수동 생성과 동일 원칙).
+            if (memberIds.indexOf(myMember.id) !== -1) {
+                await API.mealResponses.respondSelf(meal.id, myMember.id, 'attending');
+            }
+            for (var av = 0; av < memberIds.length; av++) {
+                if (memberIds[av] === myMember.id) continue;
+                var preAv = advanceToday.find(function (a) { return a.member_id === memberIds[av]; });
+                if (preAv && preAv.status === 'attending') {
+                    await API.mealResponses.respondSelf(meal.id, memberIds[av], 'attending');
+                }
+            }
             await API.recurringMeals.markFired(rule.id, today);
             firedAny = true;
         }
