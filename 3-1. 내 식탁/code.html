@@ -729,13 +729,7 @@
             if (memberIds.indexOf(myMember.id) !== -1) {
                 await API.mealResponses.respondSelf(meal.id, myMember.id, 'attending');
             }
-            for (var av = 0; av < memberIds.length; av++) {
-                if (memberIds[av] === myMember.id) continue;
-                var preAv = advanceToday.find(function (a) { return a.member_id === memberIds[av]; });
-                if (preAv && preAv.status === 'attending') {
-                    await API.mealResponses.respondSelf(meal.id, memberIds[av], 'attending');
-                }
-            }
+            await API.mealResponses.applyKnownAdvanceAnswers(householdId, meal.id, today, memberIds, myMember.id);
             await API.recurringMeals.markFired(rule.id, today);
             firedAny = true;
         }

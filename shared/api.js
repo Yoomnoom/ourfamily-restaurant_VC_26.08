@@ -525,6 +525,19 @@ API.mealResponses = {
       .upsert({ meal_id: mealId, member_id: memberId, is_guest: false, status: status, arrival_time: arrivalTime || null, note: note || null, updated_at: new Date().toISOString() },
               { onConflict: 'meal_id,member_id' });
     if (res.error) throw res.error;
+  },
+  // 새로 만든 식사에 참여자로 들어간 사람 중 "미리 답해두기"(advance_answers)로 이미 먹는다고
+  // 답해둔 사람은 화면에 "안 물어봐도 돼요"라고 보여준 만큼 실제 응답도 즉시 기록해야 함 —
+  // 3-2(수동 생성)와 3-1(반복 식사 자동 생성) 양쪽에서 똑같이 필요해서 여기 한 곳으로 모음.
+  async applyKnownAdvanceAnswers(householdId, mealId, date, memberIds, excludeMemberId) {
+    var advanceToday = (await API.advanceAnswers.list(householdId)).filter(function (a) { return a.date === date; });
+    for (var i = 0; i < memberIds.length; i++) {
+      if (memberIds[i] === excludeMemberId) continue;
+      var pre = advanceToday.find(function (a) { return a.member_id === memberIds[i]; });
+      if (pre && pre.status === 'attending') {
+        await API.mealResponses.respondSelf(mealId, memberIds[i], 'attending');
+      }
+    }
   }
 };
 
