@@ -3,6 +3,9 @@
 <meta content="width=device-width, initial-scale=1.0" name="viewport">
 <title>우리집식당 - 우리집 냉장고</title>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../shared/supabase-client.js"></script>
+<script src="../shared/api.js"></script>
 <link href="https://fonts.googleapis.com" rel="preconnect">
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif:wght@400;700&amp;family=Plus+Jakarta+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
@@ -150,15 +153,6 @@
     // 소비기한도 없는데 "신선함"을 무슨 근거로 표시하냐는 지적이 맞아서 고침).
     // ponytail: 재료마다 실제 유통기한은 다 다르지만, 그 기준표를 따로 만드는 건 이 규모에 과함 —
     // "며칠째 있었는지"로 뭉뚱그린 근사치. 나중에 재료별 기준일수가 필요해지면 그때 추가.
-    function todayISO() {
-        var d = new Date();
-        return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-    }
-    function dateMinusDays(n) {
-        var d = new Date();
-        d.setDate(d.getDate() - n);
-        return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-    }
     function daysSince(dateStr) {
         var then = new Date(dateStr + 'T00:00:00');
         var now = new Date();
@@ -179,49 +173,27 @@
         return d <= 0 ? '오늘 등록' : '등록 ' + d + '일째';
     }
 
-    var DEFAULT_FRIDGE = [
-        { name: '감자', emoji: '🥔', qty: '3개', addedAt: dateMinusDays(2) },
-        { name: '계란', emoji: '🥚', qty: '6알', addedAt: dateMinusDays(1) },
-        { name: '양파', emoji: '🧅', qty: '2개', addedAt: dateMinusDays(3) },
-        { name: '대파', emoji: '🌱', qty: '1단', addedAt: dateMinusDays(5) },
-        { name: '치즈', emoji: '🧀', qty: '200g', addedAt: dateMinusDays(2) },
-        { name: '당근', emoji: '🥕', qty: '2개', addedAt: dateMinusDays(4) },
-        { name: '시금치', emoji: '🥬', qty: '1단', addedAt: dateMinusDays(6) },
-        { name: '우유', emoji: '🥛', qty: '1L', addedAt: dateMinusDays(1) },
-        { name: '버섯', emoji: '🍄', qty: '1팩', addedAt: dateMinusDays(4) }
-    ];
+    var householdId = null;
+    var myMember = null;
+    var fridge = [];
 
-    function loadFridge() {
-        var fridge = null;
-        try { fridge = JSON.parse(localStorage.getItem('household_fridge') || 'null'); } catch (err) {}
-        if (!fridge) {
-            fridge = DEFAULT_FRIDGE;
-            try { localStorage.setItem('household_fridge', JSON.stringify(fridge)); } catch (err) {}
-        }
-        return fridge;
-    }
-    function saveFridge() {
-        try { localStorage.setItem('household_fridge', JSON.stringify(fridge)); } catch (err) {}
-    }
 
-    var fridge = loadFridge();
-
-    function addIngredient() {
+    async function addIngredient() {
         var nameInput = document.getElementById('addName');
         var qtyInput = document.getElementById('addQty');
         var name = nameInput.value.trim();
         if (!name) return;
-        fridge.push({ name: name, emoji: '📦', qty: qtyInput.value.trim() || '1개', addedAt: todayISO() });
-        saveFridge();
+        var row = await API.fridge.add(householdId, name, '📦', qtyInput.value.trim() || '1개');
+        fridge.push(row);
         nameInput.value = '';
         qtyInput.value = '';
         nameInput.focus();
         renderAll();
     }
 
-    function removeIngredient(index) {
-        fridge.splice(index, 1);
-        saveFridge();
+    async function removeIngredient(id) {
+        await API.fridge.remove(id);
+        fridge = fridge.filter(function (f) { return f.id !== id; });
         renderAll();
     }
 
@@ -305,14 +277,13 @@
         });
     }
 
-    function confirmInlineAnalysis() {
+    async function confirmInlineAnalysis() {
         var existingNames = fridge.map(function (f) { return f.name; });
-        ANALYZE_FOUND.forEach(function (item) {
-            if (existingNames.indexOf(item.name) === -1) {
-                fridge.push({ name: item.name, emoji: item.emoji, qty: '1개', addedAt: todayISO() });
-            }
-        });
-        saveFridge();
+        var toAdd = ANALYZE_FOUND.filter(function (item) { return existingNames.indexOf(item.name) === -1; });
+        for (var i = 0; i < toAdd.length; i++) {
+            var row = await API.fridge.add(householdId, toAdd[i].name, toAdd[i].emoji, '1개');
+            fridge.push(row);
+        }
         document.getElementById('analyzeResultCard').classList.add('hidden');
         document.getElementById('photoEntryRow').classList.remove('hidden');
         // 다음에 또 쓸 수 있게 미리보기·입력값 초기화
@@ -357,7 +328,6 @@
         var sorted = searched.slice().sort(function (a, b) { return URGENCY_RANK[computeFreshness(a)] - URGENCY_RANK[computeFreshness(b)]; });
         var visible = fridgeExpanded ? sorted : sorted.slice(0, FRIDGE_PREVIEW_COUNT);
         visible.forEach(function (item) {
-            var index = fridge.indexOf(item);
             var freshness = computeFreshness(item);
             var row = document.createElement('div');
             row.className = 'bg-surface-container-lowest rounded-xl px-4 py-3 shadow-[0px_4px_12px_rgba(120,119,119,0.08)] flex items-center gap-3';
@@ -368,7 +338,7 @@
                 '<span class="font-label-sm text-label-sm text-on-surface-variant block">' + fridgeDateLabel(item) + '</span>' +
                 '</span>' +
                 '<button type="button" class="remove-btn w-8 h-8 flex items-center justify-center rounded-full text-on-surface-variant shrink-0" aria-label="삭제"><span class="material-symbols-outlined text-[20px]">delete</span></button>';
-            row.querySelector('.remove-btn').onclick = function () { removeIngredient(index); };
+            row.querySelector('.remove-btn').onclick = function () { removeIngredient(item.id); };
             list.appendChild(row);
         });
 
@@ -459,7 +429,31 @@
         renderMilkitSuggestions();
     }
 
-    renderAll();
+    // 오늘 소진 단계(urgent)로 넘어간 재료를 가구원 전체에게 1번만 알림 — 화면을 열어야 계산되는
+    // 한계는 있지만(진짜 백그라운드 푸시는 서버 쪽 인프라가 더 필요), 열람 시점엔 실제로 전원에게 감.
+    async function notifyExpiringItems() {
+        var urgent = fridge.filter(function (f) { return computeFreshness(f) === 'urgent' && !f.expiryNotifiedAt; });
+        if (!urgent.length) return;
+        var members = (await API.members.list(householdId)).filter(function (m) { return m.role !== 'guest' && m.role !== 'pending'; });
+        for (var i = 0; i < urgent.length; i++) {
+            var item = urgent[i];
+            for (var j = 0; j < members.length; j++) {
+                await API.notifications.create(householdId, members[j].id, null, item.name + ' 유통기한이 얼마 안 남았어요', '등록 후 5일이 지났어요 · 오늘 식사에 먼저 써보세요');
+            }
+            await API.fridge.markExpiryNotified(item.id);
+            item.expiryNotifiedAt = new Date().toISOString();
+        }
+    }
+
+    (async function init() {
+        await requireSession();
+        myMember = await getMyMember();
+        if (!myMember) { window.location.href = '../1-2. 온보딩-시작하기/code.html'; return; }
+        householdId = myMember.household_id;
+        fridge = await API.fridge.listByHousehold(householdId);
+        renderAll();
+        await notifyExpiringItems();
+    })();
 </script>
 <script>
 if ('serviceWorker' in navigator) {

@@ -887,6 +887,34 @@ API.notifications = {
 };
 
 // ---------------------------------------------------------
+// 냉장고 재료 — "가구가 함께 쓰는 재료"라고 화면에 써놓고 실제로는 각자 기기의 localStorage에만
+// 있어서 가족끼리 서로 다른 냉장고를 보던 문제를 고침(§7-1 재구현, 유통기한 알림의 전제조건).
+// ---------------------------------------------------------
+function mapFridgeRow(row) {
+  return { id: row.id, name: row.name, emoji: row.emoji, qty: row.qty, addedAt: row.added_at, expiryNotifiedAt: row.expiry_notified_at };
+}
+API.fridge = {
+  async listByHousehold(householdId) {
+    var res = await sb.from('fridge_items_vc2608').select('*').eq('household_id', householdId).order('added_at', { ascending: true });
+    if (res.error) throw res.error;
+    return res.data.map(mapFridgeRow);
+  },
+  async add(householdId, name, emoji, qty) {
+    var res = await sb.from('fridge_items_vc2608').insert({ household_id: householdId, name: name, emoji: emoji || '📦', qty: qty || '1개' }).select().single();
+    if (res.error) throw res.error;
+    return mapFridgeRow(res.data);
+  },
+  async remove(id) {
+    var res = await sb.from('fridge_items_vc2608').delete().eq('id', id);
+    if (res.error) throw res.error;
+  },
+  async markExpiryNotified(id) {
+    var res = await sb.from('fridge_items_vc2608').update({ expiry_notified_at: new Date().toISOString() }).eq('id', id);
+    if (res.error) throw res.error;
+  }
+};
+
+// ---------------------------------------------------------
 // 실시간 구독 공통 헬퍼
 // ---------------------------------------------------------
 // household_id 컬럼이 없는 테이블(meal_responses_vc2608 등)은 필터 없이 구독 —
