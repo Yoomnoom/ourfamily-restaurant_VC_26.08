@@ -193,10 +193,25 @@
 <button type="button" class="w-full text-center font-label-sm text-label-sm text-primary py-1 border-t border-outline-variant pt-3" onclick="window.location.href='../8-3. 식비 예산/code.html'">이번 달 식비 예산 보기 →</button>
 </div>
 
-<div class="relative mb-4">
+<div class="relative mb-3">
 <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">search</span>
 <input id="searchInput" type="text" placeholder="메뉴로 검색 (예: 삼겹살)" class="w-full pl-10 pr-3 py-2.5 rounded-full border border-outline-variant font-body-md text-body-md bg-surface-container-lowest" oninput="renderRecords()">
 </div>
+
+<details class="mb-4">
+<summary class="font-label-sm text-label-sm text-on-surface-variant cursor-pointer flex items-center gap-2 px-1">
+<span class="material-symbols-outlined text-[18px]">filter_list</span>
+기간·참여자로 더 찾기
+</summary>
+<div class="mt-3 flex flex-col gap-3 px-1">
+<div class="flex items-center gap-2">
+<input id="filterFrom" type="date" class="flex-1 min-w-0 border border-outline-variant rounded-lg px-3 py-2 font-body-md text-body-md bg-surface-container-lowest" onchange="renderRecords()">
+<span class="font-label-sm text-label-sm text-on-surface-variant">~</span>
+<input id="filterTo" type="date" class="flex-1 min-w-0 border border-outline-variant rounded-lg px-3 py-2 font-body-md text-body-md bg-surface-container-lowest" onchange="renderRecords()">
+</div>
+<div id="participantFilterChips" class="flex flex-wrap gap-2"></div>
+</div>
+</details>
 
 <div id="recordList" class="flex flex-col gap-3"></div>
 
@@ -504,14 +519,48 @@
     var RECORD_PREVIEW_COUNT = 5; // 기록이 쌓일수록 무한정 길어지지 않게 — 홈의 "더보기" 패턴과 동일
     var recordsExpanded = false;
 
+    // 참여자 칩은 다중 선택(OR) — 선택한 사람 중 누구라도 그 기록에 있으면 걸림.
+    var participantFilterSet = new Set();
+    function renderParticipantFilterChips() {
+        var names = Array.from(new Set(RECORDS.reduce(function (acc, r) { return acc.concat(r.names || []); }, []))).sort();
+        var wrap = document.getElementById('participantFilterChips');
+        wrap.innerHTML = '';
+        names.forEach(function (name) {
+            var chip = document.createElement('button');
+            chip.type = 'button';
+            chip.className = 'participant-filter-chip px-3 py-1.5 rounded-full border border-outline-variant bg-surface-container-lowest text-on-surface-variant font-label-sm text-label-sm';
+            chip.dataset.name = name;
+            chip.textContent = name;
+            chip.onclick = function () { toggleParticipantFilter(name); };
+            wrap.appendChild(chip);
+        });
+    }
+    function toggleParticipantFilter(name) {
+        if (participantFilterSet.has(name)) participantFilterSet.delete(name); else participantFilterSet.add(name);
+        document.querySelectorAll('.participant-filter-chip').forEach(function (chip) {
+            var active = participantFilterSet.has(chip.dataset.name);
+            chip.classList.toggle('bg-primary', active);
+            chip.classList.toggle('text-on-primary', active);
+            chip.classList.toggle('border-primary', active);
+            chip.classList.toggle('bg-surface-container-lowest', !active);
+            chip.classList.toggle('text-on-surface-variant', !active);
+        });
+        renderRecords();
+    }
+
     function renderRecords() {
         var query = (document.getElementById('searchInput').value || '').trim().toLowerCase();
+        var fromDate = document.getElementById('filterFrom').value;
+        var toDate = document.getElementById('filterTo').value;
         var list = document.getElementById('recordList');
         list.innerHTML = '';
 
         var matching = [];
         RECORDS.forEach(function (record, index) {
             if (query && record.menus.join(' ').toLowerCase().indexOf(query) === -1) return;
+            if (fromDate && record.dateKey < fromDate) return;
+            if (toDate && record.dateKey > toDate) return;
+            if (participantFilterSet.size && !(record.names || []).some(function (n) { return participantFilterSet.has(n); })) return;
             matching.push(index);
         });
         var visible = recordsExpanded ? matching : matching.slice(0, RECORD_PREVIEW_COUNT);
@@ -592,6 +641,7 @@
         document.getElementById('householdSelectorLabel').textContent = household.name || '우리집';
 
         await loadRecords();
+        renderParticipantFilterChips();
         await loadPhotos();
         await loadMenuImages();
         await loadMenuCategories();

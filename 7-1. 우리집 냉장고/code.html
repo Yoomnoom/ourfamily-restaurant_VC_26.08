@@ -129,6 +129,10 @@
 <h2 id="fridgeCountLabel" class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wide">재료</h2>
 <button class="font-label-sm text-label-sm text-primary" onclick="window.location.href='../7-3. 메뉴 추천/code.html'">이 재료로 메뉴 추천받기 →</button>
 </div>
+<div class="relative mb-3">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">search</span>
+<input id="fridgeSearchInput" type="text" placeholder="재료 이름으로 찾기" class="w-full pl-10 pr-3 py-2.5 rounded-full border border-outline-variant font-body-md text-body-md bg-surface-container-lowest" oninput="renderFridgeList()">
+</div>
 <div id="fridgeList" class="flex flex-col gap-2 mb-6"></div>
 
 <!-- 밀키트 제안: 있을 때만, 조용히 -->
@@ -336,10 +340,21 @@
             return;
         }
 
+        var query = (document.getElementById('fridgeSearchInput').value || '').trim().toLowerCase();
+        var searched = query ? fridge.filter(function (item) { return item.name.toLowerCase().indexOf(query) !== -1; }) : fridge;
+
+        if (!searched.length) {
+            var noMatch = document.createElement('p');
+            noMatch.className = 'font-label-sm text-label-sm text-on-surface-variant text-center py-6';
+            noMatch.textContent = '검색 결과가 없어요.';
+            list.appendChild(noMatch);
+            return;
+        }
+
         var DOT_COLOR = { fresh: '#8fae7a', expiring: '#c9922f', urgent: '#ba1a1a' };
         var URGENCY_RANK = { urgent: 0, expiring: 1, fresh: 2 };
         // 급한 재료를 별도 카드로 또 보여주는 대신, 목록 자체를 급한 순서로 정렬 — 같은 정보를 두 번 안 보여줌.
-        var sorted = fridge.slice().sort(function (a, b) { return URGENCY_RANK[computeFreshness(a)] - URGENCY_RANK[computeFreshness(b)]; });
+        var sorted = searched.slice().sort(function (a, b) { return URGENCY_RANK[computeFreshness(a)] - URGENCY_RANK[computeFreshness(b)]; });
         var visible = fridgeExpanded ? sorted : sorted.slice(0, FRIDGE_PREVIEW_COUNT);
         visible.forEach(function (item) {
             var index = fridge.indexOf(item);
@@ -357,14 +372,14 @@
             list.appendChild(row);
         });
 
-        if (!fridgeExpanded && fridge.length > FRIDGE_PREVIEW_COUNT) {
+        if (!fridgeExpanded && sorted.length > FRIDGE_PREVIEW_COUNT) {
             var moreBtn = document.createElement('button');
             moreBtn.type = 'button';
             moreBtn.className = 'w-full text-center font-label-sm text-label-sm text-primary py-1.5';
-            moreBtn.textContent = '+ ' + (fridge.length - FRIDGE_PREVIEW_COUNT) + '개 더보기';
+            moreBtn.textContent = '+ ' + (sorted.length - FRIDGE_PREVIEW_COUNT) + '개 더보기';
             moreBtn.onclick = function () { fridgeExpanded = true; renderFridgeList(); };
             list.appendChild(moreBtn);
-        } else if (fridgeExpanded && fridge.length > FRIDGE_PREVIEW_COUNT) {
+        } else if (fridgeExpanded && sorted.length > FRIDGE_PREVIEW_COUNT) {
             var lessBtn = document.createElement('button');
             lessBtn.type = 'button';
             lessBtn.className = 'w-full text-center font-label-sm text-label-sm text-on-surface-variant py-1.5';
