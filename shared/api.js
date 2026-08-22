@@ -124,6 +124,15 @@ API.auth = {
     if (!session) throw new Error('로그인 필요');
     var res = await sb.from('profiles_vc2608').update(fields).eq('id', session.user.id);
     if (res.error) throw res.error;
+  },
+
+  // OAuth 복귀 시 1-1(프로필 입력)을 거쳤는지 판단하는 용도 — profile_setup_done 확인.
+  async getMyProfile() {
+    var session = await getSession();
+    if (!session) return null;
+    var res = await sb.from('profiles_vc2608').select('*').eq('id', session.user.id).maybeSingle();
+    if (res.error) throw res.error;
+    return res.data;
   }
 };
 
@@ -326,7 +335,7 @@ API.savedGuests = {
 // 식사 / 참여자 / 응답
 // ---------------------------------------------------------
 API.meals = {
-  // fields: {date, time, kind('집밥'|'외식'|'배달'), menu(array), note, status}
+  // fields: {date, time, kind('집밥'|'외식'|'배달'), period('아침'|'점심'|'저녁'|'간식', 선택), menu(array), note, status}
   async create(householdId, fields) {
     var session = await getSession();
     var res = await sb.from('meals_vc2608').insert({
@@ -335,6 +344,7 @@ API.meals = {
       date: fields.date,
       time: fields.time || null,
       kind: fields.kind,
+      period: fields.period || null,
       menu: fields.menu || [],
       note: fields.note || '',
       status: fields.status || 'open'
@@ -396,33 +406,39 @@ API.mealPhotos = {
 // 화면 쪽에서 결정론적 로컬 플레이스홀더(foodPlaceholder, shared/food-placeholder.js)로 대체.
 // ---------------------------------------------------------
 API.menuImages = {
-  async get(menuName) {
-    var res = await sb.from('menu_default_images_vc2608').select('image_url').eq('menu_name', menuName).maybeSingle();
+  // householdId를 주면 그 가구가 등록한 사진을 우선, 없으면 전역 기본값(household_id null)으로 대체.
+  async get(menuName, householdId) {
+    var q = sb.from('menu_default_images_vc2608').select('image_url, household_id').eq('menu_name', menuName);
+    q = householdId ? q.or('household_id.eq.' + householdId + ',household_id.is.null') : q.is('household_id', null);
+    var res = await q;
     if (res.error) throw res.error;
-    return res.data ? res.data.image_url : null;
+    if (!res.data || !res.data.length) return null;
+    var household = res.data.find(function (r) { return r.household_id === householdId; });
+    var row = household || res.data.find(function (r) { return !r.household_id; });
+    return row ? row.image_url : null;
   },
-  // 이미지 생성 API가 연결되면 생성된 이미지를 Storage(menu-images 버킷)에 올린 뒤 여기로 캐시.
-  async save(menuName, imageUrl, source) {
-    var res = await sb.from('menu_default_images_vc2608')
-      .upsert({ menu_name: menuName, image_url: imageUrl, source: source || 'generated' }, { onConflict: 'menu_name' });
+  // householdId가 있으면 그 가구 전용 사진으로, null/생략이면 전역 기본값으로 저장(전역은 admin만 — save_menu_image_vc2608 RPC에서 권한 확인).
+  // partial unique index(전역 1개 vs 가구별 1개) 때문에 client upsert 대신 RPC로 처리.
+  async save(menuName, imageUrl, source, householdId) {
+    var res = await sb.rpc('save_menu_image_vc2608', {
+      p_menu_name: menuName, p_image_url: imageUrl, p_source: source || 'generated', p_household_id: householdId || null
+    });
     if (res.error) throw res.error;
   },
-  // 등록된 대표 사진 전체 목록(관리 화면용, 5-5).
+  // 등록된 대표 사진 전체 목록(관리 화면용, 5-5) — RLS가 전역 + 내 가구 것만 돌려줌.
   async list() {
     var res = await sb.from('menu_default_images_vc2608').select('*').order('menu_name');
     if (res.error) throw res.error;
     return res.data;
   },
-  async remove(menuName) {
-    var res = await sb.from('menu_default_images_vc2608').delete().eq('menu_name', menuName);
+  async remove(menuName, householdId) {
+    var q = sb.from('menu_default_images_vc2608').delete().eq('menu_name', menuName);
+    q = householdId ? q.eq('household_id', householdId) : q.is('household_id', null);
+    var res = await q;
     if (res.error) throw res.error;
   }
 };
 
-// ---------------------------------------------------------
-// 메뉴 이름별 음식군/조리유형/세부태그 캐시 — 3-2 카테고리로 메뉴 찾기에서 고른 메뉴에
-// 붙여 저장해두고, 5-2 기록 통계 등에서 재사용(전역 공유, household 무관 — menu_default_images와 동일한 성격).
-// ---------------------------------------------------------
 API.menuCategories = {
   async get(menuName) {
     var res = await sb.from('menu_categories_vc2608').select('food_group, cook_type, detail_tags').eq('menu_name', menuName).maybeSingle();

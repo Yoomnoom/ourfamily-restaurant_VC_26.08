@@ -161,11 +161,11 @@
             if (isNewPhoto && meal.menu && meal.menu.length) {
                 meal.menu.forEach(function (name) {
                     if (forceSetDefault) {
-                        API.menuImages.save(name, photoUrl, 'user_photo').catch(function () {});
+                        API.menuImages.save(name, photoUrl, 'user_photo', householdId).catch(function () {});
                         return;
                     }
-                    API.menuImages.get(name).then(function (existing) {
-                        if (!existing) return API.menuImages.save(name, photoUrl, 'user_photo');
+                    API.menuImages.get(name, householdId).then(function (existing) {
+                        if (!existing) return API.menuImages.save(name, photoUrl, 'user_photo', householdId);
                     }).catch(function () {}); // 실패해도 사진 저장 자체는 이미 끝났으니 조용히 무시
                 });
             }

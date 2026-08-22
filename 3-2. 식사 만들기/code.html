@@ -238,6 +238,19 @@
 </details>
 </section>
 
+<!-- 끼니: 시간을 보면 대충 짐작되지만(아침/점심/저녁), 애매하거나 간식처럼 시간만으로는
+     구분 안 되는 경우를 위해 선택 태그로 남겨둠 — 강제 아님, 원하는 사람만 지정. -->
+<section class="mb-6">
+<h2 class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wide mb-3 px-1">끼니 <span class="normal-case opacity-70">(선택)</span></h2>
+<div id="mealPeriodChips" class="flex flex-wrap gap-2">
+<button type="button" class="meal-period-chip px-4 py-2 rounded-full border border-outline-variant bg-surface-container-lowest text-on-surface-variant font-label-sm text-label-sm transition-colors" data-period="아침" onclick="toggleMealPeriod('아침')">아침</button>
+<button type="button" class="meal-period-chip px-4 py-2 rounded-full border border-outline-variant bg-surface-container-lowest text-on-surface-variant font-label-sm text-label-sm transition-colors" data-period="점심" onclick="toggleMealPeriod('점심')">점심</button>
+<button type="button" class="meal-period-chip px-4 py-2 rounded-full border border-outline-variant bg-surface-container-lowest text-on-surface-variant font-label-sm text-label-sm transition-colors" data-period="저녁" onclick="toggleMealPeriod('저녁')">저녁</button>
+<button type="button" class="meal-period-chip px-4 py-2 rounded-full border border-outline-variant bg-surface-container-lowest text-on-surface-variant font-label-sm text-label-sm transition-colors" data-period="간식" onclick="toggleMealPeriod('간식')">간식</button>
+</div>
+<p class="font-label-sm text-label-sm text-on-surface-variant mt-2 px-1">지정하지 않으면 시간을 보고 자동으로 짐작해요.</p>
+</section>
+
 <!-- 종류: 08_create_meal.png 기준으로 낱개 알약 대신 하나의 테두리 상자를 내부 구분선으로
      3분할한 세그먼트 컨트롤로, 아이콘도 추가(색은 참고 이미지의 초록 대신 앱 기본 그레이 유지). -->
 <section class="mb-6">
@@ -968,6 +981,20 @@
         delivery: '메뉴를 입력하세요 (예: 후라이드 치킨)'
     };
 
+    // 끼니는 강제 지정이 아님 — 미지정(null)이면 화면에서 시간으로 자동 추정해서 보여줌.
+    var selectedMealPeriod = null;
+    function toggleMealPeriod(period) {
+        selectedMealPeriod = (selectedMealPeriod === period) ? null : period;
+        document.querySelectorAll('.meal-period-chip').forEach(function (chip) {
+            var active = chip.getAttribute('data-period') === selectedMealPeriod;
+            chip.classList.toggle('bg-primary', active);
+            chip.classList.toggle('text-on-primary', active);
+            chip.classList.toggle('border-primary', active);
+            chip.classList.toggle('bg-surface-container-lowest', !active);
+            chip.classList.toggle('text-on-surface-variant', !active);
+        });
+    }
+
     function selectMealType(type) {
         mealType = type;
         document.querySelectorAll('.meal-type-chip').forEach(function (chip) {
@@ -1148,6 +1175,7 @@
                 date: date,
                 time: document.getElementById('timeUndecided').checked ? null : document.getElementById('mealTime').value,
                 kind: KIND_LABELS[mealType] || mealType,
+                period: selectedMealPeriod,
                 menu: menus.map(function (m) { return m.name; })
             };
 
@@ -1263,6 +1291,7 @@
             }
             else { document.getElementById('timeUndecided').checked = true; toggleTimeInput(); }
             selectMealType(KIND_KEYS[editMeal.kind] || 'home');
+            if (editMeal.period) toggleMealPeriod(editMeal.period);
             (editMeal.menu || []).forEach(function (name) { addMenu(name); });
             roster.forEach(function (r) { addParticipant(r.name, r.color, true, true, r.memberId); });
             return;

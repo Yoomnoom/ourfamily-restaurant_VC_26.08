@@ -134,8 +134,19 @@
     (async function checkAutoLogin() {
         var session = await getSession();
         if (session) {
+            // 지난번과 다른 방법으로 로그인했을 때 2-2에서 미리 물어볼 수 있게 기록(§헷갈리기 전에 미리 확인).
+            try {
+                var provider = session.user.app_metadata && session.user.app_metadata.provider;
+                if (provider) localStorage.setItem('last_login_method', provider);
+            } catch (e) {}
             var member = await getMyMember();
-            window.location.href = member ? '../3-0. 홈/code.html' : '../1-2. 온보딩-시작하기/code.html';
+            if (member) { window.location.href = '../3-0. 홈/code.html'; return; }
+            // OAuth로 처음 들어온 계정은 1-1(프로필 입력)을 아직 거치지 않았을 수 있음 —
+            // profile_setup_done이 아니면 1-2(가구 생성)로 바로 보내지 않고 1-1부터 거치게 함.
+            var profile = await API.auth.getMyProfile();
+            window.location.href = (profile && profile.profile_setup_done)
+                ? '../1-2. 온보딩-시작하기/code.html'
+                : '../1-1. 온보딩-회원가입/code.html';
             return;
         }
         document.getElementById('auth-check-loading').classList.add('hidden');

@@ -73,22 +73,41 @@
 <input id="newPhotoInput" type="file" accept="image/*" class="hidden" onchange="handleNewPhotoChange(event)">
 </label>
 </div>
+<label id="globalDefaultRow" class="hidden items-center gap-2 font-label-sm text-label-sm text-on-surface-variant">
+<input id="globalDefaultCheckbox" type="checkbox" class="rounded border-outline-variant">
+전역 기본값으로 등록(모든 가구에 기본으로 보여요)
+</label>
 <p id="newFormError" class="hidden font-label-sm text-label-sm text-error"></p>
 <button id="registerBtn" class="w-full bg-primary text-on-primary font-label-sm text-[15px] py-3 rounded-full shadow-[0px_4px_12px_rgba(120,119,119,0.08)] active:scale-[0.98] transition-transform flex items-center justify-center gap-2" onclick="registerNewMenu()">등록</button>
 </div>
 
 <!-- 등록된 목록 -->
 <h2 class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wide mb-3 px-1">등록된 대표 사진</h2>
+<div class="relative mb-3">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">search</span>
+<input id="menuSearchInput" type="text" placeholder="메뉴 이름으로 검색" class="w-full pl-10 pr-3 py-2.5 rounded-lg border border-outline-variant bg-surface-container-lowest font-body-md text-body-md text-on-surface placeholder:text-outline-variant">
+</div>
 <div id="loadingList" class="flex items-center justify-center gap-2 font-label-sm text-label-sm text-on-surface-variant py-8">
 <span class="spinner"></span> 불러오는 중...
 </div>
-<div id="menuImageList" class="flex flex-col gap-2"></div>
+<div id="menuImageList" class="grid grid-cols-3 gap-3"></div>
 <p id="emptyMsg" class="hidden font-label-sm text-label-sm text-on-surface-variant text-center py-8">아직 등록된 대표 사진이 없어요.</p>
+<p id="noMatchMsg" class="hidden font-label-sm text-label-sm text-on-surface-variant text-center py-8">검색 결과가 없어요.</p>
+
+<!-- 사진 바꾸기/삭제 액션 시트 — 그리드 타일을 꾸욱 누르면 뜸 -->
+<div id="actionSheetBackdrop" class="hidden fixed inset-0 bg-on-surface/40 z-40" onclick="closeActionSheet()"></div>
+<div id="actionSheet" class="hidden fixed left-0 right-0 bottom-0 z-50 bg-surface-container-lowest rounded-t-2xl p-4 pb-8 flex flex-col gap-2 max-w-[600px] mx-auto">
+<p id="actionSheetTitle" class="font-body-md text-body-md text-on-surface text-center mb-1 truncate"></p>
+<div id="actionSheetButtons" class="flex flex-col gap-1"></div>
+<button type="button" class="w-full py-3 rounded-full bg-surface-container text-on-surface font-label-sm text-label-sm mt-1" onclick="closeActionSheet()">취소</button>
+</div>
 
 </main>
 
 <script>
     var SOURCE_LABEL = { manual: '수동 등록', generated: 'AI 생성', user_photo: '사용자 사진' };
+    var myMember = null;
+    var isAdmin = false;
 
     function resizeImageFile(file) {
         return new Promise(function (resolve, reject) {
@@ -97,13 +116,15 @@
             reader.onload = function (e) {
                 var img = new Image();
                 img.onload = function () {
-                    var maxSide = 1000;
+                    // 대표 사진은 목록 썸네일(56px)~홈 히어로 카드 정도 크기로만 쓰여서 큰 원본이 필요 없음 —
+                    // 용량을 최소로 잡아 업로드·다운로드 부담을 줄임(640px/JPEG 0.75면 화질 체감 차이 거의 없음).
+                    var maxSide = 640;
                     var scale = Math.min(1, maxSide / Math.max(img.width, img.height));
                     var canvas = document.createElement('canvas');
                     canvas.width = Math.round(img.width * scale);
                     canvas.height = Math.round(img.height * scale);
                     canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
-                    canvas.toBlob(function (blob) { resolve({ blob: blob, dataUrl: e.target.result }); }, 'image/jpeg', 0.85);
+                    canvas.toBlob(function (blob) { resolve({ blob: blob, dataUrl: e.target.result }); }, 'image/jpeg', 0.75);
                 };
                 img.onerror = reject;
                 img.src = e.target.result;
@@ -133,11 +154,14 @@
         btn.disabled = true;
         btn.textContent = '등록 중...';
         try {
+            var asGlobal = isAdmin && document.getElementById('globalDefaultCheckbox').checked;
+            var targetHousehold = asGlobal ? null : (myMember && myMember.household_id);
             var url = await API.storage.uploadMenuImage(name, newPhotoBlob);
-            await API.menuImages.save(name, url, 'manual');
+            await API.menuImages.save(name, url, 'manual', targetHousehold);
             document.getElementById('newMenuName').value = '';
             newPhotoBlob = null;
             document.getElementById('newPreviewBox').innerHTML = '<span class="material-symbols-outlined text-on-surface-variant">image</span>';
+            document.getElementById('globalDefaultCheckbox').checked = false;
             await renderList();
         } catch (err) {
             errorEl.textContent = '등록에 실패했어요: ' + err.message;
@@ -148,11 +172,11 @@
         }
     }
 
-    async function replaceMenuPhoto(menuName, file) {
+    async function replaceMenuPhoto(menuName, file, householdId) {
         try {
             var result = await resizeImageFile(file);
             var url = await API.storage.uploadMenuImage(menuName, result.blob);
-            await API.menuImages.save(menuName, url, 'manual');
+            await API.menuImages.save(menuName, url, 'manual', householdId);
             await renderList();
         } catch (err) {
             alert('사진 변경에 실패했어요: ' + err.message);
@@ -160,14 +184,125 @@
         }
     }
 
-    async function removeMenuPhoto(menuName) {
+    async function removeMenuPhoto(menuName, householdId) {
         if (!confirm('"' + menuName + '"의 대표 사진을 삭제할까요? 다음부터는 이모지 플레이스홀더로 보여요.')) return;
         try {
-            await API.menuImages.remove(menuName);
+            await API.menuImages.remove(menuName, householdId);
             await renderList();
         } catch (err) {
             alert('삭제에 실패했어요: ' + err.message);
         }
+    }
+
+    // householdId가 있는 사진이 이미 있으면(=현재 사용 중) 전역 기본값은 "이 사진 쓰기"로 바꿔 탈 수 있게.
+    // 전역으로 바꾸는 건 곧 우리 가구 사진을 지우는 것 — 용량을 계속 쌓아두지 않기 위해 하나만 유지.
+    async function useGlobalPhoto(menuName) {
+        if (!confirm('전역 기본 사진으로 바꿀까요? 우리 가구가 등록해둔 사진은 삭제돼요.')) return;
+        try {
+            await API.menuImages.remove(menuName, myMember && myMember.household_id);
+            await renderList();
+        } catch (err) {
+            alert('변경에 실패했어요: ' + err.message);
+        }
+    }
+
+    // 그리드 타일을 꾸욱 누르면(길게 누르기/우클릭) 액션 시트를 띔 — 짧게 탭하는 건 아무 동작 안 함.
+    function attachLongPress(el, callback) {
+        var LONG_PRESS_MS = 500;
+        var timer = null;
+        function start() { timer = setTimeout(function () { timer = null; callback(); }, LONG_PRESS_MS); }
+        function cancel() { if (timer) { clearTimeout(timer); timer = null; } }
+        el.addEventListener('pointerdown', start);
+        el.addEventListener('pointerup', cancel);
+        el.addEventListener('pointerleave', cancel);
+        el.addEventListener('pointercancel', cancel);
+        el.addEventListener('contextmenu', function (e) { e.preventDefault(); callback(); });
+    }
+
+    function openActionSheet(menuName, r, canEdit, showUseGlobalBtn) {
+        document.getElementById('actionSheetTitle').textContent = menuName;
+        var buttonsWrap = document.getElementById('actionSheetButtons');
+        buttonsWrap.innerHTML = '';
+        if (canEdit) {
+            var replaceLabel = document.createElement('label');
+            replaceLabel.className = 'w-full py-3 rounded-full bg-surface-container text-on-surface font-label-sm text-label-sm text-center cursor-pointer block';
+            replaceLabel.textContent = '사진 바꾸기';
+            var replaceInput = document.createElement('input');
+            replaceInput.type = 'file';
+            replaceInput.accept = 'image/*';
+            replaceInput.className = 'hidden';
+            replaceInput.onchange = function (e) {
+                var file = e.target.files[0];
+                if (!file) return;
+                closeActionSheet();
+                replaceMenuPhoto(r.menu_name, file, r.household_id).catch(function (err) { alert('변경 실패: ' + err.message); });
+            };
+            replaceLabel.appendChild(replaceInput);
+            buttonsWrap.appendChild(replaceLabel);
+
+            var removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.className = 'w-full py-3 rounded-full bg-surface-container text-error font-label-sm text-label-sm';
+            removeBtn.textContent = '삭제';
+            removeBtn.onclick = function () { closeActionSheet(); removeMenuPhoto(r.menu_name, r.household_id); };
+            buttonsWrap.appendChild(removeBtn);
+        }
+        if (showUseGlobalBtn) {
+            var useBtn = document.createElement('button');
+            useBtn.type = 'button';
+            useBtn.className = 'w-full py-3 rounded-full bg-surface-container text-primary font-label-sm text-label-sm';
+            useBtn.textContent = '이 사진 쓰기';
+            useBtn.onclick = function () { closeActionSheet(); useGlobalPhoto(r.menu_name); };
+            buttonsWrap.appendChild(useBtn);
+        }
+        if (!canEdit && !showUseGlobalBtn) {
+            var noteEl = document.createElement('p');
+            noteEl.className = 'text-center font-label-sm text-label-sm text-on-surface-variant py-2';
+            noteEl.textContent = '이 사진은 관리자만 수정할 수 있어요.';
+            buttonsWrap.appendChild(noteEl);
+        }
+        document.getElementById('actionSheetBackdrop').classList.remove('hidden');
+        document.getElementById('actionSheet').classList.remove('hidden');
+    }
+
+    function closeActionSheet() {
+        document.getElementById('actionSheetBackdrop').classList.add('hidden');
+        document.getElementById('actionSheet').classList.add('hidden');
+    }
+
+    function buildGridTile(r, menuName, scopeLabel, isActive, canEdit, showUseGlobalBtn) {
+        var tile = document.createElement('button');
+        tile.type = 'button';
+        tile.className = 'flex flex-col gap-1 text-left active:scale-[0.97] transition-transform';
+        tile.dataset.menuName = menuName;
+
+        var thumbWrap = document.createElement('div');
+        thumbWrap.className = 'relative w-full aspect-square rounded-lg overflow-hidden bg-surface-container';
+        var thumb = document.createElement('img');
+        thumb.src = r.image_url;
+        thumb.className = 'w-full h-full object-cover';
+        thumbWrap.appendChild(thumb);
+
+        var scopeEl = document.createElement('span');
+        scopeEl.className = 'absolute bottom-1 left-1 font-label-sm text-[11px] bg-surface-container-lowest/90 text-on-surface-variant px-1.5 py-0.5 rounded-full';
+        scopeEl.textContent = scopeLabel;
+        thumbWrap.appendChild(scopeEl);
+
+        if (isActive) {
+            var activeEl = document.createElement('span');
+            activeEl.className = 'absolute top-1 right-1 font-label-sm text-[11px] bg-tertiary-container text-on-tertiary-container px-1.5 py-0.5 rounded-full';
+            activeEl.textContent = '사용 중';
+            thumbWrap.appendChild(activeEl);
+        }
+        tile.appendChild(thumbWrap);
+
+        var nameEl = document.createElement('p');
+        nameEl.className = 'font-label-sm text-label-sm text-on-surface truncate px-0.5';
+        nameEl.textContent = menuName;
+        tile.appendChild(nameEl);
+
+        attachLongPress(tile, function () { openActionSheet(menuName, r, canEdit, showUseGlobalBtn); });
+        return tile;
     }
 
     async function renderList() {
@@ -187,61 +322,50 @@
         loading.classList.add('hidden');
         emptyMsg.classList.toggle('hidden', rows.length > 0);
 
+        // 메뉴 이름별로 묶어서, 같은 메뉴에 우리 가구 사진과 전역 기본값이 둘 다 있으면
+        // 나란히 비교해서 더 좋은 쪽을 고를 수 있게(전역으로 바꾸면 우리 가구 사진은 삭제해 용량 절약).
+        var groups = {};
         rows.forEach(function (row) {
-            var item = document.createElement('div');
-            item.className = 'bg-surface-container-lowest rounded-xl shadow-[0px_4px_12px_rgba(120,119,119,0.08)] p-3 flex items-center gap-3';
-
-            var thumb = document.createElement('img');
-            thumb.src = row.image_url;
-            thumb.className = 'w-14 h-14 rounded-lg object-cover shrink-0 bg-surface-container';
-            item.appendChild(thumb);
-
-            var info = document.createElement('div');
-            info.className = 'flex-1 min-w-0';
-            var nameEl = document.createElement('p');
-            nameEl.className = 'font-body-md text-body-md text-on-surface truncate';
-            nameEl.textContent = row.menu_name;
-            var sourceEl = document.createElement('span');
-            sourceEl.className = 'font-label-sm text-label-sm bg-tertiary-container text-on-tertiary-container px-2 py-0.5 rounded-full';
-            sourceEl.textContent = SOURCE_LABEL[row.source] || row.source || '-';
-            info.appendChild(nameEl);
-            info.appendChild(sourceEl);
-            item.appendChild(info);
-
-            var actions = document.createElement('div');
-            actions.className = 'flex flex-col gap-1 shrink-0';
-
-            var replaceLabel = document.createElement('label');
-            replaceLabel.className = 'font-label-sm text-label-sm text-primary cursor-pointer text-center';
-            replaceLabel.textContent = '사진 바꾸기';
-            var replaceInput = document.createElement('input');
-            replaceInput.type = 'file';
-            replaceInput.accept = 'image/*';
-            replaceInput.className = 'hidden';
-            replaceInput.onchange = function (e) {
-                var file = e.target.files[0];
-                if (!file) return;
-                replaceLabel.textContent = '변경 중...';
-                replaceMenuPhoto(row.menu_name, file).catch(function (err) { alert('변경 실패: ' + err.message); });
-            };
-            replaceLabel.appendChild(replaceInput);
-            actions.appendChild(replaceLabel);
-
-            var removeBtn = document.createElement('button');
-            removeBtn.type = 'button';
-            removeBtn.className = 'font-label-sm text-label-sm text-error';
-            removeBtn.textContent = '삭제';
-            removeBtn.onclick = function () { removeMenuPhoto(row.menu_name); };
-            actions.appendChild(removeBtn);
-
-            item.appendChild(actions);
-            list.appendChild(item);
+            var g = groups[row.menu_name] || (groups[row.menu_name] = {});
+            if (row.household_id) g.household = row; else g.global = row;
         });
+
+        Object.keys(groups).sort().forEach(function (menuName) {
+            var g = groups[menuName];
+            if (g.household) {
+                var canEditHousehold = !!(myMember && g.household.household_id === myMember.household_id);
+                list.appendChild(buildGridTile(g.household, menuName, '우리 가구', true, canEditHousehold, false));
+            }
+            if (g.global) {
+                list.appendChild(buildGridTile(g.global, menuName, '전역 기본값', !g.household, isAdmin, !!g.household));
+            }
+        });
+
+        applyMenuSearchFilter();
     }
+
+    function applyMenuSearchFilter() {
+        var list = document.getElementById('menuImageList');
+        var q = document.getElementById('menuSearchInput').value.trim().toLowerCase();
+        var visibleCount = 0;
+        Array.prototype.forEach.call(list.children, function (tile) {
+            var match = !q || (tile.dataset.menuName || '').toLowerCase().indexOf(q) !== -1;
+            tile.classList.toggle('hidden', !match);
+            if (match) visibleCount++;
+        });
+        document.getElementById('noMatchMsg').classList.toggle('hidden', !(list.children.length > 0 && visibleCount === 0));
+    }
+
+    document.getElementById('menuSearchInput').addEventListener('input', applyMenuSearchFilter);
 
     (async function init() {
         var session = await requireSession();
         if (!session) return;
+        myMember = await getMyMember();
+        var prof = await sb.from('profiles_vc2608').select('is_admin').eq('id', session.user.id).maybeSingle();
+        isAdmin = !!(prof.data && prof.data.is_admin);
+        if (isAdmin) document.getElementById('globalDefaultRow').classList.remove('hidden');
+        if (isAdmin) document.getElementById('globalDefaultRow').classList.add('flex');
         await renderList();
     })();
 </script>

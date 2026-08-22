@@ -572,7 +572,7 @@
         if (photo) return '<img src="' + photo.photo_url + '" class="w-full h-full object-cover scale-[2]">';
         var repName = meal.menu && meal.menu[0];
         if (!repName) return foodPlaceholderHtml(null, 'w-full h-full');
-        if (menuImageCache[repName] === undefined) menuImageCache[repName] = await API.menuImages.get(repName);
+        if (menuImageCache[repName] === undefined) menuImageCache[repName] = await API.menuImages.get(repName, householdId);
         if (menuImageCache[repName]) return '<img src="' + menuImageCache[repName] + '" class="w-full h-full object-cover scale-[2]">';
         return foodPlaceholderHtml(repName, 'w-full h-full');
     }

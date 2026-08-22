@@ -123,8 +123,6 @@
                 btn.style.background = stateColor(state);
                 btn.textContent = stateLabel(state);
                 btn.onclick = function () {
-                    // 남의 행을 바꾸는 거면 한 번 확인 — 가족이라 다 같이 수정 가능은 유지하되, 실수로 남의 응답을 건드리지 않게.
-                    if (!isMine && !confirm(member.name + '님의 응답인데 수정해도 괜찮아요?')) { return; }
                     defaults[di] = cycle(defaults[di]);
                     btn.style.background = stateColor(defaults[di]);
                     btn.textContent = stateLabel(defaults[di]);
@@ -141,6 +139,8 @@
             saveBtn.className = 'px-3 py-1.5 rounded-full bg-primary text-on-primary font-label-sm text-label-sm';
             saveBtn.textContent = '저장';
             saveBtn.onclick = async function () {
+                // 남의 행을 바꾸는 거면 저장 시점에 한 번만 확인 — 가족이라 다 같이 수정 가능은 유지하되, 실수로 남의 응답을 건드리지 않게.
+                if (!isMine && !confirm(member.name + '님의 응답인데 수정해도 괜찮아요?')) { return; }
                 saveBtn.disabled = true;
                 try {
                     await Promise.all(defaults.map(function (state, di) {

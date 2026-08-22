@@ -864,7 +864,9 @@
     }
 
     // "오늘 저녁 · 19:00" 같은 시간대+시각 표시. 시간 미정이면 아예 숨김(참고 이미지엔 없는 상태라 억지로 안 만듦).
-    function mealTimeOfDayLabel(hhmm) {
+    // 끼니를 직접 지정해뒀으면(3-2에서 선택한 period) 그걸 우선하고, 없으면 시간으로 짐작.
+    function mealTimeOfDayLabel(hhmm, period) {
+        if (period) return period;
         var h = parseInt(hhmm.slice(0, 2), 10);
         if (h < 11) return '아침';
         if (h < 17) return '점심';
@@ -919,7 +921,7 @@
         menuEl.textContent = firstMenu.length ? firstMenu.slice(0, 2).join(', ') : '메뉴 미정';
 
         whenEl.textContent = activeMeal.time
-            ? ('오늘 ' + mealTimeOfDayLabel(activeMeal.time) + ' · ' + activeMeal.time.slice(0, 5))
+            ? ('오늘 ' + mealTimeOfDayLabel(activeMeal.time, activeMeal.period) + ' · ' + activeMeal.time.slice(0, 5))
             : '오늘 · 시간 미정';
         whenEl.classList.remove('hidden');
 
@@ -928,7 +930,7 @@
         if (mealPhoto) {
             photoEl.innerHTML = '<img src="' + mealPhoto.photo_url + '" class="w-full h-full object-cover scale-150">';
         } else if (repName) {
-            var cachedUrl = await API.menuImages.get(repName);
+            var cachedUrl = await API.menuImages.get(repName, householdId);
             photoEl.innerHTML = cachedUrl ? '<img src="' + cachedUrl + '" class="w-full h-full object-cover scale-150">' : foodPlaceholderHtml(repName, 'w-full h-full');
         } else {
             photoEl.innerHTML = foodPlaceholderHtml(null, 'w-full h-full');

@@ -377,7 +377,7 @@
         var names = Array.from(new Set(RECORDS.map(function (r) { return r.menus && r.menus[0]; }).filter(Boolean)));
         for (var i = 0; i < names.length; i++) {
             if (menuImageCache[names[i]] !== undefined) continue;
-            menuImageCache[names[i]] = await API.menuImages.get(names[i]);
+            menuImageCache[names[i]] = await API.menuImages.get(names[i], householdId);
         }
     }
 

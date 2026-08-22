@@ -158,6 +158,8 @@
 <p class="font-label-sm text-label-sm text-error" id="name-error"></p>
 </div>
 
+<!-- 이메일/비밀번호 — 구글·카카오로 이미 로그인된 상태로 들어오면 계정이 이미 있으므로 숨김 -->
+<div id="account-fields" class="flex flex-col gap-6">
 <!-- 이메일 -->
 <div class="flex flex-col gap-1.5">
 <label class="font-label-sm text-label-sm text-on-surface-variant" for="email">이메일 <span class="text-error">*</span></label>
@@ -183,6 +185,7 @@
 <button type="button" class="toggle-password w-12 h-12 flex items-center justify-center text-on-surface-variant text-lg shrink-0" data-target="password-confirm">👁</button>
 </div>
 <p class="font-label-sm text-label-sm text-error" id="password-confirm-error"></p>
+</div>
 </div>
 
 <!-- 전화번호 -->
@@ -288,6 +291,19 @@
     var signupBtn = document.getElementById('signup-btn');
     var resetBtn = document.getElementById('reset-btn');
     var loginBtn = document.getElementById('login-btn');
+    var accountFields = document.getElementById('account-fields');
+
+    // 구글/카카오로 이미 로그인된 상태로 들어왔으면 계정은 이미 있으므로 이메일/비밀번호 입력은 생략.
+    var isOAuthSession = false;
+    (async function detectOAuthSession() {
+        var session = await getSession();
+        if (!session) return;
+        isOAuthSession = true;
+        accountFields.classList.add('hidden');
+        loginBtn.classList.add('hidden');
+        var metaName = session.user.user_metadata && (session.user.user_metadata.name || session.user.user_metadata.full_name);
+        if (metaName) { nameInput.value = metaName; }
+    })();
 
     var cropModal = document.getElementById('crop-modal');
     var cropStage = document.getElementById('crop-stage');
@@ -474,17 +490,19 @@
 
         if (!nameInput.value.trim()) { nameError.textContent = '이름을 입력해주세요.'; isValid = false; }
 
-        var email = emailInput.value.trim();
-        if (!email) { emailError.textContent = '이메일을 입력해주세요.'; isValid = false; }
-        else if (!EMAIL_REGEX.test(email)) { emailError.textContent = '이메일 형식이 올바르지 않습니다.'; isValid = false; }
+        if (!isOAuthSession) {
+            var email = emailInput.value.trim();
+            if (!email) { emailError.textContent = '이메일을 입력해주세요.'; isValid = false; }
+            else if (!EMAIL_REGEX.test(email)) { emailError.textContent = '이메일 형식이 올바르지 않습니다.'; isValid = false; }
 
-        var password = passwordInput.value;
-        if (!password) { passwordError.textContent = '비밀번호를 입력해주세요.'; isValid = false; }
-        else if (password.length < 8) { passwordError.textContent = '비밀번호는 8자 이상이어야 합니다.'; isValid = false; }
+            var password = passwordInput.value;
+            if (!password) { passwordError.textContent = '비밀번호를 입력해주세요.'; isValid = false; }
+            else if (password.length < 8) { passwordError.textContent = '비밀번호는 8자 이상이어야 합니다.'; isValid = false; }
 
-        var passwordConfirm = passwordConfirmInput.value;
-        if (!passwordConfirm) { passwordConfirmError.textContent = '비밀번호 확인을 입력해주세요.'; isValid = false; }
-        else if (password !== passwordConfirm) { passwordConfirmError.textContent = '비밀번호가 일치하지 않습니다.'; isValid = false; }
+            var passwordConfirm = passwordConfirmInput.value;
+            if (!passwordConfirm) { passwordConfirmError.textContent = '비밀번호 확인을 입력해주세요.'; isValid = false; }
+            else if (password !== passwordConfirm) { passwordConfirmError.textContent = '비밀번호가 일치하지 않습니다.'; isValid = false; }
+        }
 
         var phone = phoneInput.value.trim();
         if (phone && !PHONE_REGEX.test(phone)) { phoneError.textContent = '전화번호 형식이 올바르지 않습니다. (예: 010-1234-5678)'; isValid = false; }
@@ -513,7 +531,7 @@
             if (err.message === 'User already registered') {
                 formMessage.innerHTML = '이미 가입된 이메일이에요.<br>로그인해주세요.';
             } else {
-                formMessage.textContent = '회원가입에 실패했어요: ' + err.message;
+                formMessage.textContent = (isOAuthSession ? '프로필 저장에 실패했어요: ' : '회원가입에 실패했어요: ') + err.message;
             }
             formMessage.className = 'text-center font-label-sm text-label-sm min-h-[18px] text-error';
         });
@@ -521,15 +539,20 @@
 
     async function signUpAndProceed() {
         var name = nameInput.value.trim();
-        var email = emailInput.value.trim();
+        var profileFields = { profile_setup_done: true };
 
-        await API.auth.signUp(email, passwordInput.value, name);
+        if (isOAuthSession) {
+            // 계정은 OAuth로 이미 만들어졌으므로 여기서는 프로필만 보강.
+            profileFields.name = name;
+        } else {
+            var email = emailInput.value.trim();
+            await API.auth.signUp(email, passwordInput.value, name);
+        }
 
         // onboarding_nickname/onboarding_profile_photo는 1-3/1-4가 여전히 참조하므로
         // 실제 세션 기반 전환 전까지 화면 간 임시 전달용으로 남겨둠.
         localStorage.setItem('onboarding_nickname', name);
 
-        var profileFields = {};
         if (phoneInput.value.trim()) profileFields.phone = phoneInput.value.trim();
         if (addressInput.value.trim()) profileFields.address = addressInput.value.trim();
         if (dietaryTags.allergies.length) profileFields.allergies = dietaryTags.allergies;
@@ -543,12 +566,12 @@
             profileFields.avatar_url = avatarUrl;
             localStorage.setItem('onboarding_profile_photo', selectedProfileDataUrl);
         }
-        if (Object.keys(profileFields).length) {
-            await API.auth.updateMyProfile(profileFields);
-        }
+        await API.auth.updateMyProfile(profileFields);
 
         setLoading(false);
-        formMessage.innerHTML = '회원가입이 완료되었어요!<br>다음 단계로 이동합니다.';
+        formMessage.innerHTML = isOAuthSession
+            ? '프로필이 저장됐어요!<br>다음 단계로 이동합니다.'
+            : '회원가입이 완료되었어요!<br>다음 단계로 이동합니다.';
         formMessage.className = 'text-center font-label-sm text-label-sm min-h-[18px] text-primary';
 
         // 3-9(무가입 응답 연결)에서 넘어온 가입이면, 새 가구를 만드는 온보딩(1-2)이 아니라
