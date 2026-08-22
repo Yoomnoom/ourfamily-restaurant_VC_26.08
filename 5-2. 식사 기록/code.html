@@ -413,7 +413,7 @@
             var attendingRows = roster.filter(function (r) { return r.status === 'attending'; });
             RECORDS.push({
                 mealId: m.id, dateKey: m.date, date: formatRecordDate(m.date),
-                menus: m.menu || [], kind: m.kind, count: attendingRows.length,
+                menus: m.menu || [], kind: m.kind, count: attendingRows.length, cost: m.cost || null,
                 names: attendingRows.map(function (r) { return r.name; })
             });
         }
@@ -490,15 +490,14 @@
         window.location.href = '../3-2. 식사 만들기/code.html';
     }
 
-    function editCost(dateKey) {
-        var costs = {};
-        try { costs = JSON.parse(localStorage.getItem('meal_costs') || '{}'); } catch (err) {}
-        var input = prompt('이 식사에 쓴 금액을 입력해주세요 (원)', costs[dateKey] || '');
+    async function editCost(mealId, currentCost) {
+        var input = prompt('이 식사에 쓴 금액을 입력해주세요 (원)', currentCost || '');
         if (input === null) return;
         var value = parseInt(input.replace(/[^0-9]/g, ''), 10);
         if (isNaN(value)) return;
-        costs[dateKey] = value;
-        try { localStorage.setItem('meal_costs', JSON.stringify(costs)); } catch (err) {}
+        await API.meals.update(mealId, { cost: value });
+        var record = RECORDS.find(function (r) { return r.mealId === mealId; });
+        if (record) record.cost = value;
         renderRecords();
     }
 
@@ -507,8 +506,6 @@
 
     function renderRecords() {
         var query = (document.getElementById('searchInput').value || '').trim().toLowerCase();
-        var costs = {};
-        try { costs = JSON.parse(localStorage.getItem('meal_costs') || '{}'); } catch (err) {}
         var list = document.getElementById('recordList');
         list.innerHTML = '';
 
@@ -525,7 +522,7 @@
         visible.forEach(function (index) {
             var record = RECORDS[index];
             var photo = photosCache.find(function (p) { return p.meal_id === record.mealId; });
-            var cost = costs[record.dateKey];
+            var cost = record.cost;
             var row = document.createElement('article');
             row.className = 'bg-surface-container-lowest rounded-xl p-card-padding shadow-[0px_4px_12px_rgba(120,119,119,0.08)]';
             var menuLine = record.menus.length ? record.menus.slice(0, 2).join(', ') : '메뉴 미정';
@@ -556,9 +553,9 @@
                 var open = extra.classList.toggle('hidden');
                 icon.textContent = open ? 'expand_more' : 'expand_less';
             };
-            row.querySelector('.cost-btn').addEventListener('click', function () { editCost(record.dateKey); });
+            row.querySelector('.cost-btn').addEventListener('click', function () { editCost(record.mealId, record.cost); });
             var settleBtn = row.querySelector('.settle-btn');
-            if (settleBtn) { settleBtn.addEventListener('click', function () { window.location.href = '../8-4. 정산/code.html?date=' + record.dateKey; }); }
+            if (settleBtn) { settleBtn.addEventListener('click', function () { window.location.href = '../8-4. 정산/code.html?meal=' + record.mealId; }); }
             row.querySelector('.photo-btn').addEventListener('click', function () { window.location.href = '../8-2. 식사 사진 기록/code.html?meal=' + record.mealId; });
             row.querySelector('.reuse-btn').addEventListener('click', function () { reuse(index); });
             list.appendChild(row);

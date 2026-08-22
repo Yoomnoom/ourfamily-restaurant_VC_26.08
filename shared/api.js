@@ -117,6 +117,26 @@ API.auth = {
   async signOut() {
     await sb.auth.signOut();
   },
+  async resetPasswordRequest(email) {
+    var res = await sb.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin + encodeURI('/2-3. 비밀번호 재설정/code.html')
+    });
+    if (res.error) throw res.error;
+  },
+  // 비밀번호 재설정 링크로 들어온 복구 세션, 또는 로그인 상태에서의 변경 둘 다 이걸로 처리.
+  async updatePassword(newPassword) {
+    var res = await sb.auth.updateUser({ password: newPassword });
+    if (res.error) throw res.error;
+  },
+  // Supabase가 새 이메일로 확인 메일을 보냄 — 확인 전까지는 이메일이 안 바뀜.
+  async updateEmail(newEmail) {
+    var res = await sb.auth.updateUser({ email: newEmail });
+    if (res.error) throw res.error;
+  },
+  async resendConfirmation(email) {
+    var res = await sb.auth.resend({ type: 'signup', email: email });
+    if (res.error) throw res.error;
+  },
 
   // 회원가입 직후 profiles_vc2608에 phone/address/avatar를 채워넣음(트리거가 만든 name-only 행을 보강)
   async updateMyProfile(fields) {
@@ -805,6 +825,24 @@ API.milkitOrders = {
 };
 
 // ---------------------------------------------------------
+// 정산 — 식사 하나당 참여자별로 "얼마 냈는지"/"정산 완료 여부"를 실제로 저장(기존엔 8-4가
+// 가짜 데이터로만 돌아가던 화면이었음. §8-4 정산 재구현).
+// ---------------------------------------------------------
+API.settlements = {
+  async listByMeal(mealId) {
+    var res = await sb.from('meal_settlements_vc2608').select('*').eq('meal_id', mealId);
+    if (res.error) throw res.error;
+    return res.data;
+  },
+  async upsert(mealId, householdId, memberId, fields) {
+    var payload = Object.assign({ meal_id: mealId, household_id: householdId, member_id: memberId, updated_at: new Date().toISOString() }, fields);
+    var res = await sb.from('meal_settlements_vc2608').upsert(payload, { onConflict: 'meal_id,member_id' }).select().single();
+    if (res.error) throw res.error;
+    return res.data;
+  }
+};
+
+// ---------------------------------------------------------
 // 알림
 // ---------------------------------------------------------
 API.notifications = {
@@ -813,7 +851,13 @@ API.notifications = {
     if (res.error) throw res.error;
     return res.data;
   },
-  async create(householdId, memberId, mealId, text, detail) {
+  // type: 'response_change'면 response_change_notify_enabled도 확인. push_enabled가 꺼져있으면 전부 생략.
+  async create(householdId, memberId, mealId, text, detail, type) {
+    var prefRes = await sb.from('household_members_vc2608').select('push_enabled, response_change_notify_enabled').eq('id', memberId).maybeSingle();
+    if (prefRes.error) throw prefRes.error;
+    var prefs = prefRes.data;
+    if (prefs && !prefs.push_enabled) return;
+    if (type === 'response_change' && prefs && !prefs.response_change_notify_enabled) return;
     var res = await sb.from('notifications_vc2608').insert({
       household_id: householdId, member_id: memberId, meal_id: mealId || null, text: text, detail: detail || null, read: false
     });
@@ -825,6 +869,10 @@ API.notifications = {
   },
   async markAllRead(memberId) {
     var res = await sb.from('notifications_vc2608').update({ read: true }).eq('member_id', memberId).eq('read', false);
+    if (res.error) throw res.error;
+  },
+  async updatePrefs(push, responseChange) {
+    var res = await sb.rpc('update_my_notification_prefs_vc2608', { p_push: push, p_response_change: responseChange });
     if (res.error) throw res.error;
   }
 };
