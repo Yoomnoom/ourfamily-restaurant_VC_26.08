@@ -1,0 +1,195 @@
+<!DOCTYPE html><html lang="ko"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>우리집식당 - 정산</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../shared/supabase-client.js"></script>
+<script src="../shared/api.js"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif:wght@400;700&amp;family=Plus+Jakarta+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = { darkMode: "class", theme: { extend: {
+              "colors": {
+                      "surface": "#fbf9f8", "surface-container-lowest": "#ffffff", "surface-container": "#f0eded",
+                      "on-surface": "#1b1c1c", "on-surface-variant": "#45474a", "outline-variant": "#c6c6ca",
+                      "primary": "#5d5e62", "on-primary": "#ffffff", "tertiary-container": "#fef4e9", "on-tertiary-container": "#766f66"
+              },
+              "spacing": { "section-margin": "2rem", "card-padding": "1.25rem", "safe-area-inset": "1rem", "stack-gap": "1rem" },
+              "fontFamily": { "headline-lg": ["Plus Jakarta Sans"], "body-md": ["Plus Jakarta Sans"], "label-sm": ["Plus Jakarta Sans"] },
+              "fontSize": {
+                      "headline-lg": ["23px", { "lineHeight": "30px", "fontWeight": "600" }],
+                      "body-md": ["18px", { "lineHeight": "26px", "fontWeight": "400" }],
+                      "label-sm": ["15px", { "lineHeight": "20px", "letterSpacing": "0.02em", "fontWeight": "500" }]
+              }
+      } } }
+      </script>
+<style>body { min-height: max(884px, 100dvh); -webkit-tap-highlight-color: transparent; }
+    /* 애플 디자인 원칙: 눌림 피드백은 즉시, 정지는 스프링형(임계감쇠)으로 — WWDC "Designing Fluid Interfaces" */
+    .active\:scale-95:active, .active\:scale-\[0\.98\]:active, .active\:scale-\[0\.95\]:active {
+      transition-timing-function: cubic-bezier(0.34, 1.3, 0.64, 1) !important;
+      transition-duration: 120ms !important;
+    }
+    .active\:scale-95, .active\:scale-\[0\.98\], .active\:scale-\[0\.95\] {
+      transition-timing-function: cubic-bezier(0.34, 1.3, 0.64, 1) !important;
+      transition-duration: 180ms !important;
+    }
+  </style>
+  <link rel="manifest" href="../manifest.json">
+<meta name="theme-color" content="#5d5e62">
+<link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
+<link rel="icon" href="../icons/favicon-32.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="우리집식당">
+</head>
+<body class="bg-surface text-on-surface font-body-md antialiased min-h-screen flex flex-col items-center">
+<main class="w-full max-w-[600px] flex flex-col px-safe-area-inset py-section-margin">
+
+<header class="flex items-center gap-3 mb-6">
+<button class="w-12 h-12 flex items-center justify-center rounded-full bg-surface-container-lowest text-on-surface shadow-[0px_4px_12px_rgba(120,119,119,0.08)] active:scale-95 transition-transform" onclick="window.location.href='../5_가구설정 5-2. 식사 기록/code.html'" aria-label="뒤로">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+<h1 id="pageTitle" class="font-headline-lg text-headline-lg text-on-surface">정산</h1>
+</header>
+
+<p class="font-label-sm text-label-sm text-on-surface-variant text-center mb-4">이 가구 구성원끼리만 볼 수 있어요 · 실제 송금은 각자 알아서 해요</p>
+
+<div class="bg-surface-container-lowest rounded-xl p-card-padding shadow-[0px_4px_12px_rgba(120,119,119,0.08)] mb-4">
+<div class="flex items-center justify-between mb-1">
+<p class="font-label-sm text-label-sm text-on-surface-variant">총 비용</p>
+<button type="button" id="editCostBtn" class="font-label-sm text-label-sm text-primary">수정</button>
+</div>
+<p id="totalCost" class="font-headline-lg text-headline-lg text-on-surface mb-3">0원</p>
+<div class="flex items-center gap-2 bg-surface-container rounded-lg px-3 py-2.5">
+<span class="material-symbols-outlined text-on-surface-variant text-[18px]">groups</span>
+<p id="splitLine" class="font-label-sm text-label-sm text-on-surface-variant">1인당 참고 금액 계산 중...</p>
+</div>
+</div>
+
+<h2 class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wide mb-3 px-1">참여자별 정산</h2>
+<div id="settleList" class="flex flex-col gap-2 mb-4"></div>
+
+<p id="progressLine" class="font-label-sm text-label-sm text-on-surface-variant text-center"></p>
+
+</main>
+
+<script>
+    var mealId = null;
+    var householdId = null;
+    var meal = null;
+    var roster = [];
+    var settlements = []; // meal_settlements_vc2608 rows
+
+    function settlementFor(memberId) {
+        return settlements.find(function (s) { return s.member_id === memberId; });
+    }
+
+    function render() {
+        var totalCost = meal.cost || 0;
+        document.getElementById('pageTitle').textContent = (meal.date || '') + ' 정산';
+        document.getElementById('totalCost').textContent = totalCost.toLocaleString() + '원';
+
+        var perPerson = roster.length ? Math.round(totalCost / roster.length) : 0;
+        document.getElementById('splitLine').textContent = totalCost
+            ? (roster.length + '명이 균등 분담하면 1인당 ' + perPerson.toLocaleString() + '원 · 참고용, 아래에 각자 낸 금액을 직접 적어주세요')
+            : '총 비용을 먼저 입력해주세요';
+
+        var list = document.getElementById('settleList');
+        list.innerHTML = '';
+        var paidSum = 0;
+        var settledCount = 0;
+        roster.forEach(function (r) {
+            var s = settlementFor(r.memberId);
+            var paidAmount = s ? s.paid_amount : 0;
+            var isSettled = s ? s.is_settled : false;
+            paidSum += paidAmount;
+            if (isSettled) settledCount++;
+
+            var row = document.createElement('div');
+            row.className = 'bg-surface-container-lowest rounded-xl p-card-padding shadow-[0px_4px_12px_rgba(120,119,119,0.08)] flex items-center gap-3';
+            row.innerHTML =
+                '<span class="w-8 h-8 rounded-full flex items-center justify-center text-on-primary font-label-sm text-label-sm shrink-0" style="background-color:' + (r.color || '#8a9a7b') + ';">' + r.name.charAt(0) + '</span>' +
+                '<span class="font-body-md text-body-md text-on-surface flex-1">' + r.name + '</span>' +
+                '<div class="flex items-center gap-1">' +
+                    '<input type="number" inputmode="numeric" class="paid-input w-24 border border-outline-variant rounded-lg px-2 py-1.5 text-right font-label-sm text-label-sm bg-surface-container-lowest" value="' + paidAmount + '" placeholder="0">' +
+                    '<span class="font-label-sm text-label-sm text-on-surface-variant">원</span>' +
+                '</div>' +
+                '<button type="button" class="settle-toggle-btn font-label-sm text-label-sm px-3 py-1.5 rounded-full ' + (isSettled ? 'bg-tertiary-container text-on-tertiary-container' : 'bg-surface-container text-on-surface-variant') + '">' + (isSettled ? '정산 완료' : '미정산') + '</button>';
+
+            row.querySelector('.paid-input').addEventListener('change', function (e) {
+                var value = parseInt(e.target.value, 10);
+                if (isNaN(value) || value < 0) value = 0;
+                e.target.value = value;
+                savePaidAmount(r.memberId, value);
+            });
+            row.querySelector('.settle-toggle-btn').onclick = function () { toggleSettled(r.memberId, !isSettled); };
+            list.appendChild(row);
+        });
+
+        var progressText = roster.length + '명 중 ' + settledCount + '명 정산 완료';
+        if (totalCost) progressText += ' · ' + paidSum.toLocaleString() + ' / ' + totalCost.toLocaleString() + '원 걷힘';
+        document.getElementById('progressLine').textContent = progressText;
+    }
+
+    async function savePaidAmount(memberId, value) {
+        var existing = settlementFor(memberId);
+        var row = await API.settlements.upsert(mealId, householdId, memberId, {
+            paid_amount: value,
+            is_settled: existing ? existing.is_settled : false
+        });
+        settlements = settlements.filter(function (s) { return s.member_id !== memberId; });
+        settlements.push(row);
+        render();
+    }
+
+    async function toggleSettled(memberId, nextSettled) {
+        var existing = settlementFor(memberId);
+        var row = await API.settlements.upsert(mealId, householdId, memberId, {
+            paid_amount: existing ? existing.paid_amount : 0,
+            is_settled: nextSettled
+        });
+        settlements = settlements.filter(function (s) { return s.member_id !== memberId; });
+        settlements.push(row);
+        render();
+    }
+
+    document.getElementById('editCostBtn').addEventListener('click', async function () {
+        var input = prompt('이 식사에 쓴 총 비용을 입력해주세요 (원)', meal.cost || '');
+        if (input === null) return;
+        var value = parseInt(input.replace(/[^0-9]/g, ''), 10);
+        if (isNaN(value)) return;
+        meal = await API.meals.update(mealId, { cost: value });
+        render();
+    });
+
+    (async function init() {
+        await requireSession();
+        var myMember = await getMyMember();
+        if (!myMember) { window.location.href = '../1_온보딩 1-2. 온보딩-시작하기/code.html'; return; }
+        householdId = myMember.household_id;
+
+        var params = new URLSearchParams(window.location.search);
+        mealId = params.get('meal');
+        if (!mealId) {
+            document.querySelector('main').innerHTML = '<p class="font-body-md text-body-md text-on-surface-variant text-center py-12">정산할 식사를 5-2(식사 기록)에서 선택해주세요.</p>';
+            return;
+        }
+
+        meal = await API.meals.get(mealId);
+        var fullRoster = await API.mealParticipants.getRoster(mealId);
+        roster = fullRoster.filter(function (r) { return r.status === 'attending'; });
+        settlements = await API.settlements.listByMeal(mealId);
+
+        render();
+    })();
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('../sw.js');
+  });
+}
+</script>
+</body></html>

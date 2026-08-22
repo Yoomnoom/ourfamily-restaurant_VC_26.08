@@ -1,0 +1,82 @@
+<!DOCTYPE html><html lang="ko"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>우리집식당 - 계정 복구</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../shared/supabase-client.js"></script>
+<script src="../shared/api.js"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = { darkMode: "class", theme: { extend: {
+              "colors": {
+                      "surface": "#fbf9f8", "surface-container-lowest": "#ffffff", "surface-container": "#f0eded",
+                      "on-surface": "#1b1c1c", "on-surface-variant": "#45474a", "outline-variant": "#c6c6ca",
+                      "primary": "#5d5e62", "on-primary": "#ffffff", "error": "#ba1a1a"
+              },
+              "spacing": { "section-margin": "2rem", "card-padding": "1.25rem", "safe-area-inset": "1rem" },
+              "fontFamily": { "headline-lg": ["Plus Jakarta Sans"], "body-md": ["Plus Jakarta Sans"], "label-sm": ["Plus Jakarta Sans"] },
+              "fontSize": {
+                      "headline-lg": ["23px", { "lineHeight": "30px", "fontWeight": "600" }],
+                      "body-md": ["18px", { "lineHeight": "26px", "fontWeight": "400" }],
+                      "label-sm": ["15px", { "lineHeight": "20px", "fontWeight": "500" }]
+              }
+      } } }
+      </script>
+<link rel="manifest" href="../manifest.json">
+<meta name="theme-color" content="#5d5e62">
+<link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
+<link rel="icon" href="../icons/favicon-32.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="우리집식당">
+</head>
+<body class="bg-surface text-on-surface font-body-md antialiased min-h-screen flex flex-col items-center justify-center px-safe-area-inset">
+<main class="w-full max-w-[420px] flex flex-col items-center text-center gap-4 py-section-margin">
+<span class="material-symbols-outlined text-primary" style="font-size:48px;">restore</span>
+<h1 class="font-headline-lg text-headline-lg text-on-surface">계정이 탈퇴 처리 중이에요</h1>
+<p id="statusMsg" class="font-body-md text-body-md text-on-surface-variant">탈퇴 후 90일 안에는 계정과 정보를 그대로 되돌릴 수 있어요. 90일이 지나면 개인정보가 완전히 삭제돼요.</p>
+<button id="restoreBtn" type="button" class="w-full py-3 rounded-full bg-primary text-on-primary font-label-sm text-label-sm mt-2" onclick="doRestore()">계정 복구하기</button>
+<button type="button" class="w-full py-3 rounded-full border border-outline-variant text-on-surface-variant font-label-sm text-label-sm" onclick="doLogout()">로그아웃</button>
+</main>
+<script>
+    async function doRestore() {
+        var btn = document.getElementById('restoreBtn');
+        btn.disabled = true;
+        btn.textContent = '처리 중...';
+        try {
+            var result = await API.account.restore();
+            if (result === 'restored') {
+                window.location.href = '../3_핵심조율 3-0. 홈/code.html';
+            } else if (result === 'expired_purged') {
+                document.getElementById('statusMsg').textContent = '복구 기간(90일)이 지나 개인정보가 완전히 삭제됐어요. 다시 이용하시려면 새로 가입해주세요.';
+                btn.classList.add('hidden');
+            } else {
+                document.getElementById('statusMsg').textContent = '이미 정상 상태예요.';
+                window.location.href = '../3_핵심조율 3-0. 홈/code.html';
+            }
+        } catch (err) {
+            document.getElementById('statusMsg').textContent = '복구에 실패했어요: ' + err.message;
+            btn.disabled = false;
+            btn.textContent = '계정 복구하기';
+        }
+    }
+    async function doLogout() {
+        await API.auth.signOut();
+        window.location.href = '../2_로그인 2-1.로그인 화면/code.html';
+    }
+    (async function init() {
+        var session = await getSession();
+        if (!session) { window.location.href = '../2_로그인 2-1.로그인 화면/code.html'; return; }
+    })();
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('../sw.js');
+  });
+}
+</script>
+</body></html>

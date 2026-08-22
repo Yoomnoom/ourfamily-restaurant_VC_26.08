@@ -1,0 +1,526 @@
+<!DOCTYPE html><html lang="ko"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>화면 통합 뷰어</title>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; background: #f0eded; color: #1b1c1c; display: flex; height: 100vh; overflow: hidden; }
+
+    .sidebar { width: 260px; flex-shrink: 0; background: #ffffff; border-right: 1px solid #e4e2e2; display: flex; flex-direction: column; padding: 16px 12px; overflow-y: auto; }
+    .sidebar-head { display: flex; align-items: center; justify-content: space-between; margin: 4px 4px 8px; }
+    .sidebar-head h1 { font-size: 15px; margin: 0; color: #1b1c1c; }
+    .collapse-all-btn { font-size: 11px; padding: 5px 10px; border-radius: 999px; border: 1px solid #c6c6ca; background: #fbf9f8; cursor: pointer; color: #45474a; white-space: nowrap; }
+    .collapse-all-btn:hover { background: #f0eded; }
+
+    .section-header { display: flex; align-items: center; gap: 6px; width: 100%; text-align: left; padding: 8px 8px; border: none; background: transparent; cursor: pointer; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: #76777b; margin-top: 10px; border-radius: 8px; }
+    .section-header:hover { background: #f6f3f3; }
+    .section-header .chevron { transition: transform 0.15s; font-size: 16px; }
+    .section-header.collapsed .chevron { transform: rotate(-90deg); }
+    .section-header .count { font-weight: 400; text-transform: none; letter-spacing: 0; opacity: 0.7; }
+    .section-body.collapsed { display: none; }
+
+    .step-btn { text-align: left; width: 100%; padding: 10px 12px; border-radius: 10px; border: none; background: transparent; cursor: pointer; font-size: 14px; color: #1b1c1c; margin-bottom: 4px; transition: background 0.15s; }
+    .step-btn:hover { background: #f0eded; }
+    .step-btn.active { background: #5d5e62; color: #ffffff; font-weight: 600; }
+    .step-btn .path { display: block; font-size: 11px; color: inherit; opacity: 0.6; margin-top: 2px; }
+
+    .track-tabs { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; padding-top: 4px; }
+    .track-tab { text-align: left; width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid #e4e2e2; background: #fbf9f8; cursor: pointer; transition: background 0.15s, border-color 0.15s; }
+    .track-tab:hover { background: #f0eded; }
+    .track-tab.active { border-color: transparent; }
+    .track-tab .persona { font-size: 13px; font-weight: 600; color: #1b1c1c; display: flex; align-items: center; gap: 6px; }
+    .track-tab .persona .dot { width: 9px; height: 9px; border-radius: 999px; flex-shrink: 0; }
+    .track-tab .role { font-size: 11px; color: #76777b; margin-top: 2px; }
+    .track-desc { font-size: 12px; color: #45474a; background: #f6f3f3; border-radius: 8px; padding: 8px 10px; margin: 4px 4px 8px; line-height: 1.5; }
+
+    .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+    .topbar { height: 56px; flex-shrink: 0; background: #ffffff; border-bottom: 1px solid #e4e2e2; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; gap: 16px; }
+    .topbar .title { font-size: 14px; color: #45474a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex-shrink: 1; }
+    .topbar .actions { display: flex; gap: 8px; flex-shrink: 0; }
+    .topbar button { padding: 8px 14px; border-radius: 999px; border: 1px solid #c6c6ca; background: #ffffff; cursor: pointer; font-size: 13px; color: #1b1c1c; white-space: nowrap; }
+    .topbar button:hover { background: #f0eded; }
+    .topbar button:disabled { opacity: 0.4; cursor: default; }
+
+    .device-group { display: flex; gap: 4px; background: #f0eded; border-radius: 999px; padding: 3px; flex-shrink: 1; overflow-x: auto; max-width: 100%; }
+    .device-btn { display: flex; align-items: center; gap: 5px; padding: 7px 10px; border-radius: 999px; border: none; background: transparent; cursor: pointer; font-size: 12px; color: #45474a; white-space: nowrap; flex-shrink: 0; }
+    .device-btn:hover { background: #ffffff; }
+    .device-btn.active { background: #1b1c1c; color: #ffffff; }
+    .device-btn .material-symbols-outlined { font-size: 18px; }
+
+    .bundle-bar { display: flex; align-items: center; gap: 8px; padding: 10px 20px; background: #ffffff; border-bottom: 1px solid #e4e2e2; overflow-x: auto; flex-shrink: 0; }
+    .bundle-bar .bundle-label { font-size: 11px; color: #76777b; flex-shrink: 0; white-space: nowrap; }
+    .bundle-pill { flex-shrink: 0; display: flex; align-items: center; gap: 5px; padding: 6px 12px; border-radius: 999px; border: 1px solid #c6c6ca; background: #fbf9f8; cursor: pointer; font-size: 12px; color: #45474a; white-space: nowrap; }
+    .bundle-pill:hover { background: #f0eded; }
+    .bundle-pill.active { background: #1b1c1c; color: #ffffff; border-color: #1b1c1c; }
+    .bundle-pill .count { opacity: 0.65; }
+
+    .frame-wrap { flex: 1; display: flex; align-items: center; justify-content: center; overflow: auto; padding: 24px; }
+    .device-frame { border-radius: 32px; border: 10px solid #1b1c1c; box-shadow: 0 12px 32px rgba(0,0,0,0.18); overflow: hidden; background: #fff; transition: width 0.2s, height 0.2s; }
+    .device-frame.is-desktop { border-radius: 12px; border-width: 4px; }
+    .device-frame iframe { width: 100%; height: 100%; border: none; display: block; }
+
+    .flow-container { flex: 1; display: none; flex-direction: column; overflow: auto; }
+    .flow-container.active { display: flex; }
+    .flow-wrap { display: flex; padding: 24px; align-items: flex-start; gap: 4px; flex-shrink: 0; }
+    .flow-wrap.grid-mode { flex-wrap: wrap; gap: 20px; justify-content: flex-start; }
+    .flow-item { display: flex; flex-direction: column; align-items: center; gap: 10px; flex-shrink: 0; }
+    .flow-item .flow-caption { font-size: 12px; color: #45474a; text-align: center; max-width: 260px; }
+    .flow-item .flow-caption b { display: block; color: #1b1c1c; margin-bottom: 2px; }
+    .flow-item .flow-open-btn { font-size: 11px; color: #76777b; background: none; border: none; text-decoration: underline; cursor: pointer; padding: 0; }
+    .flow-arrow { flex-shrink: 0; align-self: center; color: #c6c6ca; font-size: 28px; margin: 0 4px; }
+
+    .flow-branches { display: none; border-top: 1px dashed #c6c6ca; padding: 20px 24px 28px; }
+    .flow-branches.has-items { display: block; }
+    .flow-branches .branches-label { font-size: 12px; color: #76777b; margin-bottom: 12px; }
+    .flow-branches .branches-row { display: flex; flex-wrap: wrap; gap: 16px; }
+    .branch-item { display: flex; flex-direction: column; align-items: center; gap: 8px; flex-shrink: 0; }
+    .branch-item .device-frame { border-color: #9b8ab5; }
+    .branch-item .branch-caption { font-size: 11.5px; color: #45474a; text-align: center; max-width: 220px; }
+    .branch-item .branch-caption .via { display: block; color: #9b8ab5; font-weight: 600; margin: 2px 0; }
+    .branch-item .branch-caption b { display: block; color: #1b1c1c; }
+    .branch-arrow { flex-shrink: 0; align-self: center; color: #9b8ab5; font-size: 22px; }
+
+    /* 애플 디자인 원칙: 눌림 피드백은 즉시, 정지는 스프링형(임계감쇠)으로 — WWDC "Designing Fluid Interfaces" */
+    .active\:scale-95:active, .active\:scale-\[0\.98\]:active, .active\:scale-\[0\.95\]:active {
+      transition-timing-function: cubic-bezier(0.34, 1.3, 0.64, 1) !important;
+      transition-duration: 120ms !important;
+    }
+    .active\:scale-95, .active\:scale-\[0\.98\], .active\:scale-\[0\.95\] {
+      transition-timing-function: cubic-bezier(0.34, 1.3, 0.64, 1) !important;
+      transition-duration: 180ms !important;
+    }
+  </style>
+<link rel="manifest" href="../manifest.json">
+<meta name="theme-color" content="#5d5e62">
+<link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
+<link rel="icon" href="../icons/favicon-32.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="우리집식당">
+</head>
+<body>
+<div class="sidebar">
+<div class="sidebar-head">
+<h1>전체 화면 뷰어</h1>
+<button class="collapse-all-btn" id="collapse-all-btn" onclick="toggleAll()">전체 접기</button>
+</div>
+
+<button class="section-header" id="family-header" onclick="toggleFamily()">
+<span class="material-symbols-outlined chevron">expand_more</span>가족 <span class="count" id="family-count"></span>
+</button>
+<div class="section-body" id="family-body">
+<div class="track-tabs" id="track-tabs"></div>
+<div class="track-desc" id="track-desc"></div>
+</div>
+
+<div id="step-list"></div>
+</div>
+<div class="main">
+<div class="topbar">
+<div class="title" id="current-title"></div>
+<div class="device-group" id="device-group"></div>
+<div class="actions">
+<button id="prev-btn" onclick="goStep(currentIndex - 1)">‹ 이전</button>
+<button id="next-btn" onclick="goStep(currentIndex + 1)">다음 ›</button>
+<button onclick="reloadFrame()">새로고침</button>
+</div>
+</div>
+<div class="bundle-bar" id="bundle-bar"></div>
+<div class="frame-wrap" id="frame-wrap">
+<div class="device-frame" id="device-frame">
+<iframe id="viewer-frame" title="화면 미리보기"></iframe>
+</div>
+</div>
+<div class="flow-container" id="flow-container">
+<div class="flow-wrap" id="flow-wrap"></div>
+<div class="flow-branches" id="flow-branches"></div>
+</div>
+</div>
+
+<script>
+    var TRACKS = [
+        {
+            persona: '김영희', role: '가구를 처음 만든 사람', color: '#8a9a7b',
+            desc: '이번 식사들에서 개설자가 되어 만들고 확정까지 책임지는 흐름. 역할은 계정이 아니라 식사마다 정해지므로(참고문서 §5), 김영희도 다른 식사에선 참여자가 됩니다. 로그인부터 온보딩, 홈, 식사 생성·공유·확정·기록까지 전체 루프를 밟습니다.',
+            steps: [
+                { group: '로그인', label: '랜딩 · 로그인화면', path: '../2_로그인 2-1.로그인 화면/code.html' },
+                { group: '로그인', label: '로그인/가입', path: '../2_로그인 2-2. 로그인/code.html' },
+                { group: '온보딩', label: '1/4 · 회원가입', path: '../1_온보딩 1-1. 온보딩-회원가입/code.html' },
+                { group: '온보딩', label: '2/4 · 시작하기', path: '../1_온보딩 1-2. 온보딩-시작하기/code.html' },
+                { group: '온보딩', label: '3/4 · 가구프로필', path: '../1_온보딩 1-3. 온보딩-가구프로필/code.html' },
+                { group: '온보딩', label: '4/4 · 가족구성원', path: '../1_온보딩 1-4. 온보딩-가족구성원/code.html' },
+                { group: '홈', label: '홈 (👉 오늘 상태 카드 + 타일 그리드 · "미리 답해두기"는 이제 달력에 있어요)', path: '../3_핵심조율 3-0. 홈/code.html?as=김영희' },
+                { group: '홈', label: '내 식탁 (👉 벨 아이콘 = 알림 패널 · 내일 카드의 먹어요/안먹어요를 눌러보세요 - 바로 결정됨)', path: '../3_핵심조율 3-1. 내 식탁/code.html?as=김영희' },
+                { group: '핵심루프', label: '식사 만들기 (👉 메뉴 2개 넣고 "대표로" 버튼 · 반복 일정 · 외식/배달 · "골라달라고 하기")', path: '../3_핵심조율 3-2. 식사 만들기/code.html' },
+                { group: '핵심루프', label: '참여자 링크 공유', path: '../3_핵심조율 3-8. 참여자 링크 공유/code.html' },
+                { group: '핵심루프', label: '확정 전 요약', path: '../3_핵심조율 3-4. 확정 전 요약/code.html' },
+                { group: '핵심루프', label: '오늘의 식탁 완성', path: '../3_핵심조율 3-5. 오늘의 식탁 완성/code.html' },
+                { group: '냉장고', label: '우리집 냉장고 (👉 빠른 추가·사진분석 다 이 화면 안에서 인라인으로)', path: '../7_냉장고 7-1. 우리집 냉장고/code.html' },
+                { group: '냉장고', label: '메뉴 추천', path: '../7_냉장고 7-3. 메뉴 추천/code.html' },
+                { group: '달력', label: '홈 · 달력뷰 (👉 월/주/오늘 탭 + 날짜를 누르면 아래 인라인 패널 · 빈 날짜엔 "미리 답해두기"도 여기서)', path: '../4_캘린더 4-1. 홈 달력뷰/code.html' },
+                { group: '가구·기록', label: '가구 설정', path: '../5_가구설정 5-1. 가구 설정/code.html' },
+                { group: '가구·기록', label: '요일별 기본 응답', path: '../5_가구설정 5-4. 요일별 기본 응답/code.html' },
+                { group: '가구·기록', label: '식사 기록 (👉 이번 달 통계도 여기 포함됨)', path: '../5_가구설정 5-2. 식사 기록/code.html' },
+                { group: '가구·기록', label: '설정 (👉 하단 탭 5번째)', path: '../5_가구설정 5-3. 설정/code.html' },
+                { group: '로드맵(신규)', label: '밀키트 주문', path: '../8_로드맵확장 8-1. 밀키트 주문/code.html' },
+                { group: '로드맵(신규)', label: '식사 사진 기록', path: '../8_로드맵확장 8-2. 식사 사진 기록/code.html' },
+                { group: '로드맵(신규)', label: '식비 예산', path: '../8_로드맵확장 8-3. 식비 예산/code.html' },
+                { group: '로드맵(신규)', label: '정산', path: '../8_로드맵확장 8-4. 정산/code.html?date=2024-08-13' },
+                { group: '참고자료', label: '오류·복구 상태(12종)', path: '../6_계정복구 6-1. 오류·복구 상태/code.html' }
+            ]
+        },
+        {
+            persona: '박철수', role: '이미 가입한 가족', color: '#9b8ab5',
+            desc: '이미 계정이 있는 가족 구성원. 자기 홈에서는 자신이 만든 식사가 host 카드로, 김영희가 만든 식사는 guest 카드로 섞여 보입니다(카드 단위 역할 뷰, 참고문서 화면07).',
+            steps: [
+                { group: '로그인', label: '로그인/가입', path: '../2_로그인 2-2. 로그인/code.html' },
+                { group: '홈', label: '홈 (공유 화면, 박철수도 동일)', path: '../3_핵심조율 3-0. 홈/code.html?as=박철수' },
+                { group: '홈', label: '내 식탁(박철수 시점)', path: '../3_핵심조율 3-1. 내 식탁/code.html?as=박철수' },
+                { group: '응답', label: '자신의 개인 링크로 응답', path: '../3_핵심조율 3-3. 참여자 응답/code.html?name=박철수' },
+                { group: '달력', label: '홈 · 달력뷰', path: '../4_캘린더 4-1. 홈 달력뷰/code.html' },
+                { group: '가구', label: '가구 설정', path: '../5_가구설정 5-1. 가구 설정/code.html' }
+            ]
+        },
+        {
+            persona: '최유진', role: '가입하지 않은 손님', color: '#c98a5a',
+            desc: '가족이 아닌 일회성 손님. 참고문서 §6.2 "무가입 참여자는 홈 없이 개인 링크로 단일 식사만" 원칙대로, 이 페르소나가 보는 화면은 개인 링크 응답 1개뿐입니다. (이지은은 온보딩에 등록된 가구 구성원이라 손님 역할과 분리했습니다 — §12 household_members ≠ guests)',
+            steps: [
+                { group: '응답', label: '개인 링크 진입 → 응답', path: '../3_핵심조율 3-3. 참여자 응답/code.html?name=최유진' }
+            ]
+        },
+        {
+            persona: '김하준', role: '가입 안 했지만 가입하고 싶은 가족', color: '#5f8fa3',
+            desc: '가구 구성원으로 등록은 돼 있지만 아직 계정을 만들지 않은 가족. 응답 완료 후 가입을 유도받고, 가입 시 과거 무가입 응답을 계정에 연결합니다(참고문서 §7.6 B방식).',
+            steps: [
+                { group: '응답', label: '개인 링크 진입 → 응답', path: '../3_핵심조율 3-3. 참여자 응답/code.html?name=김하준' },
+                { group: '연결', label: '무가입 응답 연결 확인', path: '../3_핵심조율 3-9. 무가입 응답 연결/code.html?name=김하준' },
+                { group: '홈', label: '연결 후 홈(공유 화면)', path: '../3_핵심조율 3-0. 홈/code.html?as=김하준' },
+                { group: '홈', label: '연결 후 내 식탁(김하준 시점)', path: '../3_핵심조율 3-1. 내 식탁/code.html?as=김하준' }
+            ]
+        }
+    ];
+
+    var currentTrackIndex = 0;
+    function currentSteps() { return TRACKS[currentTrackIndex].steps; }
+
+    var DEVICES = [
+        { id: 'iphone-se', label: 'iPhone SE', icon: 'smartphone', width: 375, height: 667 },
+        { id: 'iphone-14', label: 'iPhone 14', icon: 'smartphone', width: 390, height: 844 },
+        { id: 'galaxy-s', label: 'Galaxy S', icon: 'smartphone', width: 360, height: 780 },
+        { id: 'tablet', label: '패드', icon: 'tablet_mac', width: 834, height: 1112 },
+        { id: 'desktop', label: 'PC', icon: 'desktop_windows', width: 1280, height: 800 }
+    ];
+
+    var currentIndex = 0;
+    var currentDeviceIndex = 0;
+    var flowGroup = null;
+    var collapsedGroups = {}; // groupName -> true/false, per current track's step groups
+    var familyCollapsed = false;
+
+    var stepListEl = document.getElementById('step-list');
+    var frame = document.getElementById('viewer-frame');
+    var deviceFrameEl = document.getElementById('device-frame');
+    var deviceGroupEl = document.getElementById('device-group');
+    var frameWrapEl = document.getElementById('frame-wrap');
+    var flowContainerEl = document.getElementById('flow-container');
+    var flowWrapEl = document.getElementById('flow-wrap');
+    var flowBranchesEl = document.getElementById('flow-branches');
+    var bundleBarEl = document.getElementById('bundle-bar');
+    var titleEl = document.getElementById('current-title');
+    var prevBtn = document.getElementById('prev-btn');
+    var nextBtn = document.getElementById('next-btn');
+    var familyHeaderEl = document.getElementById('family-header');
+    var familyBodyEl = document.getElementById('family-body');
+    var familyCountEl = document.getElementById('family-count');
+    var collapseAllBtn = document.getElementById('collapse-all-btn');
+
+    function orderedGroups(steps) {
+        var order = [];
+        steps.forEach(function (step) { if (order.indexOf(step.group) === -1) order.push(step.group); });
+        return order;
+    }
+
+    function renderDeviceGroup() {
+        deviceGroupEl.innerHTML = '';
+        DEVICES.forEach(function (device, i) {
+            var btn = document.createElement('button');
+            btn.className = 'device-btn' + (i === currentDeviceIndex ? ' active' : '');
+            btn.innerHTML = '<span class="material-symbols-outlined">' + device.icon + '</span><span>' + device.label + '</span>';
+            btn.onclick = function () { setDevice(i); };
+            deviceGroupEl.appendChild(btn);
+        });
+    }
+
+    function setDevice(index) {
+        currentDeviceIndex = index;
+        var device = DEVICES[index];
+        deviceFrameEl.style.width = device.width + 'px';
+        deviceFrameEl.style.height = device.height + 'px';
+        deviceFrameEl.style.maxWidth = '100%';
+        deviceFrameEl.style.maxHeight = '90vh';
+        deviceFrameEl.classList.toggle('is-desktop', device.id === 'desktop');
+        renderDeviceGroup();
+        if (flowGroup) renderFlow();
+    }
+
+    function renderTrackTabs() {
+        var tabsEl = document.getElementById('track-tabs');
+        var descEl = document.getElementById('track-desc');
+        tabsEl.innerHTML = '';
+        TRACKS.forEach(function (track, i) {
+            var tab = document.createElement('button');
+            tab.className = 'track-tab' + (i === currentTrackIndex ? ' active' : '');
+            if (i === currentTrackIndex) { tab.style.background = track.color + '22'; tab.style.borderColor = track.color; }
+            tab.innerHTML = '<div class="persona"><span class="dot" style="background:' + track.color + '"></span>' + track.persona + '</div><div class="role">' + track.role + '</div>';
+            tab.onclick = function () { selectTrack(i); };
+            tabsEl.appendChild(tab);
+        });
+        descEl.textContent = TRACKS[currentTrackIndex].desc;
+        familyCountEl.textContent = '(' + TRACKS.length + ')';
+    }
+
+    function selectTrack(i) {
+        currentTrackIndex = i;
+        collapsedGroups = {};
+        flowGroup = null;
+        renderTrackTabs();
+        goStep(0);
+    }
+
+    // ---- 접기/펼치기 ----
+
+    function toggleFamily() {
+        familyCollapsed = !familyCollapsed;
+        applyFamilyCollapsed();
+    }
+
+    function applyFamilyCollapsed() {
+        familyHeaderEl.classList.toggle('collapsed', familyCollapsed);
+        familyBodyEl.classList.toggle('collapsed', familyCollapsed);
+    }
+
+    function toggleGroup(groupName) {
+        collapsedGroups[groupName] = !collapsedGroups[groupName];
+        renderStepList();
+    }
+
+    function toggleAll() {
+        var groups = orderedGroups(currentSteps());
+        var willCollapse = !familyCollapsed || groups.some(function (g) { return !collapsedGroups[g]; });
+        familyCollapsed = willCollapse;
+        groups.forEach(function (g) { collapsedGroups[g] = willCollapse; });
+        applyFamilyCollapsed();
+        renderStepList();
+        collapseAllBtn.textContent = willCollapse ? '전체 펼치기' : '전체 접기';
+    }
+
+    // ---- 사이드바 스텝 목록 (그룹별 접기/펼치기) ----
+
+    function renderStepList() {
+        stepListEl.innerHTML = '';
+        var steps = currentSteps();
+        var groups = orderedGroups(steps);
+        groups.forEach(function (groupName) {
+            var groupSteps = steps.filter(function (s) { return s.group === groupName; });
+            var isCollapsed = !!collapsedGroups[groupName];
+
+            var header = document.createElement('button');
+            header.className = 'section-header' + (isCollapsed ? ' collapsed' : '');
+            header.innerHTML = '<span class="material-symbols-outlined chevron">expand_more</span>' + groupName + ' <span class="count">(' + groupSteps.length + ')</span>';
+            header.onclick = function () { toggleGroup(groupName); };
+            stepListEl.appendChild(header);
+
+            var body = document.createElement('div');
+            body.className = 'section-body' + (isCollapsed ? ' collapsed' : '');
+            groupSteps.forEach(function (step) {
+                var globalIndex = steps.indexOf(step);
+                var btn = document.createElement('button');
+                btn.className = 'step-btn' + (globalIndex === currentIndex && !flowGroup ? ' active' : '');
+                btn.innerHTML = step.label + '<span class="path">' + step.path.replace('../', '') + '</span>';
+                btn.onclick = function () { goStep(globalIndex); };
+                body.appendChild(btn);
+            });
+            stepListEl.appendChild(body);
+        });
+    }
+
+    // ---- 가로 묶음(번들) 바: 클릭하면 그 그룹의 화면 전부를 흐름으로 나란히 ----
+
+    function renderBundleBar() {
+        bundleBarEl.innerHTML = '';
+        var label = document.createElement('span');
+        label.className = 'bundle-label';
+        label.textContent = '묶음으로 보기:';
+        bundleBarEl.appendChild(label);
+
+        var steps = currentSteps();
+        orderedGroups(steps).forEach(function (groupName) {
+            var count = steps.filter(function (s) { return s.group === groupName; }).length;
+            var pill = document.createElement('button');
+            pill.className = 'bundle-pill' + (flowGroup === groupName ? ' active' : '');
+            pill.innerHTML = groupName + ' <span class="count">' + count + '개</span>';
+            pill.onclick = function () { toggleFlow(groupName); };
+            bundleBarEl.appendChild(pill);
+        });
+    }
+
+    function toggleFlow(groupName) {
+        flowGroup = (flowGroup === groupName) ? null : groupName;
+        if (flowGroup) {
+            renderFlow();
+        } else {
+            frameWrapEl.style.display = '';
+            flowContainerEl.classList.remove('active');
+            goStep(currentIndex);
+        }
+        renderBundleBar();
+        renderStepList();
+    }
+
+    // 이 그룹들만 "순서대로 진행되는 흐름"이라 화살표로 잇는 게 맞음. 나머지는 그냥 같은 카테고리로
+    // 묶인 화면들이라(순서 없음) 화살표를 붙이면 실제로 없는 인과관계를 있는 것처럼 보여줘서 더 헷갈리게 함.
+    var SEQUENTIAL_GROUPS = ['온보딩', '로그인', '핵심루프', '냉장고'];
+
+    // 실제 코드(각 화면의 실제 버튼·onclick)에 있는, 이 그룹의 "곧은 순서" 밖으로 실제로 새거나
+    // 되돌아가거나 외부에서 들어오는 경로. 흐름도가 실제와 다르게 항상 일직선처럼 보이는 걸 막기 위해
+    // 화면을 직접 만들며 확인한 진짜 분기만 적어둔다(지어낸 연결 아님).
+    var FLOW_BRANCHES = {
+        '핵심루프': [
+            { fromLabel: '식사 만들기', via: '냉장고 재료로 추천받기', toPath: '../7_냉장고 7-3. 메뉴 추천/code.html', toLabel: '메뉴 추천 (냉장고 그룹)' },
+            { fromLabel: '오늘의 식탁 완성', via: '확정 취소하고 다시 열기', toPath: '../3_핵심조율 3-4. 확정 전 요약/code.html', toLabel: '확정 전 요약으로 되돌아감' },
+            { fromLabel: '오늘의 식탁 완성', via: '사진 남기기 (선택)', toPath: '../8_로드맵확장 8-2. 식사 사진 기록/code.html', toLabel: '식사 사진 기록 (로드맵 그룹)' },
+            { fromLabel: '알림 센터(참고 전용)', via: '"이지은님 리마인드 보내기"', toPath: '../3_핵심조율 3-4. 확정 전 요약/code.html', toLabel: '확정 전 요약으로 진입' }
+        ],
+        '냉장고': [
+            { fromLabel: '식사 만들기(핵심루프)', via: '냉장고 재료로 추천받기', toPath: '../7_냉장고 7-3. 메뉴 추천/code.html', toLabel: '메뉴 추천 (여기서 진입)' },
+            { fromLabel: '메뉴 추천', via: '부족한 재료, 밀키트로 준비하기', toPath: '../8_로드맵확장 8-1. 밀키트 주문/code.html', toLabel: '밀키트 주문 (로드맵 그룹)' }
+        ]
+    };
+
+    function renderFlow() {
+        var steps = currentSteps();
+        var groupSteps = steps.filter(function (s) { return s.group === flowGroup; });
+        var device = DEVICES[currentDeviceIndex];
+        var isSequential = SEQUENTIAL_GROUPS.indexOf(flowGroup) !== -1;
+
+        frameWrapEl.style.display = 'none';
+        flowContainerEl.classList.add('active');
+        flowWrapEl.classList.toggle('grid-mode', !isSequential);
+        flowWrapEl.innerHTML = '';
+
+        groupSteps.forEach(function (step, i) {
+            if (isSequential && i > 0) {
+                var arrow = document.createElement('span');
+                arrow.className = 'flow-arrow material-symbols-outlined';
+                arrow.textContent = 'arrow_forward';
+                flowWrapEl.appendChild(arrow);
+            }
+            var item = document.createElement('div');
+            item.className = 'flow-item';
+
+            var frame = document.createElement('div');
+            frame.className = 'device-frame' + (device.id === 'desktop' ? ' is-desktop' : '');
+            frame.style.width = device.width + 'px';
+            frame.style.height = device.height + 'px';
+            frame.style.maxWidth = '46vw';
+            frame.style.maxHeight = '72vh';
+            var iframe = document.createElement('iframe');
+            iframe.title = step.label;
+            iframe.src = step.path;
+            frame.appendChild(iframe);
+            item.appendChild(frame);
+
+            var caption = document.createElement('div');
+            caption.className = 'flow-caption';
+            caption.innerHTML = '<b>' + (isSequential ? (i + 1) + '. ' : '') + step.label + '</b>' + step.path.replace('../', '');
+            item.appendChild(caption);
+
+            var openBtn = document.createElement('button');
+            openBtn.className = 'flow-open-btn';
+            openBtn.textContent = '이 화면만 크게 보기';
+            openBtn.onclick = function () { toggleFlow(flowGroup); goStep(steps.indexOf(step)); };
+            item.appendChild(openBtn);
+
+            flowWrapEl.appendChild(item);
+        });
+
+        renderFlowBranches(device);
+
+        var suffix = isSequential ? ' 흐름 (' + groupSteps.length + '개 화면, 순서대로)' : ' 모아보기 (' + groupSteps.length + '개 화면, 순서 없음)';
+        titleEl.textContent = TRACKS[currentTrackIndex].persona + ' · ' + flowGroup + suffix;
+    }
+
+    // 지금 보고 있는 묶음과 실제로 겹치는/갈라지는 경로(루프백, 다른 그룹으로 새는 링크, 외부 진입점)를
+    // 메인 흐름 아래에 별도 줄로 보여준다 — "일직선"처럼 안 보이게, 실제 흐름 그대로.
+    function renderFlowBranches(device) {
+        var branches = FLOW_BRANCHES[flowGroup] || [];
+        flowBranchesEl.innerHTML = '';
+        flowBranchesEl.classList.toggle('has-items', branches.length > 0);
+        if (!branches.length) return;
+
+        var label = document.createElement('div');
+        label.className = 'branches-label';
+        label.textContent = '실제 흐름에서 여기와 겹치는/갈라지는 경로 ' + branches.length + '건 (일직선이 아니라 이렇게도 이어져요)';
+        flowBranchesEl.appendChild(label);
+
+        var row = document.createElement('div');
+        row.className = 'branches-row';
+        branches.forEach(function (b) {
+            var item = document.createElement('div');
+            item.className = 'branch-item';
+
+            var frame = document.createElement('div');
+            frame.className = 'device-frame' + (device.id === 'desktop' ? ' is-desktop' : '');
+            frame.style.width = Math.round(device.width * 0.7) + 'px';
+            frame.style.height = Math.round(device.height * 0.7) + 'px';
+            frame.style.maxWidth = '38vw';
+            frame.style.maxHeight = '50vh';
+            var iframe = document.createElement('iframe');
+            iframe.title = b.toLabel;
+            iframe.src = b.toPath;
+            frame.appendChild(iframe);
+            item.appendChild(frame);
+
+            var caption = document.createElement('div');
+            caption.className = 'branch-caption';
+            caption.innerHTML = b.fromLabel + '<span class="via">↳ ' + b.via + '</span><b>' + b.toLabel + '</b>';
+            item.appendChild(caption);
+
+            row.appendChild(item);
+        });
+        flowBranchesEl.appendChild(row);
+    }
+
+    function goStep(index) {
+        var steps = currentSteps();
+        if (index < 0 || index >= steps.length) return;
+        currentIndex = index;
+        flowGroup = null;
+        frameWrapEl.style.display = '';
+        flowContainerEl.classList.remove('active');
+        frame.src = steps[currentIndex].path;
+        titleEl.textContent = TRACKS[currentTrackIndex].persona + ' · ' + steps[currentIndex].group + ' · ' + steps[currentIndex].label;
+        prevBtn.disabled = currentIndex === 0;
+        nextBtn.disabled = currentIndex === steps.length - 1;
+        collapsedGroups[steps[currentIndex].group] = false; // 현재 화면의 그룹은 항상 펼쳐서 보이게
+        renderStepList();
+        renderBundleBar();
+    }
+
+    function reloadFrame() {
+        if (flowGroup) { renderFlow(); return; }
+        frame.src = currentSteps()[currentIndex].path;
+    }
+
+    setDevice(0);
+    renderTrackTabs();
+    goStep(0);
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('../sw.js');
+  });
+}
+</script>
+</body></html>

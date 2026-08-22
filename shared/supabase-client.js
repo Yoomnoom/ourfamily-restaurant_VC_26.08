@@ -48,12 +48,12 @@ async function getMyMember() {
 async function requireSession() {
   var session = await getSession();
   if (!session) {
-    window.location.href = '../2-1.로그인 화면/code.html';
+    window.location.href = '../2_로그인 2-1.로그인 화면/code.html';
     return null;
   }
   var prof = await sb.from('profiles_vc2608').select('deactivated_at').eq('id', session.user.id).maybeSingle();
   if (prof.data && prof.data.deactivated_at) {
-    window.location.href = '../6-2. 계정 복구/code.html';
+    window.location.href = '../6_계정복구 6-2. 계정 복구/code.html';
     return null;
   }
   return session;

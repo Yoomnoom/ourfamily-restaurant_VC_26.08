@@ -1,0 +1,127 @@
+<!DOCTYPE html><html lang="ko"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>우리집식당 - 계정 연결</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../shared/supabase-client.js"></script>
+<script src="../shared/api.js"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif:wght@400;700&amp;family=Plus+Jakarta+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = { darkMode: "class", theme: { extend: {
+              "colors": {
+                      "surface": "#fbf9f8", "surface-container-lowest": "#ffffff", "surface-container": "#f0eded",
+                      "on-surface": "#1b1c1c", "on-surface-variant": "#45474a", "outline-variant": "#c6c6ca",
+                      "primary": "#5d5e62", "on-primary": "#ffffff", "tertiary-container": "#fef4e9", "on-tertiary-container": "#766f66"
+              },
+              "spacing": { "section-margin": "2rem", "card-padding": "1.25rem", "safe-area-inset": "1rem", "stack-gap": "1rem" },
+              "fontFamily": { "emotional-quote": ["Noto Serif"], "body-md": ["Plus Jakarta Sans"], "label-sm": ["Plus Jakarta Sans"] },
+              "fontSize": {
+                      "emotional-quote": ["19px", { "lineHeight": "28px", "fontWeight": "400" }],
+                      "body-md": ["18px", { "lineHeight": "26px", "fontWeight": "400" }],
+                      "label-sm": ["15px", { "lineHeight": "20px", "letterSpacing": "0.02em", "fontWeight": "500" }]
+              }
+      } } }
+      </script>
+<style>body { min-height: max(884px, 100dvh); -webkit-tap-highlight-color: transparent; }
+    /* 애플 디자인 원칙: 눌림 피드백은 즉시, 정지는 스프링형(임계감쇠)으로 — WWDC "Designing Fluid Interfaces" */
+    .active\:scale-95:active, .active\:scale-\[0\.98\]:active, .active\:scale-\[0\.95\]:active {
+      transition-timing-function: cubic-bezier(0.34, 1.3, 0.64, 1) !important;
+      transition-duration: 120ms !important;
+    }
+    .active\:scale-95, .active\:scale-\[0\.98\], .active\:scale-\[0\.95\] {
+      transition-timing-function: cubic-bezier(0.34, 1.3, 0.64, 1) !important;
+      transition-duration: 180ms !important;
+    }
+  </style>
+  <link rel="manifest" href="../manifest.json">
+<meta name="theme-color" content="#5d5e62">
+<link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
+<link rel="icon" href="../icons/favicon-32.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="우리집식당">
+</head>
+<body class="bg-surface text-on-surface font-body-md antialiased min-h-screen flex flex-col items-center justify-center">
+<main class="w-full max-w-[420px] flex flex-col px-safe-area-inset py-section-margin">
+
+<div id="confirmView" class="text-center">
+<span class="material-symbols-outlined text-primary mb-4" style="font-size:48px;">link</span>
+<h1 class="font-emotional-quote text-emotional-quote text-on-surface mb-3">저장된 응답이 있어요</h1>
+<p class="font-body-md text-body-md text-on-surface-variant mb-6"><span id="nameSlot">김하준</span>님, 전에 개인 링크로 응답한 적이 있어요.<br>지금 계정에 연결할까요?</p>
+
+<div class="bg-surface-container-lowest rounded-xl p-card-padding shadow-[0px_4px_12px_rgba(120,119,119,0.08)] mb-8 text-left">
+<p class="font-label-sm text-label-sm text-on-surface-variant mb-1">연결되면</p>
+<p class="font-body-md text-body-md text-on-surface">지난 응답 기록이 그대로 이어지고, 이제부터 가구 홈에서 알림과 일정을 한곳에서 볼 수 있어요.</p>
+</div>
+
+<button class="w-full bg-primary text-on-primary font-label-sm text-[15px] py-4 rounded-full shadow-[0px_4px_12px_rgba(120,119,119,0.08)] active:scale-[0.98] transition-transform mb-2" onclick="goToSignup()">연결하기</button>
+<button class="w-full py-3 rounded-full text-on-surface-variant font-label-sm text-label-sm" onclick="window.location.href='../1_온보딩 1-1. 온보딩-회원가입/code.html'">아니요, 새로 시작할게요</button>
+</div>
+
+<div id="doneView" class="hidden text-center">
+<span class="material-symbols-outlined text-primary mb-4" style="font-size:52px; font-variation-settings:'FILL' 1;">check_circle</span>
+<h1 class="font-emotional-quote text-emotional-quote text-on-surface mb-2">연결됐어요!</h1>
+<p class="font-body-md text-body-md text-on-surface-variant mb-6">이제 가구 홈에서 모든 소식을 한곳에서 볼 수 있어요.</p>
+<button class="w-full bg-primary text-on-primary font-label-sm text-[15px] py-4 rounded-full active:scale-[0.98] transition-transform" onclick="goHome()">홈으로 가기</button>
+</div>
+
+</main>
+
+<script>
+    var rawToken = '';
+
+    function goToSignup() {
+        // 실제 가입은 1-1에서 하고, 가입 완료 후 다시 이 화면(?afterSignup=1)으로 돌아와 연결을 마무리함.
+        window.location.href = '../1_온보딩 1-1. 온보딩-회원가입/code.html?linkToken=' + rawToken;
+    }
+
+    function goHome() {
+        window.location.href = '../3_핵심조율 3-0. 홈/code.html';
+    }
+
+    async function finishClaim() {
+        var tokenHash = await sha256Hex(rawToken);
+        try {
+            await API.members.claimViaToken(tokenHash);
+        } catch (err) {
+            document.getElementById('confirmView').classList.add('hidden');
+            document.getElementById('doneView').innerHTML =
+                '<p class="font-body-md text-body-md text-on-surface-variant mb-6">연결에 실패했어요: ' + err.message + '</p>' +
+                '<button class="w-full bg-primary text-on-primary font-label-sm text-[15px] py-4 rounded-full active:scale-[0.98] transition-transform" onclick="goHome()">홈으로 가기</button>';
+            document.getElementById('doneView').classList.remove('hidden');
+            return;
+        }
+        document.getElementById('confirmView').classList.add('hidden');
+        document.getElementById('doneView').classList.remove('hidden');
+    }
+
+    (async function init() {
+        await requireSession(); // 계정 연결은 로그인 상태에서만 의미 있음(가입 직후 세션 포함)
+        var params = new URLSearchParams(window.location.search);
+        rawToken = params.get('token') || '';
+        var tokenHash = await sha256Hex(rawToken);
+        var participant = await API.mealParticipants.getByToken(tokenHash);
+
+        if (!participant) {
+            document.getElementById('confirmView').innerHTML =
+                '<p class="font-body-md text-body-md text-on-surface-variant">유효하지 않거나 만료된 링크예요.</p>';
+            return;
+        }
+        document.getElementById('nameSlot').textContent = participant.member_name;
+
+        if (params.get('afterSignup') === '1') {
+            await finishClaim();
+        }
+    })();
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('../sw.js');
+  });
+}
+</script>
+</body></html>

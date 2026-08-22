@@ -1,0 +1,599 @@
+<!DOCTYPE html><html lang="ko"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>우리집식당 - 설정</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../shared/supabase-client.js"></script>
+<script src="../shared/api.js"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = { darkMode: "class", theme: { extend: {
+              "colors": {
+                      "surface": "#fbf9f8", "surface-container-lowest": "#ffffff", "surface-container": "#f0eded",
+                      "on-surface": "#1b1c1c", "on-surface-variant": "#45474a", "outline-variant": "#c6c6ca",
+                      "primary": "#5d5e62", "on-primary": "#ffffff", "error": "#ba1a1a"
+              },
+              "spacing": { "section-margin": "2rem", "card-padding": "1.25rem", "safe-area-inset": "1rem", "stack-gap": "1rem" },
+              "fontFamily": { "headline-lg": ["Plus Jakarta Sans"], "body-md": ["Plus Jakarta Sans"], "label-sm": ["Plus Jakarta Sans"] },
+              "fontSize": {
+                      "headline-lg": ["23px", { "lineHeight": "30px", "fontWeight": "600" }],
+                      "body-md": ["18px", { "lineHeight": "26px", "fontWeight": "400" }],
+                      "label-sm": ["15px", { "lineHeight": "20px", "letterSpacing": "0.02em", "fontWeight": "500" }]
+              }
+      } } }
+      </script>
+<style>
+    body { min-height: max(884px, 100dvh); -webkit-tap-highlight-color: transparent; }
+    .switch { width: 44px; height: 26px; border-radius: 999px; position: relative; transition: background-color .15s; }
+    .switch .knob { width: 20px; height: 20px; border-radius: 999px; background: #fff; position: absolute; top: 3px; left: 3px; transition: left .15s; }
+    .switch.on { background: #6d5a92; }
+    .switch.on .knob { left: 21px; }
+    .switch.off { background: #ded3ef; }
+  
+    /* 애플 디자인 원칙: 눌림 피드백은 즉시, 정지는 스프링형(임계감쇠)으로 — WWDC "Designing Fluid Interfaces" */
+    .active\:scale-95:active, .active\:scale-\[0\.98\]:active, .active\:scale-\[0\.95\]:active {
+      transition-timing-function: cubic-bezier(0.34, 1.3, 0.64, 1) !important;
+      transition-duration: 120ms !important;
+    }
+    .active\:scale-95, .active\:scale-\[0\.98\], .active\:scale-\[0\.95\] {
+      transition-timing-function: cubic-bezier(0.34, 1.3, 0.64, 1) !important;
+      transition-duration: 180ms !important;
+    }
+  </style>
+  <link rel="manifest" href="../manifest.json">
+<link rel="stylesheet" href="../shared/product-tour.css">
+<meta name="theme-color" content="#5d5e62">
+<link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
+<link rel="icon" href="../icons/favicon-32.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="우리집식당">
+</head>
+<body class="bg-surface text-on-surface font-body-md antialiased min-h-screen flex flex-col items-center">
+
+<div id="toast" class="fixed left-1/2 -translate-x-1/2 bg-on-surface text-surface font-label-sm text-label-sm px-4 py-3 rounded-full shadow-lg opacity-0 pointer-events-none transition-opacity duration-300 z-[80]" style="bottom:24px;"></div>
+
+<main class="w-full max-w-[600px] flex flex-col px-safe-area-inset py-section-margin">
+
+<header class="flex items-center gap-3 mb-6">
+<button class="w-12 h-12 flex items-center justify-center rounded-full bg-surface-container-lowest text-on-surface shadow-[0px_4px_12px_rgba(120,119,119,0.08)] active:scale-95 transition-transform" onclick="window.location.href='../3_핵심조율 3-0. 홈/code.html'" aria-label="뒤로">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+<h1 class="font-headline-lg text-headline-lg text-on-surface">설정</h1>
+</header>
+
+<!-- 내 프로필: 온보딩 때 넣은 사진·이름이 실제로 어딘가엔 보여야 하니까 -->
+<div class="bg-surface-container-lowest rounded-xl shadow-[0px_4px_12px_rgba(120,119,119,0.08)] mb-4 p-card-padding flex items-center gap-3">
+<div id="profileAvatar" class="w-14 h-14 rounded-full flex items-center justify-center text-on-primary font-headline-lg text-headline-lg shrink-0 overflow-hidden" style="background-color:#8a9a7b;">?</div>
+<div class="flex-1 min-w-0">
+<p id="profileName" class="font-body-md text-body-md text-on-surface font-medium">-</p>
+<p id="profileEmail" class="font-label-sm text-label-sm text-on-surface-variant"></p>
+</div>
+</div>
+
+<div id="emailUnverifiedBanner" class="hidden items-center gap-2 bg-tertiary-container text-on-tertiary-container rounded-xl px-4 py-3 mb-4 text-left">
+<span class="material-symbols-outlined text-[18px]">mail</span>
+<span class="font-label-sm text-label-sm flex-1">이메일 인증이 안 됐어요</span>
+<button type="button" class="font-label-sm text-label-sm underline" onclick="resendVerification()">재전송</button>
+</div>
+
+<div class="bg-surface-container-lowest rounded-xl shadow-[0px_4px_12px_rgba(120,119,119,0.08)] mb-4 divide-y divide-outline-variant">
+<div class="flex items-center justify-between px-4 py-3.5">
+<span class="font-body-md text-body-md text-on-surface">앱 푸시 알림</span>
+<button id="pushSwitch" class="switch on" onclick="toggleNotifPref(this, 'push')"><span class="knob"></span></button>
+</div>
+<div class="flex items-center justify-between px-4 py-3.5">
+<span class="font-body-md text-body-md text-on-surface">응답 변경 알림</span>
+<button id="changeSwitch" class="switch on" onclick="toggleNotifPref(this, 'response_change')"><span class="knob"></span></button>
+</div>
+</div>
+
+<div class="bg-surface-container-lowest rounded-xl shadow-[0px_4px_12px_rgba(120,119,119,0.08)] mb-6 divide-y divide-outline-variant">
+<div class="flex items-center justify-between px-4 py-3.5">
+<span class="font-body-md text-body-md text-on-surface">휴대폰 번호</span>
+<span id="phoneNumber" class="font-label-sm text-label-sm text-on-surface-variant">010-1234-5678</span>
+</div>
+</div>
+
+<!-- 알림 채널 선택(6가지 예정 작업 1번): 카카오/슬랙/문자, 기본 카카오. -->
+<div data-tour="notifications" class="bg-surface-container-lowest rounded-xl shadow-[0px_4px_12px_rgba(120,119,119,0.08)] mb-6 p-card-padding flex flex-col gap-3">
+<p class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wide">알림 받는 방법</p>
+<div class="flex rounded-xl border border-outline-variant overflow-hidden bg-surface-container-lowest">
+<button type="button" class="notif-channel-chip flex-1 py-3 flex flex-col items-center gap-1 font-label-sm text-label-sm transition-colors border-r border-outline-variant" data-channel="kakao" onclick="selectNotifChannel('kakao')"><span class="material-symbols-outlined text-[18px]">chat_bubble</span>카카오톡</button>
+<button type="button" class="notif-channel-chip flex-1 py-3 flex flex-col items-center gap-1 font-label-sm text-label-sm transition-colors border-r border-outline-variant" data-channel="slack" onclick="selectNotifChannel('slack')"><span class="material-symbols-outlined text-[18px]">tag</span>슬랙</button>
+<button type="button" class="notif-channel-chip flex-1 py-3 flex flex-col items-center gap-1 font-label-sm text-label-sm transition-colors" data-channel="sms" onclick="selectNotifChannel('sms')"><span class="material-symbols-outlined text-[18px]">sms</span>문자</button>
+</div>
+<p class="font-label-sm text-label-sm text-on-surface-variant">지금은 어떤 걸 고르든 알림은 앱 안(🔔)에서 확인돼요. 슬랙·문자로 실제 발송하는 기능은 아직 준비 중이에요.</p>
+</div>
+
+<!-- 식성 정보 — 회원가입 때 넣은 알레르기/못 먹는 것/잘 먹는 것을 여기서도 추가·수정 가능. -->
+<div class="bg-surface-container-lowest rounded-xl shadow-[0px_4px_12px_rgba(120,119,119,0.08)] mb-6 p-card-padding flex flex-col gap-4">
+<p class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wide">식성 정보</p>
+
+<div class="flex flex-col gap-1.5">
+<label class="font-label-sm text-label-sm text-on-surface-variant">알레르기</label>
+<div id="allergies-chips" class="flex flex-wrap gap-2"></div>
+<div class="flex gap-2">
+<input id="allergies-input" type="text" placeholder="예: 새우, 땅콩" autocomplete="off" class="flex-1 min-w-0 border border-outline-variant rounded-lg px-3 py-2 font-body-md text-body-md text-on-surface bg-surface-container-lowest" onkeydown="if(event.key==='Enter'){event.preventDefault();addDietaryTag('allergies');}">
+<button type="button" class="px-3 rounded-lg bg-surface-container text-on-surface-variant font-label-sm text-label-sm shrink-0" onclick="addDietaryTag('allergies')">추가</button>
+</div>
+</div>
+
+<div class="flex flex-col gap-1.5">
+<label class="font-label-sm text-label-sm text-on-surface-variant">못 먹는 것</label>
+<div id="dislikes-chips" class="flex flex-wrap gap-2"></div>
+<div class="flex gap-2">
+<input id="dislikes-input" type="text" placeholder="예: 오이, 가지" autocomplete="off" class="flex-1 min-w-0 border border-outline-variant rounded-lg px-3 py-2 font-body-md text-body-md text-on-surface bg-surface-container-lowest" onkeydown="if(event.key==='Enter'){event.preventDefault();addDietaryTag('dislikes');}">
+<button type="button" class="px-3 rounded-lg bg-surface-container text-on-surface-variant font-label-sm text-label-sm shrink-0" onclick="addDietaryTag('dislikes')">추가</button>
+</div>
+</div>
+
+<div class="flex flex-col gap-1.5">
+<label class="font-label-sm text-label-sm text-on-surface-variant">잘 먹는 것</label>
+<div id="likes-chips" class="flex flex-wrap gap-2"></div>
+<div class="flex gap-2">
+<input id="likes-input" type="text" placeholder="예: 매운 음식, 고기" autocomplete="off" class="flex-1 min-w-0 border border-outline-variant rounded-lg px-3 py-2 font-body-md text-body-md text-on-surface bg-surface-container-lowest" onkeydown="if(event.key==='Enter'){event.preventDefault();addDietaryTag('likes');}">
+<button type="button" class="px-3 rounded-lg bg-surface-container text-on-surface-variant font-label-sm text-label-sm shrink-0" onclick="addDietaryTag('likes')">추가</button>
+</div>
+</div>
+
+<button type="button" id="saveDietaryBtn" class="w-full py-2.5 rounded-full bg-primary text-on-primary font-label-sm text-label-sm" onclick="saveDietaryInfo()">저장</button>
+</div>
+
+<!-- 6가지 예정 작업 중 4번: 가이드 설명을 온보딩뿐 아니라 설정에서도 다시 볼 수 있게 -->
+<button type="button" class="w-full flex items-center gap-2 bg-surface-container-lowest rounded-xl shadow-[0px_4px_12px_rgba(120,119,119,0.08)] px-4 py-3.5 mb-4 text-left" onclick="OurHomeTour.offer(0)">
+<span class="material-symbols-outlined text-[18px] text-primary">help</span>
+<span class="font-body-md text-body-md text-on-surface flex-1">사용법 다시 보기</span>
+<span class="material-symbols-outlined text-on-surface-variant text-[18px]">chevron_right</span>
+</button>
+
+<button type="button" class="w-full flex items-center gap-2 bg-surface-container-lowest rounded-xl shadow-[0px_4px_12px_rgba(120,119,119,0.08)] px-4 py-3.5 mb-4 text-left" onclick="openContactPanel()">
+<span class="material-symbols-outlined text-[18px] text-primary">mail</span>
+<span class="font-body-md text-body-md text-on-surface flex-1">문의하기</span>
+<span class="material-symbols-outlined text-on-surface-variant text-[18px]">chevron_right</span>
+</button>
+
+<button type="button" class="w-full flex items-center gap-2 bg-surface-container-lowest rounded-xl shadow-[0px_4px_12px_rgba(120,119,119,0.08)] px-4 py-3.5 mb-4 text-left" onclick="openPasswordPanel()">
+<span class="material-symbols-outlined text-[18px] text-primary">lock</span>
+<span class="font-body-md text-body-md text-on-surface flex-1">비밀번호 변경</span>
+<span class="material-symbols-outlined text-on-surface-variant text-[18px]">chevron_right</span>
+</button>
+
+<button type="button" class="w-full flex items-center gap-2 bg-surface-container-lowest rounded-xl shadow-[0px_4px_12px_rgba(120,119,119,0.08)] px-4 py-3.5 mb-4 text-left" onclick="openEmailPanel()">
+<span class="material-symbols-outlined text-[18px] text-primary">alternate_email</span>
+<span class="font-body-md text-body-md text-on-surface flex-1">이메일 변경</span>
+<span class="material-symbols-outlined text-on-surface-variant text-[18px]">chevron_right</span>
+</button>
+
+<button type="button" class="w-full flex items-center gap-2 bg-surface-container-lowest rounded-xl shadow-[0px_4px_12px_rgba(120,119,119,0.08)] px-4 py-3.5 mb-4 text-left" onclick="exportMyData()">
+<span class="material-symbols-outlined text-[18px] text-primary">download</span>
+<span class="font-body-md text-body-md text-on-surface flex-1">내 데이터 내보내기</span>
+<span class="material-symbols-outlined text-on-surface-variant text-[18px]">chevron_right</span>
+</button>
+
+<button type="button" class="w-full flex items-center gap-2 bg-surface-container-lowest rounded-xl shadow-[0px_4px_12px_rgba(120,119,119,0.08)] px-4 py-3.5 mb-4 text-left" onclick="showToast('아직 준비 중이에요')">
+<span class="material-symbols-outlined text-[18px] text-primary">description</span>
+<span class="font-body-md text-body-md text-on-surface flex-1">이용약관</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">준비 중</span>
+</button>
+
+<button type="button" class="w-full flex items-center gap-2 bg-surface-container-lowest rounded-xl shadow-[0px_4px_12px_rgba(120,119,119,0.08)] px-4 py-3.5 mb-4 text-left" onclick="showToast('아직 준비 중이에요')">
+<span class="material-symbols-outlined text-[18px] text-primary">privacy_tip</span>
+<span class="font-body-md text-body-md text-on-surface flex-1">개인정보처리방침</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">준비 중</span>
+</button>
+
+<div class="w-full flex items-center gap-2 px-4 py-3.5 mb-4">
+<span class="font-body-md text-body-md text-on-surface-variant flex-1">앱 버전</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">v2026.08.22</span>
+</div>
+
+<details class="bg-surface-container-lowest rounded-xl shadow-[0px_4px_12px_rgba(120,119,119,0.08)] px-4 py-3.5 mb-6">
+<summary class="font-body-md text-body-md text-on-surface cursor-pointer flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px] text-primary">payments</span>
+다음 단계 로드맵 (준비 중)
+</summary>
+<ul class="mt-3 flex flex-col gap-1.5">
+<li class="font-label-sm text-label-sm text-on-surface-variant">식사별 금액 · 월 식비 예산</li>
+<li class="font-label-sm text-label-sm text-on-surface-variant">공동 결제 · 분담 · 정산</li>
+<li class="font-label-sm text-label-sm text-on-surface-variant">음식 사진 기록</li>
+<li class="font-label-sm text-label-sm text-on-surface-variant">소비 패턴 기반 밀키트 배송일 제안</li>
+</ul>
+</details>
+
+<button class="w-full py-3 rounded-full border border-outline-variant text-error font-label-sm text-label-sm mb-3" onclick="logout()">로그아웃</button>
+<button class="w-full py-3 rounded-full text-error font-label-sm text-label-sm" onclick="attemptDeleteAccount()">계정 탈퇴</button>
+
+</main>
+
+<!-- 사용법 가이드 — 온보딩(1-2)과 내용 동일, 여기서도 다시 볼 수 있게(6가지 예정 작업 4번).
+     항목 상자는 점선 테두리(사용자 요청). -->
+<div id="contactBackdrop" class="hidden fixed inset-0 bg-on-surface/40 z-[80]" onclick="closeContactPanel()"></div>
+<div id="contactPanel" class="hidden fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-[500px] mx-auto bg-surface rounded-2xl z-[90] p-6 max-h-[80vh] overflow-y-auto shadow-2xl">
+<div class="flex items-center justify-between mb-4">
+<h2 class="font-headline-lg text-headline-lg text-on-surface">문의하기</h2>
+<button type="button" onclick="closeContactPanel()" aria-label="닫기" class="w-9 h-9 flex items-center justify-center rounded-full active:bg-surface-container">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<p class="font-label-sm text-label-sm text-on-surface-variant mb-3">아래에 내용을 적고 "메일로 보내기"를 누르면, 이 기기의 메일 앱으로 내용이 채워진 메일 초안이 열려요. 실제 발송은 메일 앱에서 직접 눌러야 해요.</p>
+<textarea id="contactMessage" rows="5" placeholder="문의 내용을 적어주세요" class="w-full border border-outline-variant rounded-lg px-3 py-2.5 font-body-md text-body-md text-on-surface bg-surface-container-lowest mb-3"></textarea>
+<button type="button" class="w-full py-3 rounded-full bg-primary text-on-primary font-label-sm text-label-sm mb-4" onclick="sendContactEmail()">메일로 보내기</button>
+<div id="adminContactEmailRow" class="hidden border-t border-outline-variant pt-4 flex flex-col gap-2">
+<p class="font-label-sm text-label-sm text-on-surface-variant">관리자 설정 — 문의받을 이메일 주소</p>
+<div class="flex items-center gap-2">
+<input id="adminContactEmailInput" type="email" class="flex-1 border border-outline-variant rounded-lg px-3 py-2 font-body-md text-body-md text-on-surface bg-surface-container-lowest">
+<button type="button" class="px-4 py-2 rounded-full bg-surface-container text-on-surface font-label-sm text-label-sm shrink-0" onclick="saveContactEmail()">저장</button>
+</div>
+</div>
+</div>
+
+<div id="passwordBackdrop" class="hidden fixed inset-0 bg-on-surface/40 z-[80]" onclick="closePasswordPanel()"></div>
+<div id="passwordPanel" class="hidden fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-[500px] mx-auto bg-surface rounded-2xl z-[90] p-6 max-h-[80vh] overflow-y-auto shadow-2xl">
+<div class="flex items-center justify-between mb-4">
+<h2 class="font-headline-lg text-headline-lg text-on-surface">비밀번호 변경</h2>
+<button type="button" onclick="closePasswordPanel()" aria-label="닫기" class="w-9 h-9 flex items-center justify-center rounded-full active:bg-surface-container">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<input id="newPasswordInput" type="password" placeholder="새 비밀번호 (6자 이상)" class="w-full border border-outline-variant rounded-lg px-3 py-2.5 font-body-md text-body-md text-on-surface bg-surface-container-lowest mb-3">
+<input id="newPasswordConfirmInput" type="password" placeholder="새 비밀번호 확인" class="w-full border border-outline-variant rounded-lg px-3 py-2.5 font-body-md text-body-md text-on-surface bg-surface-container-lowest mb-3">
+<button type="button" class="w-full py-3 rounded-full bg-primary text-on-primary font-label-sm text-label-sm" onclick="submitPasswordChange()">바꾸기</button>
+</div>
+
+<div id="emailBackdrop" class="hidden fixed inset-0 bg-on-surface/40 z-[80]" onclick="closeEmailPanel()"></div>
+<div id="emailPanel" class="hidden fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-[500px] mx-auto bg-surface rounded-2xl z-[90] p-6 max-h-[80vh] overflow-y-auto shadow-2xl">
+<div class="flex items-center justify-between mb-4">
+<h2 class="font-headline-lg text-headline-lg text-on-surface">이메일 변경</h2>
+<button type="button" onclick="closeEmailPanel()" aria-label="닫기" class="w-9 h-9 flex items-center justify-center rounded-full active:bg-surface-container">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<p class="font-label-sm text-label-sm text-on-surface-variant mb-3">새 이메일로 확인 메일을 보내요. 그 메일에서 확인하기 전까지는 이메일이 안 바뀌어요.</p>
+<input id="newEmailInput" type="email" placeholder="새 이메일 주소" class="w-full border border-outline-variant rounded-lg px-3 py-2.5 font-body-md text-body-md text-on-surface bg-surface-container-lowest mb-3">
+<button type="button" class="w-full py-3 rounded-full bg-primary text-on-primary font-label-sm text-label-sm" onclick="submitEmailChange()">확인 메일 보내기</button>
+</div>
+
+<div id="guideBackdrop" class="hidden fixed inset-0 bg-on-surface/40 z-[80]" onclick="closeGuide()"></div>
+<div id="guidePanel" class="hidden fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-[500px] mx-auto bg-surface rounded-2xl z-[90] p-6 max-h-[80vh] overflow-y-auto shadow-2xl">
+<div class="flex items-center justify-between mb-4">
+<h2 class="font-headline-lg text-headline-lg text-on-surface">우리집식당 사용법</h2>
+<button type="button" onclick="closeGuide()" aria-label="닫기" class="w-9 h-9 flex items-center justify-center rounded-full active:bg-surface-container">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<div class="flex flex-col gap-3">
+<div class="border border-dashed border-outline-variant rounded-xl p-4 flex items-start gap-3">
+<span class="material-symbols-outlined text-primary">restaurant</span>
+<div><p class="font-body-md text-body-md text-on-surface font-medium mb-1">식사 만들기</p><p class="font-label-sm text-label-sm text-on-surface-variant">언제, 무엇을, 누구와 먹을지 정하고 가족에게 물어보세요.</p></div>
+</div>
+<div class="border border-dashed border-outline-variant rounded-xl p-4 flex items-start gap-3">
+<span class="material-symbols-outlined text-primary">check_circle</span>
+<div><p class="font-body-md text-body-md text-on-surface font-medium mb-1">응답하기</p><p class="font-label-sm text-label-sm text-on-surface-variant">알림이나 링크를 받으면 먹을지 안 먹을지만 눌러서 알려주세요.</p></div>
+</div>
+<div class="border border-dashed border-outline-variant rounded-xl p-4 flex items-start gap-3">
+<span class="material-symbols-outlined text-primary">calendar_month</span>
+<div><p class="font-body-md text-body-md text-on-surface font-medium mb-1">달력으로 한눈에</p><p class="font-label-sm text-label-sm text-on-surface-variant">이번 달 식사를 달력에서 모아보고, 미리 답해둘 수도 있어요.</p></div>
+</div>
+<div class="border border-dashed border-outline-variant rounded-xl p-4 flex items-start gap-3">
+<span class="material-symbols-outlined text-primary">group_add</span>
+<div><p class="font-body-md text-body-md text-on-surface font-medium mb-1">가족 초대</p><p class="font-label-sm text-label-sm text-on-surface-variant">가구 설정에서 가족을 초대하면 함께 식사를 조율할 수 있어요.</p></div>
+</div>
+</div>
+<button type="button" class="w-full mt-5 py-3 rounded-full bg-primary text-on-primary font-label-sm text-label-sm" onclick="closeGuide()">확인했어요</button>
+</div>
+
+<script>
+    var householdId = null;
+    var isAdmin = false;
+    var myEmail = '';
+    var myName = '';
+
+    function openContactPanel() {
+        document.getElementById('adminContactEmailRow').classList.toggle('hidden', !isAdmin);
+        document.getElementById('contactBackdrop').classList.remove('hidden');
+        document.getElementById('contactPanel').classList.remove('hidden');
+        if (isAdmin) {
+            API.contact.getEmail().then(function (email) {
+                document.getElementById('adminContactEmailInput').value = email || '';
+            });
+        }
+    }
+    function closeContactPanel() {
+        document.getElementById('contactBackdrop').classList.add('hidden');
+        document.getElementById('contactPanel').classList.add('hidden');
+    }
+    async function sendContactEmail() {
+        var msg = document.getElementById('contactMessage').value.trim();
+        if (!msg) { showToast('문의 내용을 적어주세요'); return; }
+        var to;
+        try {
+            to = await API.contact.getEmail();
+        } catch (err) {
+            showToast('문의 이메일을 불러오지 못했어요: ' + err.message);
+            return;
+        }
+        if (!to) { showToast('문의받을 이메일이 설정돼 있지 않아요'); return; }
+        var subject = '[우리집식당 문의] ' + (myName || '사용자');
+        var body = msg + '\n\n(보낸 사람: ' + (myName || '-') + ', ' + (myEmail || '-') + ')';
+        window.location.href = 'mailto:' + encodeURIComponent(to) + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
+    }
+    async function saveContactEmail() {
+        var email = document.getElementById('adminContactEmailInput').value.trim();
+        if (!email) { showToast('이메일을 입력해주세요'); return; }
+        try {
+            await API.contact.setEmail(email);
+            showToast('문의받을 이메일을 바꿨어요');
+        } catch (err) {
+            showToast('저장 실패: ' + err.message);
+        }
+    }
+
+    function openPasswordPanel() {
+        document.getElementById('passwordBackdrop').classList.remove('hidden');
+        document.getElementById('passwordPanel').classList.remove('hidden');
+    }
+    function closePasswordPanel() {
+        document.getElementById('passwordBackdrop').classList.add('hidden');
+        document.getElementById('passwordPanel').classList.add('hidden');
+        document.getElementById('newPasswordInput').value = '';
+        document.getElementById('newPasswordConfirmInput').value = '';
+    }
+    async function submitPasswordChange() {
+        var p1 = document.getElementById('newPasswordInput').value;
+        var p2 = document.getElementById('newPasswordConfirmInput').value;
+        if (p1.length < 6) { showToast('비밀번호는 6자 이상이어야 해요'); return; }
+        if (p1 !== p2) { showToast('두 비밀번호가 서로 달라요'); return; }
+        try {
+            await API.auth.updatePassword(p1);
+            showToast('비밀번호를 바꿨어요');
+            closePasswordPanel();
+        } catch (err) {
+            showToast('실패했어요: ' + err.message);
+        }
+    }
+
+    function openEmailPanel() {
+        document.getElementById('emailBackdrop').classList.remove('hidden');
+        document.getElementById('emailPanel').classList.remove('hidden');
+        document.getElementById('newEmailInput').value = '';
+    }
+    function closeEmailPanel() {
+        document.getElementById('emailBackdrop').classList.add('hidden');
+        document.getElementById('emailPanel').classList.add('hidden');
+    }
+    async function submitEmailChange() {
+        var email = document.getElementById('newEmailInput').value.trim();
+        if (!email) { showToast('이메일을 입력해주세요'); return; }
+        try {
+            await API.auth.updateEmail(email);
+            showToast('확인 메일을 보냈어요. 새 이메일에서 확인해주세요');
+            closeEmailPanel();
+        } catch (err) {
+            showToast('실패했어요: ' + err.message);
+        }
+    }
+
+    async function resendVerification() {
+        try {
+            var session = await getSession();
+            await API.auth.resendConfirmation(session.user.email);
+            showToast('인증 메일을 다시 보냈어요');
+        } catch (err) {
+            showToast('실패했어요: ' + err.message);
+        }
+    }
+
+    async function exportMyData() {
+        try {
+            var session = await getSession();
+            var profileRes = await sb.from('profiles_vc2608').select('*').eq('id', session.user.id).maybeSingle();
+            var mealsRes = await sb.from('meals_vc2608').select('*').eq('creator_id', session.user.id);
+            var responsesRes = await sb.from('meal_responses_vc2608').select('*').eq('member_id', myMember.id);
+            var data = {
+                exported_at: new Date().toISOString(),
+                account_email: session.user.email,
+                profile: profileRes.data,
+                household_member: myMember,
+                meals_created: mealsRes.data || [],
+                meal_responses: responsesRes.data || []
+            };
+            var blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            var url = URL.createObjectURL(blob);
+            var a = document.createElement('a');
+            a.href = url;
+            a.download = '우리집식당_내데이터_' + new Date().toISOString().slice(0, 10) + '.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        } catch (err) {
+            showToast('내보내기 실패: ' + err.message);
+        }
+    }
+
+    function openGuide() {
+        document.getElementById('guideBackdrop').classList.remove('hidden');
+        document.getElementById('guidePanel').classList.remove('hidden');
+    }
+    function closeGuide() {
+        document.getElementById('guideBackdrop').classList.add('hidden');
+        document.getElementById('guidePanel').classList.add('hidden');
+    }
+
+    var toastTimer;
+    function showToast(msg) {
+        var toast = document.getElementById('toast');
+        toast.textContent = msg;
+        toast.classList.remove('opacity-0');
+        toast.classList.add('opacity-100');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(function () { toast.classList.remove('opacity-100'); toast.classList.add('opacity-0'); }, 2200);
+    }
+
+    // 식성 정보(알레르기/못 먹는 것/잘 먹는 것) — 1-1 회원가입과 동일한 태그 입력 패턴.
+    var dietaryTags = { allergies: [], dislikes: [], likes: [] };
+    function renderDietaryChips(field) {
+        var wrap = document.getElementById(field + '-chips');
+        wrap.innerHTML = '';
+        dietaryTags[field].forEach(function (tag, i) {
+            var chip = document.createElement('span');
+            chip.className = 'inline-flex items-center gap-1.5 bg-surface-container text-on-surface rounded-full pl-3 pr-2 py-1.5 font-label-sm text-label-sm';
+            var label = document.createElement('span');
+            label.textContent = tag;
+            var removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.setAttribute('aria-label', tag + ' 삭제');
+            removeBtn.className = 'w-5 h-5 flex items-center justify-center rounded-full active:bg-surface-container-high';
+            removeBtn.innerHTML = '<span class="material-symbols-outlined" style="font-size:14px;">close</span>';
+            removeBtn.onclick = function () { dietaryTags[field].splice(i, 1); renderDietaryChips(field); };
+            chip.appendChild(label);
+            chip.appendChild(removeBtn);
+            wrap.appendChild(chip);
+        });
+    }
+    function addDietaryTag(field) {
+        var input = document.getElementById(field + '-input');
+        var v = input.value.trim();
+        if (!v || dietaryTags[field].indexOf(v) !== -1) { input.value = ''; return; }
+        dietaryTags[field].push(v);
+        input.value = '';
+        renderDietaryChips(field);
+    }
+    // 알림 채널 선택(6가지 예정 작업 1번) — 카카오/슬랙/문자 중 선택, 기본 카카오.
+    // 지금은 슬랙·문자 실제 발송 연동 전이라(사용자 확인: "지금은 카카오만") 어떤 걸 골라도
+    // 실제 알림은 여전히 앱 안(알림 벨)에서만 뜸 — 선택지만 미리 만들어두고 정직하게 안내.
+    var currentNotifChannel = 'kakao';
+    function renderNotifChannelChips() {
+        document.querySelectorAll('.notif-channel-chip').forEach(function (chip) {
+            var active = chip.getAttribute('data-channel') === currentNotifChannel;
+            chip.classList.toggle('bg-surface-container', active);
+            chip.classList.toggle('text-primary', active);
+            chip.classList.toggle('font-semibold', active);
+            chip.classList.toggle('text-on-surface-variant', !active);
+        });
+    }
+    async function selectNotifChannel(channel) {
+        currentNotifChannel = channel;
+        renderNotifChannelChips();
+        await API.members.updateNotificationChannel(householdId, channel);
+        var labels = { kakao: '카카오톡으로', slack: '슬랙으로', sms: '문자로' };
+        showToast(labels[channel] + ' 설정했어요');
+    }
+
+    async function saveDietaryInfo() {
+        await API.auth.updateMyProfile({
+            allergies: dietaryTags.allergies,
+            dislikes: dietaryTags.dislikes,
+            likes: dietaryTags.likes
+        });
+        showToast('식성 정보를 저장했어요');
+    }
+
+    function toggleSwitch(el) {
+        el.classList.toggle('on');
+        el.classList.toggle('off');
+    }
+
+    function setSwitchState(el, on) {
+        el.classList.toggle('on', on);
+        el.classList.toggle('off', !on);
+    }
+
+    async function toggleNotifPref(el, kind) {
+        var willBeOn = !el.classList.contains('on');
+        var pushSwitch = document.getElementById('pushSwitch');
+        var changeSwitch = document.getElementById('changeSwitch');
+        var pushOn = kind === 'push' ? willBeOn : pushSwitch.classList.contains('on');
+        var responseChangeOn = kind === 'response_change' ? willBeOn : changeSwitch.classList.contains('on');
+        setSwitchState(el, willBeOn);
+        try {
+            await API.notifications.updatePrefs(pushOn, responseChangeOn);
+        } catch (err) {
+            setSwitchState(el, !willBeOn);
+            showToast('저장에 실패했어요: ' + err.message);
+        }
+    }
+
+    async function logout() {
+        if (!confirm('로그아웃 할까요?')) return;
+        await API.auth.signOut();
+        window.location.href = '../2_로그인 2-1.로그인 화면/code.html';
+    }
+
+    async function attemptDeleteAccount() {
+        if (!confirm('계정을 탈퇴할까요? 90일 안에는 다시 로그인해서 되돌릴 수 있고, 그 뒤에는 개인정보가 완전히 삭제돼요.')) return;
+        try {
+            await API.account.deleteAccount();
+            await API.auth.signOut();
+            window.location.href = '../2_로그인 2-1.로그인 화면/code.html';
+        } catch (err) {
+            if (err.message && err.message.indexOf('transfer_required_before_delete') !== -1) {
+                alert('다른 가구원이 있는 가구의 오너라서, 먼저 "가구 설정"에서 오너를 넘기거나 가구원들을 내보낸 뒤에 탈퇴할 수 있어요.');
+            } else {
+                showToast('탈퇴에 실패했어요: ' + err.message);
+            }
+        }
+    }
+
+    (async function renderProfile() {
+        var preview = /^(localhost|127\.0\.0\.1)$/.test(location.hostname) && new URLSearchParams(location.search).get('tour-preview') === '1';
+        if (preview) {
+            document.getElementById('profileName').textContent = 'good4056';
+            document.getElementById('profileEmail').textContent = 'preview@example.com';
+            document.getElementById('profileAvatar').textContent = 'g';
+            document.getElementById('phoneNumber').textContent = '010-1234-5678';
+            renderNotifChannelChips();
+            return;
+        }
+        var session = await requireSession();
+        if (!session) return;
+        var member = await getMyMember();
+
+        var nickname = (member && member.name) || '이름 없음';
+        var photo = member && member.avatar_url;
+        var email = session.user.email || '';
+        document.getElementById('emailUnverifiedBanner').classList.toggle('hidden', !!session.user.email_confirmed_at);
+        document.getElementById('emailUnverifiedBanner').classList.toggle('flex', !session.user.email_confirmed_at);
+
+        householdId = member && member.household_id;
+        currentNotifChannel = (member && member.notification_channel) || 'kakao';
+        renderNotifChannelChips();
+        setSwitchState(document.getElementById('pushSwitch'), !member || member.push_enabled !== false);
+        setSwitchState(document.getElementById('changeSwitch'), !member || member.response_change_notify_enabled !== false);
+        myEmail = email;
+        myName = nickname;
+
+        var profileRes = await sb.from('profiles_vc2608').select('phone, allergies, dislikes, likes, is_admin').eq('id', session.user.id).maybeSingle();
+        isAdmin = !!(profileRes.data && profileRes.data.is_admin);
+        if (profileRes.error) showToast('내 정보를 불러오지 못했어요, 새로고침 해주세요');
+        var phone = profileRes.data && profileRes.data.phone;
+
+        document.getElementById('profileName').textContent = nickname;
+        document.getElementById('profileEmail').textContent = email;
+        document.getElementById('phoneNumber').textContent = profileRes.error ? '불러오기 실패' : (phone || '등록 안 됨');
+
+        dietaryTags.allergies = (profileRes.data && profileRes.data.allergies) || [];
+        dietaryTags.dislikes = (profileRes.data && profileRes.data.dislikes) || [];
+        dietaryTags.likes = (profileRes.data && profileRes.data.likes) || [];
+        renderDietaryChips('allergies');
+        renderDietaryChips('dislikes');
+        renderDietaryChips('likes');
+
+        var avatar = document.getElementById('profileAvatar');
+        if (photo) { avatar.innerHTML = '<img src="' + photo + '" class="w-full h-full object-cover">'; }
+        else { avatar.textContent = nickname.trim().charAt(0) || '?'; }
+    })();
+</script>
+<script src="../shared/product-tour.js"></script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('../sw.js');
+  });
+}
+</script>
+</body></html>

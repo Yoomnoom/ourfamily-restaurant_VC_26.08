@@ -5,6 +5,25 @@
   box-shadow: 0 0 0 4px #fff, 0 0 0 8px #5d5e62, 0 12px 32px rgba(27, 28, 28, .24) !important;
 }
 
+.product-tour-marker {
+  position: absolute;
+  top: -18px;
+  left: -18px;
+  z-index: 75;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 4px solid #fff;
+  border-radius: 50%;
+  background: #5d5e62;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(27, 28, 28, .24);
+  font-size: 18px;
+  font-weight: 800;
+  pointer-events: none;
+}
+
 .product-tour-scrim {
   position: fixed;
   inset: 0;
@@ -37,24 +56,14 @@
 .product-tour-actions__spacer { flex: 1; }
 .product-tour-button--next { background: #5d5e62; color: #fff; }
 
-.product-tour-welcome {
-  position: fixed;
-  inset: 0;
-  z-index: 80;
-  display: grid;
-  place-items: center;
-  padding: 20px;
-  background: rgba(27, 28, 28, .48);
-}
-.product-tour-welcome__card { width: min(420px, 100%); padding: 24px; border-radius: 20px; background: #fff; color: #1b1c1c; box-shadow: 0 16px 40px rgba(27,28,28,.24); }
-.product-tour-welcome__icon { display: grid; place-items: center; width: 52px; height: 52px; margin-bottom: 14px; border-radius: 50%; background: #f0eded; font-size: 27px; }
-.product-tour-welcome__title { margin: 0 0 8px; font-size: 22px; line-height: 1.35; font-weight: 700; }
-.product-tour-welcome__copy { margin: 0 0 20px; color: #45474a; font-size: 16px; line-height: 1.55; word-break: keep-all; }
-.product-tour-welcome__actions { display: grid; gap: 10px; }
-.product-tour-welcome__actions button { min-height: 48px; border: 0; border-radius: 999px; font-size: 15px; font-weight: 700; }
-.product-tour-welcome__start { background: #5d5e62; color: #fff; }
-.product-tour-welcome__later { background: #f0eded; color: #1b1c1c; }
-.product-tour-welcome__never { background: transparent; color: #45474a; text-decoration: underline; }
+.product-tour-offer { position: fixed; inset: 0; z-index: 80; display: grid; place-items: center; padding: 20px; background: rgba(27,28,28,.5); }
+.product-tour-offer__card { width: min(400px, 100%); padding: 24px; border-radius: 18px; background: #fff; color: #1b1c1c; box-shadow: 0 16px 40px rgba(27,28,28,.24); }
+.product-tour-offer__icon { display: grid; place-items: center; width: 44px; height: 44px; margin-bottom: 12px; border-radius: 50%; background: #5d5e62; color: #fff; font-size: 20px; font-weight: 800; }
+.product-tour-offer h2 { margin: 0 0 8px; font-size: 20px; line-height: 1.4; font-weight: 700; }
+.product-tour-offer p { margin: 0 0 18px; color: #45474a; font-size: 15px; line-height: 1.55; }
+.product-tour-offer__card > div { display: flex; justify-content: flex-end; gap: 8px; }
+.product-tour-offer button { min-height: 46px; padding: 0 16px; border: 0; border-radius: 999px; background: #f0eded; color: #1b1c1c; font-size: 14px; font-weight: 700; }
+.product-tour-offer button[data-offer="start"] { background: #5d5e62; color: #fff; }
 
 @media (max-width: 640px) {
   .product-tour-card { left: 16px !important; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom)) !important; top: auto !important; width: auto; }
@@ -63,10 +72,10 @@
 
 @media (prefers-reduced-motion: reduce) {
   .product-tour-target { scroll-behavior: auto; }
-  .product-tour-card, .product-tour-welcome { animation: none !important; transition: none !important; }
+  .product-tour-card { animation: none !important; transition: none !important; }
 }
 
 @media (prefers-contrast: more) {
-  .product-tour-card, .product-tour-welcome__card { border: 3px solid #1b1c1c; background: #fff; }
+  .product-tour-card { border: 3px solid #1b1c1c; background: #fff; }
   .product-tour-scrim { background: rgba(0, 0, 0, .65); }
 }
