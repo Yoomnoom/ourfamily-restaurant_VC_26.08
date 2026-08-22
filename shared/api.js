@@ -439,6 +439,19 @@ API.menuImages = {
   }
 };
 
+API.contact = {
+  async getEmail() {
+    var res = await sb.from('app_config_vc2608').select('value').eq('key', 'contact_email').maybeSingle();
+    if (res.error) throw res.error;
+    return res.data ? res.data.value : null;
+  },
+  // admin만 가능(RLS app_config_vc2608_update).
+  async setEmail(email) {
+    var res = await sb.from('app_config_vc2608').update({ value: email, updated_at: new Date().toISOString() }).eq('key', 'contact_email');
+    if (res.error) throw res.error;
+  }
+};
+
 API.menuCategories = {
   async get(menuName) {
     var res = await sb.from('menu_categories_vc2608').select('food_group, cook_type, detail_tags').eq('menu_name', menuName).maybeSingle();
