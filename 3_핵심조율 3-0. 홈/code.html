@@ -796,11 +796,16 @@
             row.innerHTML =
                 '<span class="w-8 h-8 rounded-full flex items-center justify-center text-on-primary font-label-sm text-label-sm shrink-0" style="background-color:' + color + ';">' + name.charAt(0) + '</span>' +
                 '<span class="font-body-md text-body-md text-on-surface flex-1">' + name + (isMe ? ' (나)' : '') + ' · ' + r.menu + '</span>' +
-                '<button type="button" class="use-request-btn font-label-sm text-label-sm text-primary shrink-0">이걸로 만들기 →</button>';
+                '<button type="button" class="use-request-btn font-label-sm text-label-sm text-primary shrink-0">이걸로 만들기 →</button>' +
+                '<button type="button" class="dismiss-request-btn w-7 h-7 flex items-center justify-center rounded-full text-on-surface-variant shrink-0" aria-label="요청 지우기"><span class="material-symbols-outlined text-[16px]">close</span></button>';
+            // "이걸로 만들기"를 누르면 식사에 반영된 것 — 다음 요청이 쌓여도 이 요청은 다시 안 보이게 정리.
             row.querySelector('.use-request-btn').onclick = function () {
                 try { localStorage.setItem('recipe_pick', JSON.stringify({ name: r.menu })); } catch (err) {}
+                API.menuRequests.remove(r.id).catch(function () {});
                 window.location.href = '../3_핵심조율 3-2. 식사 만들기/code.html';
             };
+            // 요청한 사람이 아니어도 지울 수 있음 — 부담없이 적는 게시판 성격이라 가족 누구나 정리 가능.
+            row.querySelector('.dismiss-request-btn').onclick = function () { removeMenuRequest(r.id); };
             list.appendChild(row);
         });
 
@@ -828,6 +833,12 @@
         await loadMenuRequests();
         renderMenuRequests();
         showToast('먹고 싶은 메뉴를 알렸어요');
+    }
+
+    async function removeMenuRequest(id) {
+        await API.menuRequests.remove(id);
+        await loadMenuRequests();
+        renderMenuRequests();
     }
 
     // 정하는 사람이 고민될 때 3-2에서 보낸 메뉴 투표 — 가족 누구나 골라줄 수 있게.
