@@ -45,6 +45,7 @@
     }
   </style>
   <link rel="manifest" href="../manifest.json">
+<link rel="stylesheet" href="../shared/product-tour.css">
 <meta name="theme-color" content="#5d5e62">
 <link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
 <link rel="icon" href="../icons/favicon-32.png">
@@ -143,7 +144,7 @@
 </div>
 
 <!-- 6가지 예정 작업 중 4번: 가이드 설명을 온보딩뿐 아니라 설정에서도 다시 볼 수 있게 -->
-<button type="button" class="w-full flex items-center gap-2 bg-surface-container-lowest rounded-xl shadow-[0px_4px_12px_rgba(120,119,119,0.08)] px-4 py-3.5 mb-4 text-left" onclick="openGuide()">
+<button type="button" class="w-full flex items-center gap-2 bg-surface-container-lowest rounded-xl shadow-[0px_4px_12px_rgba(120,119,119,0.08)] px-4 py-3.5 mb-4 text-left" onclick="OurHomeTour.start(0)">
 <span class="material-symbols-outlined text-[18px] text-primary">help</span>
 <span class="font-body-md text-body-md text-on-surface flex-1">사용법 다시 보기</span>
 <span class="material-symbols-outlined text-on-surface-variant text-[18px]">chevron_right</span>
@@ -578,6 +579,7 @@
         else { avatar.textContent = nickname.trim().charAt(0) || '?'; }
     })();
 </script>
+<script src="../shared/product-tour.js"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function () {

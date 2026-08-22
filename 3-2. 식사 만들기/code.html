@@ -136,6 +136,7 @@
     .picker-confirm { background: #5d5e62; color: #fff; }
   </style>
   <link rel="manifest" href="../manifest.json">
+<link rel="stylesheet" href="../shared/product-tour.css">
 <meta name="theme-color" content="#5d5e62">
 <link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
 <link rel="icon" href="../icons/favicon-32.png">
@@ -164,7 +165,7 @@
 </div>
 
 <!-- 언제 -->
-<section class="mb-6">
+<section class="mb-6" data-tour="create">
 <h2 class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wide mb-3 px-1">언제</h2>
 <div class="bg-surface-container-lowest rounded-xl p-card-padding shadow-[0px_4px_12px_rgba(120,119,119,0.08)] flex flex-col gap-3">
 <div>
@@ -1356,6 +1357,7 @@
         renderCatGroupChips();
     })();
 </script>
+<script src="../shared/product-tour.js"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function () {

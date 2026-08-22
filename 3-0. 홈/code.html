@@ -136,6 +136,7 @@
     @keyframes flash-thunder { 0%, 93%, 100% { opacity: 0; } 94% { opacity: 0.85; } 95% { opacity: 0.05; } 97% { opacity: 0.6; } 98% { opacity: 0; } }
   </style>
   <link rel="manifest" href="../manifest.json">
+<link rel="stylesheet" href="../shared/product-tour.css">
 <meta name="theme-color" content="#5d5e62">
 <link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
 <link rel="icon" href="../icons/favicon-32.png">
@@ -292,6 +293,23 @@
 </div>
 
 </main>
+
+<section class="mb-6" aria-labelledby="howToTitle">
+<details class="bg-surface-container-lowest rounded-xl shadow-[0px_4px_12px_rgba(120,119,119,0.08)] overflow-hidden">
+<summary class="min-h-14 px-4 py-4 cursor-pointer flex items-center gap-3 font-body-md text-body-md text-on-surface font-semibold">
+<span class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-primary shrink-0"><span class="material-symbols-outlined">school</span></span>
+<span id="howToTitle" class="flex-1">우리집식당 이용 방법</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">5단계</span>
+</summary>
+<div class="border-t border-outline-variant p-3 grid gap-2 sm:grid-cols-2">
+<button type="button" class="min-h-24 rounded-xl p-3 text-left bg-surface-container active:scale-[0.98] transition-transform" onclick="OurHomeTour.start(0)"><span class="font-label-sm text-label-sm text-primary font-semibold">1. 식사 일정 만들기</span><span class="block mt-1 font-label-sm text-label-sm text-on-surface-variant">날짜와 메뉴, 함께 먹을 가족을 정해요.</span><span class="block mt-2 font-label-sm text-label-sm text-primary font-semibold">자세히 보기 →</span></button>
+<button type="button" class="min-h-24 rounded-xl p-3 text-left bg-surface-container active:scale-[0.98] transition-transform" onclick="OurHomeTour.start(1)"><span class="font-label-sm text-label-sm text-primary font-semibold">2. 참여 링크 보내기</span><span class="block mt-1 font-label-sm text-label-sm text-on-surface-variant">가족마다 준비된 링크를 공유해요.</span><span class="block mt-2 font-label-sm text-label-sm text-primary font-semibold">자세히 보기 →</span></button>
+<button type="button" class="min-h-24 rounded-xl p-3 text-left bg-surface-container active:scale-[0.98] transition-transform" onclick="OurHomeTour.start(2)"><span class="font-label-sm text-label-sm text-primary font-semibold">3. 응답받기</span><span class="block mt-1 font-label-sm text-label-sm text-on-surface-variant">먹어요·안 먹어요로 간단히 답해요.</span><span class="block mt-2 font-label-sm text-label-sm text-primary font-semibold">자세히 보기 →</span></button>
+<button type="button" class="min-h-24 rounded-xl p-3 text-left bg-surface-container active:scale-[0.98] transition-transform" onclick="OurHomeTour.start(3)"><span class="font-label-sm text-label-sm text-primary font-semibold">4. 준비 인원 확인하기</span><span class="block mt-1 font-label-sm text-label-sm text-on-surface-variant">응답과 확인 전 인원을 한눈에 봐요.</span><span class="block mt-2 font-label-sm text-label-sm text-primary font-semibold">자세히 보기 →</span></button>
+<button type="button" class="min-h-24 rounded-xl p-3 text-left bg-surface-container active:scale-[0.98] transition-transform sm:col-span-2" onclick="OurHomeTour.start(4)"><span class="font-label-sm text-label-sm text-primary font-semibold">5. 식사 기록 남기기</span><span class="block mt-1 font-label-sm text-label-sm text-on-surface-variant">함께 먹은 식사와 사진, 비용을 돌아봐요.</span><span class="block mt-2 font-label-sm text-label-sm text-primary font-semibold">자세히 보기 →</span></button>
+</div>
+</details>
+</section>
 
 <!-- Bottom Tab Nav — 홈/내식탁/달력/기록. 냉장고·설정은 햄버거 메뉴로 이동(§리디자인 2026-08-19).
      식사 만들기는 오른쪽 아래 FAB로 분리(2026-08-20). -->
@@ -1018,6 +1036,7 @@
         window.addEventListener('beforeunload', function () { API.realtime.unsubscribe(realtimeChannel); });
     })();
 </script>
+<script src="../shared/product-tour.js"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function () {

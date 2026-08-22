@@ -108,6 +108,7 @@
     }
   </style>
   <link rel="manifest" href="../manifest.json">
+<link rel="stylesheet" href="../shared/product-tour.css">
 <meta name="theme-color" content="#5d5e62">
 <link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
 <link rel="icon" href="../icons/favicon-32.png">
@@ -153,7 +154,7 @@
 
 <!-- 참고 이미지(02_my_table.png) 기준: 날짜(오늘/내일) 대신 "내가 지금 뭘 해야 하는지" 상태로 재편.
      각 카드 안에는 여전히 오늘/내일 배지가 남아있어 날짜 정보는 그대로 보임. -->
-<section id="needsResponseSection" class="mb-6 hidden">
+<section id="needsResponseSection" data-tour="people" class="mb-6 hidden">
 <h2 class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wide mb-3 px-1">응답이 필요해요</h2>
 <div id="needsResponseCards" class="flex flex-col gap-3"></div>
 </section>
@@ -775,6 +776,7 @@
         window.addEventListener('beforeunload', function () { API.realtime.unsubscribe(realtimeChannel); });
     })();
 </script>
+<script src="../shared/product-tour.js"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function () {

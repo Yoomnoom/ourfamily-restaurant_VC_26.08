@@ -106,6 +106,7 @@
     }
   </style>
   <link rel="manifest" href="../manifest.json">
+<link rel="stylesheet" href="../shared/product-tour.css">
 <meta name="theme-color" content="#5d5e62">
 <link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
 <link rel="icon" href="../icons/favicon-32.png">
@@ -116,7 +117,7 @@
 
 <div id="toast" class="fixed left-1/2 -translate-x-1/2 bg-on-surface text-surface font-label-sm text-label-sm px-4 py-3 rounded-full shadow-lg opacity-0 pointer-events-none transition-opacity duration-300" style="bottom:24px; z-index:100;"></div>
 
-<main class="w-full max-w-[420px] flex flex-col px-safe-area-inset py-section-margin">
+<main data-tour="respond" class="w-full max-w-[420px] flex flex-col px-safe-area-inset py-section-margin">
 
 <!-- Invite Splash (진입 직후, 응답 폼 전) -->
 <div id="inviteView" class="text-center">
@@ -284,6 +285,7 @@
         }
     })();
 </script>
+<script src="../shared/product-tour.js"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function () {

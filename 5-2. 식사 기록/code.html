@@ -39,6 +39,7 @@
     }
   </style>
   <link rel="manifest" href="../manifest.json">
+<link rel="stylesheet" href="../shared/product-tour.css">
 <meta name="theme-color" content="#5d5e62">
 <link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
 <link rel="icon" href="../icons/favicon-32.png">
@@ -163,7 +164,7 @@
      보조 정보로 유지(참고 이미지엔 없지만 최근에 만든 기능이라 남겨둠). -->
 <p class="font-label-sm text-label-sm text-on-surface-variant -mt-4 mb-4">지난 결정은 다시 써요</p>
 
-<div class="bg-surface-container-lowest rounded-xl p-card-padding shadow-[0px_4px_12px_rgba(120,119,119,0.08)] mb-4">
+<div data-tour="records" class="bg-surface-container-lowest rounded-xl p-card-padding shadow-[0px_4px_12px_rgba(120,119,119,0.08)] mb-4">
 <p id="monthOverviewTitle" class="font-body-md text-body-md text-on-surface font-medium mb-3">이번 달 한눈에 보기</p>
 <div class="grid grid-cols-3 divide-x divide-outline-variant mb-3">
 <div class="flex flex-col items-center px-1">
@@ -651,6 +652,7 @@
         updateNotiDot();
     })();
 </script>
+<script src="../shared/product-tour.js"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function () {

@@ -41,6 +41,7 @@
     }
   </style>
   <link rel="manifest" href="../manifest.json">
+<link rel="stylesheet" href="../shared/product-tour.css">
 <meta name="theme-color" content="#5d5e62">
 <link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
 <link rel="icon" href="../icons/favicon-32.png">
@@ -60,7 +61,7 @@
 
 <h1 class="font-headline-lg text-headline-lg text-on-surface mb-3">참여자별 응답 링크</h1>
 
-<div id="linkList" class="flex flex-col gap-3 mb-8"></div>
+<div id="linkList" data-tour="share" class="flex flex-col gap-3 mb-8"></div>
 
 <button class="w-full bg-primary text-on-primary font-label-sm text-[15px] py-4 rounded-full shadow-[0px_4px_12px_rgba(120,119,119,0.08)] active:scale-[0.98] transition-transform" onclick="window.location.href='../3-1. 내 식탁/code.html'">홈으로</button>
 
@@ -212,6 +213,7 @@
         try { localStorage.removeItem('fresh_links_' + mealId); } catch (err) {}
     })();
 </script>
+<script src="../shared/product-tour.js"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function () {
