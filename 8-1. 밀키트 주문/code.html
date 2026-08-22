@@ -88,6 +88,13 @@
 제휴사에서 보기
 <span class="material-symbols-outlined text-[18px]">open_in_new</span>
 </button>
+
+<!-- 제휴사 연동 전이지만 우리 가구가 살펴본 이력은 실제로 남아있으니 그대로 보여줌
+     (§밀키트 목업 정직성: 데이터는 진짜로 쌓이는데 볼 곳이 없던 문제). -->
+<div id="milkitHistorySection" class="hidden mt-6">
+<h2 class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wide mb-3 px-1">최근 밀키트 이력</h2>
+<div id="milkitHistoryList" class="flex flex-col gap-2"></div>
+</div>
 </div>
 
 <!-- 완료 -->
@@ -163,7 +170,29 @@
         // "제안이 실제로 얼마나 보여지고 클릭까지 이어지는지"는 수익모델 핵심 지표라 이력만은 실제로 남김.
         var row = await API.milkitOrders.create(householdId, null, recipeName, missing);
         currentOrderId = row.id;
+
+        await renderMilkitHistory();
     })();
+
+    var MILKIT_STATUS_LABEL = { suggested: '제안받음', ordered_stub: '제휴사로 이동함' };
+    async function renderMilkitHistory() {
+        var history = (await API.milkitOrders.listByHousehold(householdId))
+            .filter(function (o) { return o.id !== currentOrderId; }).slice(0, 5);
+        if (!history.length) return;
+        var list = document.getElementById('milkitHistoryList');
+        list.innerHTML = '';
+        history.forEach(function (o) {
+            var row = document.createElement('div');
+            row.className = 'bg-surface-container-lowest rounded-xl px-4 py-3 flex items-center justify-between';
+            var d = new Date(o.created_at);
+            row.innerHTML =
+                '<div><p class="font-body-md text-body-md text-on-surface">' + o.recipe_name + ' 밀키트</p>' +
+                '<p class="font-label-sm text-label-sm text-on-surface-variant">' + (d.getMonth() + 1) + '월 ' + d.getDate() + '일</p></div>' +
+                '<span class="font-label-sm text-label-sm text-on-surface-variant bg-surface-container px-2 py-1 rounded-full">' + (MILKIT_STATUS_LABEL[o.status] || o.status) + '</span>';
+            list.appendChild(row);
+        });
+        document.getElementById('milkitHistorySection').classList.remove('hidden');
+    }
 
     async function placeOrder() {
         try { localStorage.removeItem('milkit_order'); } catch (err) {}

@@ -261,6 +261,11 @@
                 '<p class="font-body-md text-body-md text-on-surface-variant">유효하지 않거나 만료된 링크예요.<br>이 식사를 만든 사람에게 새 링크를 요청해주세요.</p>';
             return;
         }
+        if (participant.meal_status === 'cancelled') {
+            document.getElementById('inviteView').innerHTML =
+                '<p class="font-body-md text-body-md text-on-surface-variant">호스트가 이 식사를 취소했어요.<br>응답하지 않아도 괜찮아요.</p>';
+            return;
+        }
 
         document.getElementById('inviteName').textContent = participant.member_name;
         document.getElementById('guestName').textContent = participant.member_name;

@@ -3,6 +3,9 @@
 <meta content="width=device-width, initial-scale=1.0" name="viewport">
 <title>우리집식당 - 메뉴 추천</title>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../shared/supabase-client.js"></script>
+<script src="../shared/api.js"></script>
 <link href="https://fonts.googleapis.com" rel="preconnect">
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
@@ -54,7 +57,8 @@
 <h1 class="font-headline-lg text-headline-lg text-on-surface">냉장고 재료로 메뉴 추천</h1>
 </header>
 
-<p id="fridgeSummary" class="font-body-md text-body-md text-on-surface-variant mb-4"></p>
+<p id="fridgeSummary" class="font-body-md text-body-md text-on-surface-variant mb-1"></p>
+<p id="allergyNote" class="hidden font-label-sm text-label-sm text-on-surface-variant mb-4"></p>
 
 <div id="recipeList" class="flex flex-col gap-3"></div>
 
@@ -71,27 +75,54 @@
         toastTimer = setTimeout(function () { toast.classList.remove('opacity-100'); toast.classList.add('opacity-0'); }, 2600);
     }
 
-    var RECIPES = [
+    var ALL_RECIPES = [
         { name: '감자볶음', emoji: '🍳', time: '15분', needs: ['감자', '양파', '대파', '당근'] },
         { name: '오믈렛', emoji: '🍳', time: '20분', needs: ['계란', '양파', '치즈'] },
         { name: '된장찌개', emoji: '🍲', time: '30분', needs: ['감자', '양파', '버섯', '대파'] },
         { name: '크림파스타', emoji: '🍝', time: '25분', needs: ['우유', '치즈', '버섯'] }
     ];
 
-    var fridge = [];
-    try { fridge = JSON.parse(localStorage.getItem('household_fridge') || '[]'); } catch (err) {}
-    var fridgeNames = fridge.map(function (f) { return f.name; });
+    // 온보딩(1-1)에서 등록한 알러지·못 먹는 재료를 실제로 걸러냄 — 재료 이름이 태그 문자열에
+    // 부분적으로라도 포함되면 그 메뉴는 추천에서 제외(예: 태그 "새우"가 재료 "칵테일새우"에 포함).
+    function excludedByProfile(recipe, avoidTags) {
+        return recipe.needs.some(function (need) {
+            return avoidTags.some(function (tag) { return tag && (need.indexOf(tag) !== -1 || tag.indexOf(need) !== -1); });
+        });
+    }
 
-    document.getElementById('fridgeSummary').textContent = '지금 냉장고에 있는 재료 ' + fridgeNames.length + '가지를 기준으로 추천했어요.';
+    (async function init() {
+        var avoidTags = [];
+        var session = await requireSession();
+        if (session) {
+            var profile = await API.auth.getMyProfile();
+            avoidTags = [].concat(profile && profile.allergies || [], profile && profile.dislikes || []);
+        }
 
-    var scored = RECIPES.map(function (r) {
-        var owned = r.needs.filter(function (n) { return fridgeNames.indexOf(n) !== -1; });
-        var match = Math.round((owned.length / r.needs.length) * 100);
-        return { recipe: r, owned: owned, match: match };
-    }).sort(function (a, b) { return b.match - a.match; });
+        var excludedCount = 0;
+        var RECIPES = ALL_RECIPES.filter(function (r) {
+            if (avoidTags.length && excludedByProfile(r, avoidTags)) { excludedCount++; return false; }
+            return true;
+        });
 
-    var list = document.getElementById('recipeList');
-    scored.forEach(function (s, i) {
+        var fridge = [];
+        try { fridge = JSON.parse(localStorage.getItem('household_fridge') || '[]'); } catch (err) {}
+        var fridgeNames = fridge.map(function (f) { return f.name; });
+
+        document.getElementById('fridgeSummary').textContent = '지금 냉장고에 있는 재료 ' + fridgeNames.length + '가지를 기준으로 추천했어요.';
+        if (excludedCount > 0) {
+            var note = document.getElementById('allergyNote');
+            note.textContent = '알러지·못 먹는 재료가 들어간 메뉴 ' + excludedCount + '개는 뺐어요.';
+            note.classList.remove('hidden');
+        }
+
+        var scored = RECIPES.map(function (r) {
+            var owned = r.needs.filter(function (n) { return fridgeNames.indexOf(n) !== -1; });
+            var match = Math.round((owned.length / r.needs.length) * 100);
+            return { recipe: r, owned: owned, match: match };
+        }).sort(function (a, b) { return b.match - a.match; });
+
+        var list = document.getElementById('recipeList');
+        scored.forEach(function (s, i) {
         var card = document.createElement('article');
         card.className = 'bg-surface-container-lowest rounded-xl p-card-padding shadow-[0px_4px_12px_rgba(120,119,119,0.08)]';
 
@@ -127,7 +158,8 @@
             };
         }
         list.appendChild(card);
-    });
+        });
+    })();
 
     function pickRecipe(recipe) {
         try { localStorage.setItem('recipe_pick', JSON.stringify(recipe)); } catch (err) {}

@@ -365,10 +365,18 @@ API.meals = {
     return res.data;
   },
 
+  // 호스트가 취소 — 완전히 지우지 않고 상태만 바꿔서(참여자 알림 등 이력은 남김).
+  async cancel(mealId) {
+    var res = await sb.from('meals_vc2608').update({ status: 'cancelled' }).eq('id', mealId).select().single();
+    if (res.error) throw res.error;
+    return res.data;
+  },
+
   async listByHousehold(householdId) {
     // 날짜는 최신이 위로, 같은 날짜 안에서는 시간이 이른(=더 가까운) 순서로 —
     // 시간 정렬이 없어서 "오늘의 식탁"이 시간상 더 늦은 식사를 대표로 집어가는 문제가 있었음.
-    var res = await sb.from('meals_vc2608').select('*').eq('household_id', householdId)
+    // 취소된 식사는 목록/달력에서 제외(완전 삭제는 아니라 데이터는 남지만, 화면엔 없던 것처럼 보임).
+    var res = await sb.from('meals_vc2608').select('*').eq('household_id', householdId).neq('status', 'cancelled')
       .order('date', { ascending: false }).order('time', { ascending: true, nullsFirst: false });
     if (res.error) throw res.error;
     return res.data;
@@ -436,6 +444,32 @@ API.menuImages = {
     q = householdId ? q.eq('household_id', householdId) : q.is('household_id', null);
     var res = await q;
     if (res.error) throw res.error;
+  }
+};
+
+API.account = {
+  // 오너가 다른 가구원에게 오너를 넘김(위임 후 나가기 흐름의 첫 단계).
+  async transferOwnership(householdId, newOwnerProfileId) {
+    var res = await sb.rpc('transfer_household_ownership_vc2608', { p_household_id: householdId, p_new_owner_profile_id: newOwnerProfileId });
+    if (res.error) throw res.error;
+  },
+  // 오너인데 다른 가구원이 남아있으면 에러(transfer_required) — 먼저 위임해야 함.
+  // 혼자면 가구 자체가 3개월 유예 상태로 비활성화됨.
+  async leaveHousehold() {
+    var res = await sb.rpc('leave_household_vc2608');
+    if (res.error) throw res.error;
+    return res.data;
+  },
+  // 다인 가구 오너면 에러(transfer_required_before_delete). 성공하면 계정이 3개월 유예 상태로 비활성화.
+  async deleteAccount() {
+    var res = await sb.rpc('delete_account_vc2608');
+    if (res.error) throw res.error;
+  },
+  // 비활성화된 계정으로 로그인 시 호출 — 3개월 이내면 복구, 지났으면 즉시 익명화 처리.
+  async restore() {
+    var res = await sb.rpc('restore_account_vc2608');
+    if (res.error) throw res.error;
+    return res.data;
   }
 };
 

@@ -337,6 +337,9 @@
 </div>
 </section>
 
+<!-- 취소는 수정 모드에서만 — 만드는 중엔 그냥 뒤로 가면 되니 노출 안 함. -->
+<button type="button" id="cancelMealBtn" class="hidden w-full py-2 mb-6 font-label-sm text-label-sm text-error underline active:opacity-70" onclick="cancelMeal()">이 식사 취소하기</button>
+
 </main>
 
 <!-- 08_create_meal.png 기준: 제출 버튼을 하단 고정바로. 바로 아래 하단 탭 위에 뜸. -->
@@ -1261,6 +1264,25 @@
         return true;
     }
 
+    async function cancelMeal() {
+        if (!editMealId) return;
+        if (!confirm('이 식사를 취소할까요? 참여자들에게 취소됐다고 알려드려요.')) return;
+        var cancelBtn = document.getElementById('cancelMealBtn');
+        cancelBtn.disabled = true;
+        try {
+            var roster = await API.mealParticipants.getRoster(editMealId);
+            await API.meals.cancel(editMealId);
+            var notifyTargets = roster.filter(function (r) { return r.memberId && r.memberId !== myMember.id; });
+            for (var i = 0; i < notifyTargets.length; i++) {
+                await API.notifications.create(myMember.household_id, notifyTargets[i].memberId, editMealId, '식사가 취소됐어요', '호스트가 이 식사를 취소했어요.');
+            }
+            window.location.href = '../3-1. 내 식탁/code.html?cancelled=1';
+        } catch (err) {
+            cancelBtn.disabled = false;
+            showToast('취소에 실패했어요: ' + err.message);
+        }
+    }
+
     (async function init() {
         await requireSession();
         myMember = await getMyMember();
@@ -1283,6 +1305,7 @@
             document.getElementById('pageTitle').textContent = '식사 수정하기';
             document.getElementById('submitBtn').textContent = '수정 완료';
             document.getElementById('editNotice').classList.remove('hidden');
+            document.getElementById('cancelMealBtn').classList.remove('hidden');
 
             document.getElementById('mealDate').value = editMeal.date || '';
             if (editMeal.time) {
