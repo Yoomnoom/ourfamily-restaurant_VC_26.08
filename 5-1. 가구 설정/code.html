@@ -97,6 +97,7 @@
 <p class="font-label-sm text-label-sm text-on-surface-variant mb-3">이 링크를 보내면, 받은 사람이 회원가입/로그인해서 우리 가구에 바로 합류해요.</p>
 <div class="flex gap-2">
 <button type="button" id="copyJoinLinkBtn" class="flex-1 py-2.5 rounded-lg bg-surface-container text-on-surface-variant font-label-sm text-label-sm" onclick="copyJoinLink()">링크 복사</button>
+<button type="button" id="regenerateJoinLinkBtn" class="hidden flex-1 py-2.5 rounded-lg border border-outline-variant text-on-surface-variant font-label-sm text-label-sm" onclick="regenerateJoinLink()">새 링크 만들기</button>
 </div>
 </div>
 <button type="button" id="deleteHouseholdBtn" class="hidden w-full text-center font-label-sm text-label-sm text-error py-2" onclick="deleteHousehold()">가구 삭제 (오너만 가능)</button>
@@ -135,7 +136,23 @@
 </button>
 </section>
 
+<section class="mb-6">
+<button type="button" class="w-full py-3 rounded-full border border-outline-variant text-error font-label-sm text-label-sm" onclick="attemptLeaveHousehold()">가구 나가기</button>
+</section>
+
 </main>
+
+<div id="transferBackdrop" class="hidden fixed inset-0 bg-on-surface/40 z-[80]" onclick="closeTransferPicker()"></div>
+<div id="transferPanel" class="hidden fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-[500px] mx-auto bg-surface rounded-2xl z-[90] p-6 max-h-[80vh] overflow-y-auto shadow-2xl">
+<div class="flex items-center justify-between mb-4">
+<h2 class="font-headline-lg text-headline-lg text-on-surface">오너 위임</h2>
+<button type="button" onclick="closeTransferPicker()" aria-label="닫기" class="w-9 h-9 flex items-center justify-center rounded-full active:bg-surface-container">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<p class="font-label-sm text-label-sm text-on-surface-variant mb-3">다른 가구원이 있어서 나가기 전에 오너를 넘겨야 해요. 넘길 사람을 골라주세요.</p>
+<div id="transferMemberList" class="flex flex-col gap-2"></div>
+</div>
 
 <script>
     var toastTimer;
@@ -149,6 +166,67 @@
     }
 
     var myMember = null; // requireSession 뒤 init에서 채움
+    var household = null; // init에서 채움 — joinLinkUrl()에서 join_token을 읽는 데 필요
+
+    async function attemptLeaveHousehold() {
+        if (!confirm('가구에서 나가시겠어요?')) return;
+        try {
+            var result = await API.account.leaveHousehold();
+            if (result === 'household_deactivated') {
+                alert('가구가 정리됐어요. 90일 안에는 되돌릴 수 있어요.');
+            } else {
+                showToast('가구에서 나갔어요');
+            }
+            await API.auth.signOut();
+            window.location.href = '../2-1.로그인 화면/code.html';
+        } catch (err) {
+            if (err.message && err.message.indexOf('transfer_required') !== -1) {
+                openTransferPicker();
+            } else {
+                showToast('나가기에 실패했어요: ' + err.message);
+            }
+        }
+    }
+
+    async function openTransferPicker() {
+        var all = await API.members.list(myMember.household_id);
+        var candidates = all.filter(function (m) {
+            return m.profile_id && m.profile_id !== myMember.profile_id && m.role !== 'pending' && m.role !== 'guest';
+        });
+        var list = document.getElementById('transferMemberList');
+        list.innerHTML = '';
+        if (!candidates.length) {
+            list.innerHTML = '<p class="font-label-sm text-label-sm text-on-surface-variant text-center py-4">위임할 수 있는 가구원(계정이 있는 구성원)이 없어요.</p>';
+        }
+        candidates.forEach(function (m) {
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'w-full flex items-center gap-3 bg-surface-container-lowest rounded-xl px-4 py-3 shadow-[0px_4px_12px_rgba(120,119,119,0.08)] text-left';
+            btn.innerHTML = '<span class="font-body-md text-body-md text-on-surface flex-1">' + m.name + '</span>' +
+                '<span class="material-symbols-outlined text-on-surface-variant">chevron_right</span>';
+            btn.onclick = function () { confirmTransfer(m.profile_id, m.name); };
+            list.appendChild(btn);
+        });
+        document.getElementById('transferBackdrop').classList.remove('hidden');
+        document.getElementById('transferPanel').classList.remove('hidden');
+    }
+    function closeTransferPicker() {
+        document.getElementById('transferBackdrop').classList.add('hidden');
+        document.getElementById('transferPanel').classList.add('hidden');
+    }
+    async function confirmTransfer(newOwnerProfileId, name) {
+        if (!confirm(name + '님에게 오너를 넘기고 가구에서 나갈까요?')) return;
+        try {
+            await API.account.transferOwnership(myMember.household_id, newOwnerProfileId);
+            await API.account.leaveHousehold();
+            closeTransferPicker();
+            showToast('가구에서 나갔어요');
+            await API.auth.signOut();
+            window.location.href = '../2-1.로그인 화면/code.html';
+        } catch (err) {
+            showToast('처리에 실패했어요: ' + err.message);
+        }
+    }
 
     // 모임 유형(6가지 예정 작업 3번) — 오너만 변경 가능(다른 관리 항목과 동일한 권한 기준).
     function renderGroupTypeChips(currentType, editable) {
@@ -210,7 +288,21 @@
     // 뜨고 실제로 추가가 안 됐음) — 손님 추가와 같은 무가입 방식, role만 'member'라 이 목록에 남음.
     function joinLinkUrl() {
         var base = window.location.origin + encodeURI('/1-2. 온보딩-시작하기/code.html');
-        return base + '?join=' + myMember.household_id;
+        return base + '?join=' + household.join_token;
+    }
+
+    async function regenerateJoinLink() {
+        if (!confirm('새 링크를 만들면 예전 링크는 더 이상 못 써요. 계속할까요?')) return;
+        var btn = document.getElementById('regenerateJoinLinkBtn');
+        btn.disabled = true;
+        try {
+            household = await API.households.regenerateJoinToken(myMember.household_id);
+            showToast('새 링크로 바뀌었어요');
+        } catch (err) {
+            showToast('실패했어요: ' + err.message);
+        } finally {
+            btn.disabled = false;
+        }
     }
 
     function copyJoinLink() {
@@ -337,7 +429,10 @@
         await requireSession();
         myMember = await getMyMember();
         if (!myMember) { window.location.href = '../1-2. 온보딩-시작하기/code.html'; return; }
-        var household = myMember.households_vc2608 || (await API.households.get(myMember.household_id));
+        household = myMember.households_vc2608 || (await API.households.get(myMember.household_id));
+        if (myMember.role === 'owner' || myMember.role === 'co-admin') {
+            document.getElementById('regenerateJoinLinkBtn').classList.remove('hidden');
+        }
         renderGroupTypeChips(household.group_type || 'family', myMember.role === 'owner');
         renderMembers();
         renderGuests();

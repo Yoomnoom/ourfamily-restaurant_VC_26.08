@@ -217,8 +217,17 @@ API.households = {
   // 다른 사람(다른 계정)이 이미 있는 가구에 합류 요청 — 링크만으로 바로 들어오면 아무나 볼 수
   // 있어서(사용자 결정, 2026-08-19) role:'pending'으로 넣고 오너/공동관리자 승인을 거침.
   // RLS는 남의 가구에 직접 insert를 막아서(보안상 정상) SQL 함수(SECURITY DEFINER)를 통해서만 가능.
-  async requestJoin(householdId, name) {
-    var res = await sb.rpc('join_household_vc2608', { p_household_id: householdId, p_name: name });
+  // p_join_token은 households_vc2608.join_token(회전 가능) — 예전엔 household_id를 그대로
+  // 링크에 노출해서 영구히 만료·재발급이 불가능했음(§초대 링크 재발급 기능 추가, 별도 회전 토큰 도입).
+  async requestJoin(joinToken, name) {
+    var res = await sb.rpc('join_household_vc2608', { p_join_token: joinToken, p_name: name });
+    if (res.error) throw res.error;
+    return res.data;
+  },
+
+  // 오너/공동관리자만 가능(RLS households_vc2608_update_admin) — 기존 초대 링크를 무효화하고 새로 발급.
+  async regenerateJoinToken(householdId) {
+    var res = await sb.from('households_vc2608').update({ join_token: crypto.randomUUID() }).eq('id', householdId).select().single();
     if (res.error) throw res.error;
     return res.data;
   },

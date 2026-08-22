@@ -217,7 +217,7 @@
         window.location.href = '../2-1.로그인 화면/code.html';
     }
 
-    var joinHouseholdId = new URLSearchParams(window.location.search).get('join');
+    var joinToken = new URLSearchParams(window.location.search).get('join');
 
     async function joinHousehold() {
         var btn = document.getElementById('joinBtn');
@@ -225,7 +225,7 @@
         try {
             var session = await getSession();
             var name = (session.user.user_metadata && session.user.user_metadata.name) || session.user.email.split('@')[0];
-            await API.households.requestJoin(joinHouseholdId, name);
+            await API.households.requestJoin(joinToken, name);
             location.reload(); // 재확인 로직이 그대로 대기 화면을 보여줌
         } catch (err) {
             btn.disabled = false;
@@ -248,7 +248,7 @@
             return;
         }
 
-        if (!joinHouseholdId) return;
+        if (!joinToken) return;
         // 합류 전엔 households_vc2608을 읽을 권한이 없어(RLS) 이름 확인 없이 참여 배너만 보여줌.
         document.getElementById('joinBanner').classList.remove('hidden');
         document.getElementById('joinBtn').classList.remove('hidden');
