@@ -43,12 +43,17 @@ async function getMyMember() {
   return res.data && res.data[0] ? res.data[0] : null;
 }
 
-// 로그인 안 돼 있으면 로그인 화면으로 돌려보내는 공통 가드.
+// 로그인 안 돼 있으면 로그인 화면으로, 탈퇴 처리(유예 기간) 중이면 복구 화면으로 돌려보내는 공통 가드.
 // 각 화면 init()의 맨 앞에서 호출.
 async function requireSession() {
   var session = await getSession();
   if (!session) {
     window.location.href = '../2-1.로그인 화면/code.html';
+    return null;
+  }
+  var prof = await sb.from('profiles_vc2608').select('deactivated_at').eq('id', session.user.id).maybeSingle();
+  if (prof.data && prof.data.deactivated_at) {
+    window.location.href = '../6-2. 계정 복구/code.html';
     return null;
   }
   return session;
@@ -59,3 +64,25 @@ async function sha256Hex(text) {
   var buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
   return Array.from(new Uint8Array(buf)).map(function (b) { return b.toString(16).padStart(2, '0'); }).join('');
 }
+
+// 화면을 이미 열어둔 채로 와이파이가 끊기는 경우("6-1 오류·복구 상태" 화면은 완전히 새로 열
+// 때만 도움이 되고, 이미 켜져 있는 화면엔 안 와닿음) — 모든 화면이 이 파일을 로드하므로
+// 여기 한 곳에만 붙여서 36개 화면에 따로 손대지 않고 전역으로 적용.
+(function setupOfflineBanner() {
+  function ensureBanner() {
+    var el = document.getElementById('globalOfflineBanner');
+    if (el) return el;
+    el = document.createElement('div');
+    el.id = 'globalOfflineBanner';
+    el.textContent = '📶 인터넷 연결이 끊겼어요 · 연결되면 자동으로 사라져요';
+    el.style.cssText = 'position:fixed;left:0;right:0;top:0;z-index:9999;background:#ba1a1a;color:#fff;text-align:center;padding:8px 12px;font-size:13px;font-family:inherit;display:none;';
+    document.body.appendChild(el);
+    return el;
+  }
+  function update() {
+    ensureBanner().style.display = navigator.onLine ? 'none' : 'block';
+  }
+  window.addEventListener('online', update);
+  window.addEventListener('offline', update);
+  document.addEventListener('DOMContentLoaded', update);
+})();
