@@ -4,3 +4,14 @@
 node_modules/
 .claude/
 .token-optimizer/
+
+# 개발 도구가 남기는 설정 파일 — 앱 내용과 무관
+.agents/
+skills-lock.json
+
+# 임시 디버그용 스크래치 파일
+_compare_login_flow.html
+
+# scripts/sync-menu-images.js가 Supabase Storage로 업로드하는 원본 재료 —
+# 용량이 커서(수백MB) 저장소에는 안 올림, 실제 서빙은 Storage에서 이루어짐
+음식사진/
