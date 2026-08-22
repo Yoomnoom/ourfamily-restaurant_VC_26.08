@@ -112,10 +112,10 @@
         border-radius: 50%; display: inline-block; animation: spin 0.7s linear infinite;
     }
   </style>
-  <link rel="manifest" href="/manifest.json">
+  <link rel="manifest" href="../manifest.json">
 <meta name="theme-color" content="#5d5e62">
-<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
-<link rel="icon" href="/icons/favicon-32.png">
+<link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
+<link rel="icon" href="../icons/favicon-32.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="우리집식당">
 </head>
@@ -154,6 +154,8 @@
 </div>
 <p class="font-label-sm text-label-sm text-error" id="password-error"></p>
 </div>
+
+<button type="button" class="text-right font-label-sm text-label-sm text-primary" onclick="sendPasswordReset()">비밀번호를 잊으셨나요?</button>
 
 <p class="text-center font-label-sm text-label-sm min-h-[18px]" id="form-message"></p>
 
@@ -302,7 +304,20 @@
         signupBtn.disabled = isLoading;
     }
 
-    document.getElementById('login-form').addEventListener('submit', function (event) {
+    async function sendPasswordReset() {
+  var email = emailInput.value.trim();
+  if (!email) { formMessage.textContent = '이메일을 먼저 입력해주세요'; formMessage.className = 'text-center font-label-sm text-label-sm min-h-[18px] text-error'; return; }
+  try {
+    await API.auth.resetPasswordRequest(email);
+    formMessage.textContent = email + '로 비밀번호 재설정 링크를 보냈어요. 메일함을 확인해주세요.';
+    formMessage.className = 'text-center font-label-sm text-label-sm min-h-[18px] text-primary';
+  } catch (err) {
+    formMessage.textContent = '실패했어요: ' + err.message;
+    formMessage.className = 'text-center font-label-sm text-label-sm min-h-[18px] text-error';
+  }
+}
+
+document.getElementById('login-form').addEventListener('submit', function (event) {
         event.preventDefault();
         formMessage.textContent = '';
         formMessage.className = 'text-center font-label-sm text-label-sm min-h-[18px]';
@@ -328,7 +343,7 @@
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function () {
-    navigator.serviceWorker.register('/sw.js');
+    navigator.serviceWorker.register('../sw.js');
   });
 }
 </script>

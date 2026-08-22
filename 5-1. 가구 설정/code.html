@@ -38,10 +38,10 @@
       transition-duration: 180ms !important;
     }
   </style>
-  <link rel="manifest" href="/manifest.json">
+  <link rel="manifest" href="../manifest.json">
 <meta name="theme-color" content="#5d5e62">
-<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
-<link rel="icon" href="/icons/favicon-32.png">
+<link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
+<link rel="icon" href="../icons/favicon-32.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="우리집식당">
 </head>
@@ -278,6 +278,14 @@
                 toggleBtn.onclick = function () { toggleCoAdmin(m.id, isCoAdmin); };
                 row.appendChild(toggleBtn);
             }
+            if (isMe || myMember.role === 'owner' || myMember.role === 'co-admin') {
+                var phoneBtn = document.createElement('button');
+                phoneBtn.type = 'button';
+                phoneBtn.className = 'font-label-sm text-label-sm text-on-surface-variant shrink-0';
+                phoneBtn.textContent = m.phone ? m.phone : '연락처 추가';
+                phoneBtn.onclick = function () { editMemberPhone(m.id, m.phone); };
+                row.appendChild(phoneBtn);
+            }
             list.appendChild(row);
         });
 
@@ -378,6 +386,16 @@
         }
     }
 
+    async function editMemberPhone(memberId, currentPhone) {
+        var input = prompt('문자·알림톡을 보낼 번호를 입력해주세요(010-1234-5678), 비워두려면 빈칸으로 두세요.', currentPhone || '');
+        if (input === null) return;
+        var phone = input.trim();
+        API.members.updatePhone(memberId, phone || null).then(function () {
+            showToast('연락처를 저장했어요');
+            renderMembers();
+        }).catch(function (err) { showToast('저장 실패: ' + err.message); });
+    }
+
     async function toggleCoAdmin(memberId, isCurrentlyCoAdmin) {
         await API.members.setRole(memberId, isCurrentlyCoAdmin ? 'member' : 'co-admin');
         showToast(isCurrentlyCoAdmin ? '공동 관리자를 해제했어요' : '공동 관리자로 지정했어요');
@@ -441,7 +459,7 @@
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function () {
-    navigator.serviceWorker.register('/sw.js');
+    navigator.serviceWorker.register('../sw.js');
   });
 }
 </script>

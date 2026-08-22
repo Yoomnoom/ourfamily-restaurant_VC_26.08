@@ -44,10 +44,10 @@
       transition-duration: 180ms !important;
     }
   </style>
-  <link rel="manifest" href="/manifest.json">
+  <link rel="manifest" href="../manifest.json">
 <meta name="theme-color" content="#5d5e62">
-<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
-<link rel="icon" href="/icons/favicon-32.png">
+<link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
+<link rel="icon" href="../icons/favicon-32.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="우리집식당">
 </head>
@@ -73,14 +73,20 @@
 </div>
 </div>
 
+<div id="emailUnverifiedBanner" class="hidden items-center gap-2 bg-tertiary-container text-on-tertiary-container rounded-xl px-4 py-3 mb-4 text-left">
+<span class="material-symbols-outlined text-[18px]">mail</span>
+<span class="font-label-sm text-label-sm flex-1">이메일 인증이 안 됐어요</span>
+<button type="button" class="font-label-sm text-label-sm underline" onclick="resendVerification()">재전송</button>
+</div>
+
 <div class="bg-surface-container-lowest rounded-xl shadow-[0px_4px_12px_rgba(120,119,119,0.08)] mb-4 divide-y divide-outline-variant">
 <div class="flex items-center justify-between px-4 py-3.5">
 <span class="font-body-md text-body-md text-on-surface">앱 푸시 알림</span>
-<button id="pushSwitch" class="switch on" onclick="toggleSwitch(this)"><span class="knob"></span></button>
+<button id="pushSwitch" class="switch on" onclick="toggleNotifPref(this, 'push')"><span class="knob"></span></button>
 </div>
 <div class="flex items-center justify-between px-4 py-3.5">
 <span class="font-body-md text-body-md text-on-surface">응답 변경 알림</span>
-<button id="changeSwitch" class="switch on" onclick="toggleSwitch(this)"><span class="knob"></span></button>
+<button id="changeSwitch" class="switch on" onclick="toggleNotifPref(this, 'response_change')"><span class="knob"></span></button>
 </div>
 </div>
 
@@ -149,6 +155,41 @@
 <span class="material-symbols-outlined text-on-surface-variant text-[18px]">chevron_right</span>
 </button>
 
+<button type="button" class="w-full flex items-center gap-2 bg-surface-container-lowest rounded-xl shadow-[0px_4px_12px_rgba(120,119,119,0.08)] px-4 py-3.5 mb-4 text-left" onclick="openPasswordPanel()">
+<span class="material-symbols-outlined text-[18px] text-primary">lock</span>
+<span class="font-body-md text-body-md text-on-surface flex-1">비밀번호 변경</span>
+<span class="material-symbols-outlined text-on-surface-variant text-[18px]">chevron_right</span>
+</button>
+
+<button type="button" class="w-full flex items-center gap-2 bg-surface-container-lowest rounded-xl shadow-[0px_4px_12px_rgba(120,119,119,0.08)] px-4 py-3.5 mb-4 text-left" onclick="openEmailPanel()">
+<span class="material-symbols-outlined text-[18px] text-primary">alternate_email</span>
+<span class="font-body-md text-body-md text-on-surface flex-1">이메일 변경</span>
+<span class="material-symbols-outlined text-on-surface-variant text-[18px]">chevron_right</span>
+</button>
+
+<button type="button" class="w-full flex items-center gap-2 bg-surface-container-lowest rounded-xl shadow-[0px_4px_12px_rgba(120,119,119,0.08)] px-4 py-3.5 mb-4 text-left" onclick="exportMyData()">
+<span class="material-symbols-outlined text-[18px] text-primary">download</span>
+<span class="font-body-md text-body-md text-on-surface flex-1">내 데이터 내보내기</span>
+<span class="material-symbols-outlined text-on-surface-variant text-[18px]">chevron_right</span>
+</button>
+
+<button type="button" class="w-full flex items-center gap-2 bg-surface-container-lowest rounded-xl shadow-[0px_4px_12px_rgba(120,119,119,0.08)] px-4 py-3.5 mb-4 text-left" onclick="showToast('아직 준비 중이에요')">
+<span class="material-symbols-outlined text-[18px] text-primary">description</span>
+<span class="font-body-md text-body-md text-on-surface flex-1">이용약관</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">준비 중</span>
+</button>
+
+<button type="button" class="w-full flex items-center gap-2 bg-surface-container-lowest rounded-xl shadow-[0px_4px_12px_rgba(120,119,119,0.08)] px-4 py-3.5 mb-4 text-left" onclick="showToast('아직 준비 중이에요')">
+<span class="material-symbols-outlined text-[18px] text-primary">privacy_tip</span>
+<span class="font-body-md text-body-md text-on-surface flex-1">개인정보처리방침</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">준비 중</span>
+</button>
+
+<div class="w-full flex items-center gap-2 px-4 py-3.5 mb-4">
+<span class="font-body-md text-body-md text-on-surface-variant flex-1">앱 버전</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">v2026.08.22</span>
+</div>
+
 <details class="bg-surface-container-lowest rounded-xl shadow-[0px_4px_12px_rgba(120,119,119,0.08)] px-4 py-3.5 mb-6">
 <summary class="font-body-md text-body-md text-on-surface cursor-pointer flex items-center gap-2">
 <span class="material-symbols-outlined text-[18px] text-primary">payments</span>
@@ -162,7 +203,8 @@
 </ul>
 </details>
 
-<button class="w-full py-3 rounded-full border border-outline-variant text-error font-label-sm text-label-sm" onclick="logout()">로그아웃</button>
+<button class="w-full py-3 rounded-full border border-outline-variant text-error font-label-sm text-label-sm mb-3" onclick="logout()">로그아웃</button>
+<button class="w-full py-3 rounded-full text-error font-label-sm text-label-sm" onclick="attemptDeleteAccount()">계정 탈퇴</button>
 
 </main>
 
@@ -186,6 +228,32 @@
 <button type="button" class="px-4 py-2 rounded-full bg-surface-container text-on-surface font-label-sm text-label-sm shrink-0" onclick="saveContactEmail()">저장</button>
 </div>
 </div>
+</div>
+
+<div id="passwordBackdrop" class="hidden fixed inset-0 bg-on-surface/40 z-[80]" onclick="closePasswordPanel()"></div>
+<div id="passwordPanel" class="hidden fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-[500px] mx-auto bg-surface rounded-2xl z-[90] p-6 max-h-[80vh] overflow-y-auto shadow-2xl">
+<div class="flex items-center justify-between mb-4">
+<h2 class="font-headline-lg text-headline-lg text-on-surface">비밀번호 변경</h2>
+<button type="button" onclick="closePasswordPanel()" aria-label="닫기" class="w-9 h-9 flex items-center justify-center rounded-full active:bg-surface-container">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<input id="newPasswordInput" type="password" placeholder="새 비밀번호 (6자 이상)" class="w-full border border-outline-variant rounded-lg px-3 py-2.5 font-body-md text-body-md text-on-surface bg-surface-container-lowest mb-3">
+<input id="newPasswordConfirmInput" type="password" placeholder="새 비밀번호 확인" class="w-full border border-outline-variant rounded-lg px-3 py-2.5 font-body-md text-body-md text-on-surface bg-surface-container-lowest mb-3">
+<button type="button" class="w-full py-3 rounded-full bg-primary text-on-primary font-label-sm text-label-sm" onclick="submitPasswordChange()">바꾸기</button>
+</div>
+
+<div id="emailBackdrop" class="hidden fixed inset-0 bg-on-surface/40 z-[80]" onclick="closeEmailPanel()"></div>
+<div id="emailPanel" class="hidden fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-[500px] mx-auto bg-surface rounded-2xl z-[90] p-6 max-h-[80vh] overflow-y-auto shadow-2xl">
+<div class="flex items-center justify-between mb-4">
+<h2 class="font-headline-lg text-headline-lg text-on-surface">이메일 변경</h2>
+<button type="button" onclick="closeEmailPanel()" aria-label="닫기" class="w-9 h-9 flex items-center justify-center rounded-full active:bg-surface-container">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<p class="font-label-sm text-label-sm text-on-surface-variant mb-3">새 이메일로 확인 메일을 보내요. 그 메일에서 확인하기 전까지는 이메일이 안 바뀌어요.</p>
+<input id="newEmailInput" type="email" placeholder="새 이메일 주소" class="w-full border border-outline-variant rounded-lg px-3 py-2.5 font-body-md text-body-md text-on-surface bg-surface-container-lowest mb-3">
+<button type="button" class="w-full py-3 rounded-full bg-primary text-on-primary font-label-sm text-label-sm" onclick="submitEmailChange()">확인 메일 보내기</button>
 </div>
 
 <div id="guideBackdrop" class="hidden fixed inset-0 bg-on-surface/40 z-[80]" onclick="closeGuide()"></div>
@@ -260,6 +328,89 @@
             showToast('문의받을 이메일을 바꿨어요');
         } catch (err) {
             showToast('저장 실패: ' + err.message);
+        }
+    }
+
+    function openPasswordPanel() {
+        document.getElementById('passwordBackdrop').classList.remove('hidden');
+        document.getElementById('passwordPanel').classList.remove('hidden');
+    }
+    function closePasswordPanel() {
+        document.getElementById('passwordBackdrop').classList.add('hidden');
+        document.getElementById('passwordPanel').classList.add('hidden');
+        document.getElementById('newPasswordInput').value = '';
+        document.getElementById('newPasswordConfirmInput').value = '';
+    }
+    async function submitPasswordChange() {
+        var p1 = document.getElementById('newPasswordInput').value;
+        var p2 = document.getElementById('newPasswordConfirmInput').value;
+        if (p1.length < 6) { showToast('비밀번호는 6자 이상이어야 해요'); return; }
+        if (p1 !== p2) { showToast('두 비밀번호가 서로 달라요'); return; }
+        try {
+            await API.auth.updatePassword(p1);
+            showToast('비밀번호를 바꿨어요');
+            closePasswordPanel();
+        } catch (err) {
+            showToast('실패했어요: ' + err.message);
+        }
+    }
+
+    function openEmailPanel() {
+        document.getElementById('emailBackdrop').classList.remove('hidden');
+        document.getElementById('emailPanel').classList.remove('hidden');
+        document.getElementById('newEmailInput').value = '';
+    }
+    function closeEmailPanel() {
+        document.getElementById('emailBackdrop').classList.add('hidden');
+        document.getElementById('emailPanel').classList.add('hidden');
+    }
+    async function submitEmailChange() {
+        var email = document.getElementById('newEmailInput').value.trim();
+        if (!email) { showToast('이메일을 입력해주세요'); return; }
+        try {
+            await API.auth.updateEmail(email);
+            showToast('확인 메일을 보냈어요. 새 이메일에서 확인해주세요');
+            closeEmailPanel();
+        } catch (err) {
+            showToast('실패했어요: ' + err.message);
+        }
+    }
+
+    async function resendVerification() {
+        try {
+            var session = await getSession();
+            await API.auth.resendConfirmation(session.user.email);
+            showToast('인증 메일을 다시 보냈어요');
+        } catch (err) {
+            showToast('실패했어요: ' + err.message);
+        }
+    }
+
+    async function exportMyData() {
+        try {
+            var session = await getSession();
+            var profileRes = await sb.from('profiles_vc2608').select('*').eq('id', session.user.id).maybeSingle();
+            var mealsRes = await sb.from('meals_vc2608').select('*').eq('creator_id', session.user.id);
+            var responsesRes = await sb.from('meal_responses_vc2608').select('*').eq('member_id', myMember.id);
+            var data = {
+                exported_at: new Date().toISOString(),
+                account_email: session.user.email,
+                profile: profileRes.data,
+                household_member: myMember,
+                meals_created: mealsRes.data || [],
+                meal_responses: responsesRes.data || []
+            };
+            var blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            var url = URL.createObjectURL(blob);
+            var a = document.createElement('a');
+            a.href = url;
+            a.download = '우리집식당_내데이터_' + new Date().toISOString().slice(0, 10) + '.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        } catch (err) {
+            showToast('내보내기 실패: ' + err.message);
         }
     }
 
@@ -346,10 +497,45 @@
         el.classList.toggle('off');
     }
 
+    function setSwitchState(el, on) {
+        el.classList.toggle('on', on);
+        el.classList.toggle('off', !on);
+    }
+
+    async function toggleNotifPref(el, kind) {
+        var willBeOn = !el.classList.contains('on');
+        var pushSwitch = document.getElementById('pushSwitch');
+        var changeSwitch = document.getElementById('changeSwitch');
+        var pushOn = kind === 'push' ? willBeOn : pushSwitch.classList.contains('on');
+        var responseChangeOn = kind === 'response_change' ? willBeOn : changeSwitch.classList.contains('on');
+        setSwitchState(el, willBeOn);
+        try {
+            await API.notifications.updatePrefs(pushOn, responseChangeOn);
+        } catch (err) {
+            setSwitchState(el, !willBeOn);
+            showToast('저장에 실패했어요: ' + err.message);
+        }
+    }
+
     async function logout() {
         if (!confirm('로그아웃 할까요?')) return;
         await API.auth.signOut();
         window.location.href = '../2-1.로그인 화면/code.html';
+    }
+
+    async function attemptDeleteAccount() {
+        if (!confirm('계정을 탈퇴할까요? 90일 안에는 다시 로그인해서 되돌릴 수 있고, 그 뒤에는 개인정보가 완전히 삭제돼요.')) return;
+        try {
+            await API.account.deleteAccount();
+            await API.auth.signOut();
+            window.location.href = '../2-1.로그인 화면/code.html';
+        } catch (err) {
+            if (err.message && err.message.indexOf('transfer_required_before_delete') !== -1) {
+                alert('다른 가구원이 있는 가구의 오너라서, 먼저 "가구 설정"에서 오너를 넘기거나 가구원들을 내보낸 뒤에 탈퇴할 수 있어요.');
+            } else {
+                showToast('탈퇴에 실패했어요: ' + err.message);
+            }
+        }
     }
 
     (async function renderProfile() {
@@ -360,10 +546,14 @@
         var nickname = (member && member.name) || '이름 없음';
         var photo = member && member.avatar_url;
         var email = session.user.email || '';
+        document.getElementById('emailUnverifiedBanner').classList.toggle('hidden', !!session.user.email_confirmed_at);
+        document.getElementById('emailUnverifiedBanner').classList.toggle('flex', !session.user.email_confirmed_at);
 
         householdId = member && member.household_id;
         currentNotifChannel = (member && member.notification_channel) || 'kakao';
         renderNotifChannelChips();
+        setSwitchState(document.getElementById('pushSwitch'), !member || member.push_enabled !== false);
+        setSwitchState(document.getElementById('changeSwitch'), !member || member.response_change_notify_enabled !== false);
         myEmail = email;
         myName = nickname;
 
@@ -391,7 +581,7 @@
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function () {
-    navigator.serviceWorker.register('/sw.js');
+    navigator.serviceWorker.register('../sw.js');
   });
 }
 </script>

@@ -309,6 +309,12 @@ API.members = {
     if (res.error) throw res.error;
   },
 
+  // 문자/카카오 알림톡 발송용 연락처 — 본인이거나 가구 오너/공동관리자면 다른 사람 것도 수정 가능(무가입 손님용).
+  async updatePhone(memberId, phone) {
+    var res = await sb.rpc('update_member_phone_vc2608', { p_member_id: memberId, p_phone: phone });
+    if (res.error) throw res.error;
+  },
+
   async addGuestMember(householdId, name) {
     var res = await sb.from('household_members_vc2608').insert({
       household_id: householdId, profile_id: null, name: name, role: 'guest', default_response: 'attending'
@@ -862,7 +868,7 @@ API.notifications = {
   },
   // type: 'response_change'면 response_change_notify_enabled도 확인. push_enabled가 꺼져있으면 전부 생략.
   async create(householdId, memberId, mealId, text, detail, type) {
-    var prefRes = await sb.from('household_members_vc2608').select('push_enabled, response_change_notify_enabled').eq('id', memberId).maybeSingle();
+    var prefRes = await sb.from('household_members_vc2608').select('push_enabled, response_change_notify_enabled, phone').eq('id', memberId).maybeSingle();
     if (prefRes.error) throw prefRes.error;
     var prefs = prefRes.data;
     if (prefs && !prefs.push_enabled) return;
@@ -871,6 +877,10 @@ API.notifications = {
       household_id: householdId, member_id: memberId, meal_id: mealId || null, text: text, detail: detail || null, read: false
     });
     if (res.error) throw res.error;
+    // 외부 연동(문자든 카카오든) — 설정 안 된 상태에서는 서버에서 조용히 스킵되고, 어느 경우에도 앱 안 알림(위 insert)은 그대로 되도록 에러가 나도 삼킴.
+    if (prefs && prefs.phone) {
+      sb.functions.invoke('notify-vc2608', { body: { phone: prefs.phone, text: text + (detail ? ' - ' + detail : '') } }).catch(function () {});
+    }
   },
   async markRead(id) {
     var res = await sb.from('notifications_vc2608').update({ read: true }).eq('id', id);

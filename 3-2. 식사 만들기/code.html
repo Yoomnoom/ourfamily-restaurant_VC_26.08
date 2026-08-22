@@ -135,10 +135,10 @@
     .picker-cancel { background: #f0eded; color: #45474a; }
     .picker-confirm { background: #5d5e62; color: #fff; }
   </style>
-  <link rel="manifest" href="/manifest.json">
+  <link rel="manifest" href="../manifest.json">
 <meta name="theme-color" content="#5d5e62">
-<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
-<link rel="icon" href="/icons/favicon-32.png">
+<link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
+<link rel="icon" href="../icons/favicon-32.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="우리집식당">
 </head>
@@ -1206,7 +1206,7 @@
                     // 나(호스트, 수정한 사람)는 이미 알고 있으니 알림 대상에서 제외.
                     var attendingBefore = rosterBeforeUpdate.filter(function (r) { return r.status === 'attending' && r.memberId !== myMember.id; });
                     for (var k = 0; k < attendingBefore.length; k++) {
-                        await API.notifications.create(myMember.household_id, attendingBefore[k].memberId, editMealId, '메뉴가 바뀌었어요', newMenuLine + '(으)로 변경됐어요');
+                        await API.notifications.create(myMember.household_id, attendingBefore[k].memberId, editMealId, '메뉴가 바뀌었어요', newMenuLine + '(으)로 변경됐어요', 'response_change');
                     }
                 }
 
@@ -1359,7 +1359,7 @@
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function () {
-    navigator.serviceWorker.register('/sw.js');
+    navigator.serviceWorker.register('../sw.js');
   });
 }
 </script>
