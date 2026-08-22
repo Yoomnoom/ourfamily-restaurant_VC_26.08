@@ -371,10 +371,10 @@
         el.type = 'button';
         var dKey = dateKey(cell.date);
         var summary = cell.muted ? null : mealSummary(dKey);
+        var isSelectedCell = !cell.muted && isSameDate(cell.date, selectedDate);
         el.className = (big ? 'week-cell' : 'day-cell') + ' rounded-lg flex flex-col items-center justify-start pt-1.5 gap-1 ' +
-            (cell.muted ? 'text-outline' : 'text-on-surface bg-surface-container-lowest shadow-[0px_2px_6px_rgba(120,119,119,0.06)]') +
-            (!cell.muted && isSameDate(cell.date, today) ? ' ring-2 ring-primary' : '') +
-            (!cell.muted && isSameDate(cell.date, selectedDate) ? ' bg-surface-container-high' : '');
+            (cell.muted ? 'text-outline' : 'text-on-surface shadow-[0px_2px_6px_rgba(120,119,119,0.06)] ' + (isSelectedCell ? 'bg-surface-container-high' : 'bg-surface-container-lowest')) +
+            (!cell.muted && isSameDate(cell.date, today) ? ' ring-2 ring-primary' : '');
         // 03_calendar.png 기준: 일요일 날짜는 주황/빨강으로(muted 처리된 지난달·다음달 날짜는 예외).
         var isSunday = cell.date.getDay() === 0;
         el.innerHTML = '<span class="font-label-sm text-label-sm"' + (isSunday && !cell.muted ? ' style="color:#ba1a1a;"' : '') + '>' + cell.date.getDate() + '</span>';
