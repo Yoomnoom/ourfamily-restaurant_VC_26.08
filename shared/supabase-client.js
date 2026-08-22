@@ -59,6 +59,13 @@ async function requireSession() {
   return session;
 }
 
+// OAuth·비밀번호 재설정의 redirectTo용 — window.location.origin만 쓰면 GitHub Pages처럼
+// 저장소 이름이 붙는 서브패스(예: https://아이디.github.io/저장소명/...)에서 그 부분이
+// 빠진 채로 만들어져 링크가 깨짐. 현재 페이지 기준 상대경로로 풀면 로컬/배포 어디서든 맞음.
+function absoluteUrl(relativePath) {
+  return new URL(encodeURI(relativePath), window.location.href).href;
+}
+
 // 참여자 개인 링크(1인1링크) 토큰은 해시로만 저장 — 원본 토큰은 URL에만 있고 DB엔 안 남음.
 async function sha256Hex(text) {
   var buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
