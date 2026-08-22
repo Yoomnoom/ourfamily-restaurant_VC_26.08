@@ -15,3 +15,7 @@ _compare_login_flow.html
 # scripts/sync-menu-images.js가 Supabase Storage로 업로드하는 원본 재료 —
 # 용량이 커서(수백MB) 저장소에는 안 올림, 실제 서빙은 Storage에서 이루어짐
 음식사진/
+
+# 더 이상 쓰지 않는 화면/디자인 참고용 폴더 — 실제 앱과 무관, 커밋 대상 아님(로컬 보관용).
+# 예전 _archive/를 이 폴더로 통합함(2026-08-23) — 라이브 화면과 번호가 겹쳐 혼동을 주던 문제 해결.
+사용안함/
