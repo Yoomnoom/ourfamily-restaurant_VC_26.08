@@ -46,10 +46,10 @@
       transition-duration: 180ms !important;
     }
   </style>
-  <link rel="manifest" href="/manifest.json">
+  <link rel="manifest" href="../manifest.json">
 <meta name="theme-color" content="#5d5e62">
-<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
-<link rel="icon" href="/icons/favicon-32.png">
+<link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
+<link rel="icon" href="../icons/favicon-32.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="우리집식당">
 </head>
@@ -588,7 +588,7 @@
 
         if (!meals || !meals.length) {
             var emptyCard = document.createElement('div');
-            emptyCard.className = 'rounded-xl bg-surface-container-lowest shadow-[0px_2px_8px_rgba(120,119,119,0.06)] p-4 flex flex-col gap-3';
+            emptyCard.className = 'rounded-xl bg-surface-container p-4 flex flex-col gap-3';
             var empty = document.createElement('p');
             empty.className = 'font-label-sm text-label-sm text-on-surface-variant text-center';
             empty.textContent = '이 날은 계획된 식사가 없어요.';
@@ -844,7 +844,7 @@
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function () {
-    navigator.serviceWorker.register('/sw.js');
+    navigator.serviceWorker.register('../sw.js');
   });
 }
 </script>
