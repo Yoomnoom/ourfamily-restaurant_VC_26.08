@@ -40,7 +40,13 @@
       transition-duration: 180ms !important;
     }
   </style>
-  </head>
+  <link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#5d5e62">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<link rel="icon" href="/icons/favicon-32.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="우리집식당">
+</head>
 <body class="bg-surface text-on-surface font-body-md antialiased min-h-screen flex flex-col items-center">
 
 <div id="toast" class="fixed left-1/2 -translate-x-1/2 bg-on-surface text-surface font-label-sm text-label-sm px-4 py-3 rounded-full shadow-lg opacity-0 pointer-events-none transition-opacity duration-300" style="bottom:24px; z-index:100;"></div>
@@ -205,5 +211,12 @@
         // 한 번 보여줬으면 이 임시 저장은 정리 — 새로고침해도 다시 안 보이는 게 맞음(원본은 해시로만 저장되므로).
         try { localStorage.removeItem('fresh_links_' + mealId); } catch (err) {}
     })();
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('/sw.js');
+  });
+}
 </script>
 </body></html>

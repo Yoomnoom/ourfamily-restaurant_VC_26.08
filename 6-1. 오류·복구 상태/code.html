@@ -33,7 +33,13 @@
       transition-duration: 180ms !important;
     }
   </style>
-  </head>
+  <link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#5d5e62">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<link rel="icon" href="/icons/favicon-32.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="우리집식당">
+</head>
 <body class="bg-surface text-on-surface font-body-md antialiased min-h-screen">
 <main class="w-full max-w-[1400px] mx-auto px-6 py-10">
 
@@ -78,5 +84,12 @@
             '<p class="font-label-sm text-label-sm text-on-surface-variant border-t border-outline-variant pt-2">붙는 화면: ' + c.to + '</p>';
         grid.appendChild(card);
     });
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('/sw.js');
+  });
+}
 </script>
 </body></html>

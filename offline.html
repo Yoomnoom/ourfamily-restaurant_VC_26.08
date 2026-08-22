@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>우리집식당 - 오프라인</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#5d5e62">
+<style>
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #fbf9f8;
+    color: #1b1c1c;
+    font-family: -apple-system, "Noto Sans KR", sans-serif;
+    text-align: center;
+    padding: 24px;
+  }
+  .card { max-width: 320px; }
+  .icon { font-size: 48px; margin-bottom: 16px; }
+  p { color: #45474a; line-height: 1.6; margin: 0 0 24px; }
+  button {
+    background: #5d5e62;
+    color: #fff;
+    border: none;
+    border-radius: 999px;
+    padding: 12px 24px;
+    font-size: 15px;
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="icon">📶</div>
+  <p>인터넷 연결이 끊겼어요.<br>연결이 되면 다시 시도해주세요.</p>
+  <button onclick="location.reload()">다시 시도</button>
+</div>
+</body>
+</html>

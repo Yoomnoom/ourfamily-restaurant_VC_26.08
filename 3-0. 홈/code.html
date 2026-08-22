@@ -135,7 +135,13 @@
     @keyframes rise-fog { 0% { transform: translate(0,0) scale(0.8); opacity: 0; } 15% { opacity: 0.8; } 50% { transform: translate(4%,-60%) scale(1.05); } 85% { opacity: 0.35; } 100% { transform: translate(-4%,-130%) scale(1.25); opacity: 0; } }
     @keyframes flash-thunder { 0%, 93%, 100% { opacity: 0; } 94% { opacity: 0.85; } 95% { opacity: 0.05; } 97% { opacity: 0.6; } 98% { opacity: 0; } }
   </style>
-  </head>
+  <link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#5d5e62">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<link rel="icon" href="/icons/favicon-32.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="우리집식당">
+</head>
 <body class="bg-surface text-on-surface font-body-md antialiased min-h-screen flex flex-col items-center">
 
 <div id="toast" class="fixed left-1/2 -translate-x-1/2 bg-on-surface text-surface font-label-sm text-label-sm px-4 py-3 rounded-full shadow-lg opacity-0 pointer-events-none transition-opacity duration-300" style="bottom:calc(84px + env(safe-area-inset-bottom)); z-index:100;"></div>
@@ -1009,5 +1015,12 @@
         );
         window.addEventListener('beforeunload', function () { API.realtime.unsubscribe(realtimeChannel); });
     })();
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('/sw.js');
+  });
+}
 </script>
 </body></html>

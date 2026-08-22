@@ -106,7 +106,13 @@
     .crop-image { position: absolute; left: 0; top: 0; max-width: none; user-select: none; pointer-events: none; }
     #crop-zoom { width: 100%; margin-bottom: 20px; }
   </style>
-  </head>
+  <link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#5d5e62">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<link rel="icon" href="/icons/favicon-32.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="우리집식당">
+</head>
 <body class="bg-surface text-on-surface font-body-md antialiased min-h-screen flex flex-col items-center">
 <main class="w-full max-w-[600px] flex flex-col px-safe-area-inset py-section-margin relative">
 
@@ -491,5 +497,12 @@
         } catch (err) {}
         addMember(nickname || '나', photo, true, rawPhoto);
     })();
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('/sw.js');
+  });
+}
 </script>
 </body></html>

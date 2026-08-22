@@ -135,7 +135,13 @@
     .picker-cancel { background: #f0eded; color: #45474a; }
     .picker-confirm { background: #5d5e62; color: #fff; }
   </style>
-  </head>
+  <link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#5d5e62">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<link rel="icon" href="/icons/favicon-32.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="우리집식당">
+</head>
 <body class="bg-surface text-on-surface font-body-md antialiased min-h-screen flex flex-col items-center">
 
 <div id="toast" class="fixed left-1/2 -translate-x-1/2 bg-on-surface text-surface font-label-sm text-label-sm px-4 py-3 rounded-full shadow-lg opacity-0 pointer-events-none transition-opacity duration-300" style="bottom:calc(100px + env(safe-area-inset-bottom)); z-index:100;"></div>
@@ -1297,5 +1303,12 @@
         renderParticipants();
         renderCatGroupChips();
     })();
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('/sw.js');
+  });
+}
 </script>
 </body></html>
